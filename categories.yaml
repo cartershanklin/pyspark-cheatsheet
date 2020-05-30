@@ -1,0 +1,55 @@
+Loading and Saving Data:
+    priority: 1
+    description: Loading data into DataFrames from various formats, and saving it out again.
+
+DataFrame Operations:
+    priority: 2
+    description: Adding, removing and modifying DataFrame columns.
+
+Transforming Data:
+    priority: 3
+    description: Data conversions and other modifications.
+
+Sorting and Searching:
+    priority: 4
+    description: Filtering, sorting, removing duplicates and more.
+
+Grouping:
+    priority: 5
+    description: Group DataFrame data by key to perform aggregats like sums, averages, etc.
+
+Joining DataFrames:
+    priority: 6
+    description: Joining and stacking DataFrames.
+
+Handling Missing Data:
+    priority: 7
+    description: Dealing with NULLs and NaNs in DataFrames.
+
+Pandas:
+    priority: 8
+    description: Using Python's Pandas library to augment Spark. Some operations require the pyarrow library.
+
+Performance:
+    priority: 9
+    description: A few performance tips and tricks.
+
+Preamble:
+    description: >
+        PySpark Cheat Sheet
+
+        ===================
+
+        This cheat sheet will help you learn PySpark and write PySpark apps faster. Everything in here is fully functional PySpark code you can run or adapt to your programs.
+
+        
+        These snippets are licensed under the CC0 1.0 Universal license. That means you can freely copy and adapt these code snippets and you don't need to give attribution or include any notices.
+
+
+        These snippets below refer to DataFrames loaded from the "Auto MPG Data Set" available from the [UCI Machine Learning Repository](https://archive.ics.uci.edu/ml/datasets/auto+mpg). You can download that dataset or clone this repository to test the code yourself.
+
+        
+        These snippets were developed against the Spark 2.4.4 API. This page was last updated {last_updated}.
+
+Postscript:
+    description:
