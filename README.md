@@ -2,9 +2,17 @@ PySpark Cheat Sheet
 ===================
 This cheat sheet will help you learn PySpark and write PySpark apps faster. Everything in here is fully functional PySpark code you can run or adapt to your programs.
 
-These snippets below refer to DataFrames loaded from the "Auto MPG Data Set" available from the [UCI Machine Learning Repository](https://archive.ics.uci.edu/ml/datasets/auto+mpg). You can download that dataset or clone this repository to test the code yourself.
+These snippets are licensed under the CC0 1.0 Universal License. That means you can freely copy and adapt these code snippets and you don't need to give attribution or include any notices.
 
-These snippets were developed against the Spark 2.4.4 API. This page was last updated 2020-05-30 08:35:50.
+The snippets below refer to DataFrames loaded from the "Auto MPG Data Set" available from the [UCI Machine Learning Repository](https://archive.ics.uci.edu/ml/datasets/auto+mpg). You can download that dataset or clone this repository to test the code yourself.
+
+These snippets were tested against the Spark 2.4.4 API. This page was last updated 2020-05-31 16:56:46.
+
+Make note of these helpful links:
+- [Built-in Spark SQL Functions](https://spark.apache.org/docs/latest/api/sql/index.html)
+- [PySpark SQL Functions Source](https://spark.apache.org/docs/latest/api/python/_modules/pyspark/sql/functions.html)
+
+If you find this guide helpful and want an easy way to run Spark, check out [Oracle Cloud Infrastructure Data Flow](https://www.oracle.com/big-data/data-flow/), a fully-managed Spark service that lets you run Spark jobs at any scale with no administrative overhead. You can try Data Flow free.
 
 
 Table of contents
@@ -12,84 +20,84 @@ Table of contents
 
 <!--ts-->
    * [Loading and Saving Data](#loading-and-saving-data)
-      * [Save a DataFrame in Parquet format](#save-a-dataframe-in-parquet-format)
       * [Load a DataFrame from CSV](#load-a-dataframe-from-csv)
-      * [Save a DataFrame in CSV format](#save-a-dataframe-in-csv-format)
-      * [Save a DataFrame in a single CSV file](#save-a-dataframe-in-a-single-csv-file)
-      * [Save a DataFrame to CSV with a header](#save-a-dataframe-to-csv-with-a-header)
-      * [Save a DataFrame to CSV, overwriting existing data](#save-a-dataframe-to-csv-overwriting-existing-data)
       * [Provide the schema when loading a DataFrame from CSV](#provide-the-schema-when-loading-a-dataframe-from-csv)
+      * [Configure security to read a CSV file from Oracle Cloud Infrastructure Object Storage](#configure-security-to-read-a-csv-file-from-oracle-cloud-infrastructure-object-storage)
+      * [Save a DataFrame in Parquet format](#save-a-dataframe-in-parquet-format)
+      * [Save a DataFrame in CSV format](#save-a-dataframe-in-csv-format)
+      * [Save a DataFrame to CSV, overwriting existing data](#save-a-dataframe-to-csv-overwriting-existing-data)
+      * [Save a DataFrame to CSV with a header](#save-a-dataframe-to-csv-with-a-header)
+      * [Save a DataFrame in a single CSV file](#save-a-dataframe-in-a-single-csv-file)
       * [Save DataFrame as a dynamic partitioned table](#save-dataframe-as-a-dynamic-partitioned-table)
-      * [Read a CSV file from OCI Object Storage](#read-a-csv-file-from-oci-object-storage)
       * [Overwrite specific partitions](#overwrite-specific-partitions)
    * [DataFrame Operations](#dataframe-operations)
+      * [Add a new column with to a DataFrame](#add-a-new-column-with-to-a-dataframe)
       * [Modify a DataFrame column](#modify-a-dataframe-column)
-      * [Add a new column with builtin UDF](#add-a-new-column-with-builtin-udf)
-      * [Create a custom UDF](#create-a-custom-udf)
-      * [Concatenate columns](#concatenate-columns)
-      * [Convert String to Double](#convert-string-to-double)
-      * [Convert String to Integer](#convert-string-to-integer)
-      * [Change a column name](#change-a-column-name)
-      * [Change multiple column names](#change-multiple-column-names)
-      * [Convert an RDD to Data Frame](#convert-an-rdd-to-data-frame)
-      * [Create an empty dataframe with a specified schema](#create-an-empty-dataframe-with-a-specified-schema)
-      * [Drop a column](#drop-a-column)
-      * [Print the contents of an RDD](#print-the-contents-of-an-rdd)
-      * [Print the contents of a DataFrame](#print-the-contents-of-a-dataframe)
       * [Add a column with multiple conditions](#add-a-column-with-multiple-conditions)
       * [Add a constant column](#add-a-constant-column)
-      * [Process each row of a DataFrame](#process-each-row-of-a-dataframe)
-      * [DataFrame Map example](#dataframe-map-example)
-      * [DataFrame Flatmap example](#dataframe-flatmap-example)
-      * [Create a constant dataframe](#create-a-constant-dataframe)
+      * [Concatenate columns](#concatenate-columns)
+      * [Drop a column](#drop-a-column)
+      * [Change a column name](#change-a-column-name)
+      * [Change multiple column names](#change-multiple-column-names)
       * [Select particular columns from a DataFrame](#select-particular-columns-from-a-dataframe)
+      * [Create an empty dataframe with a specified schema](#create-an-empty-dataframe-with-a-specified-schema)
+      * [Create a constant dataframe](#create-a-constant-dataframe)
+      * [Convert String to Double](#convert-string-to-double)
+      * [Convert String to Integer](#convert-string-to-integer)
       * [Get the size of a DataFrame](#get-the-size-of-a-dataframe)
       * [Get a DataFrame's number of partitions](#get-a-dataframe-s-number-of-partitions)
       * [Get data types of a DataFrame's columns](#get-data-types-of-a-dataframe-s-columns)
+      * [Convert an RDD to Data Frame](#convert-an-rdd-to-data-frame)
+      * [Print the contents of an RDD](#print-the-contents-of-an-rdd)
+      * [Print the contents of a DataFrame](#print-the-contents-of-a-dataframe)
+      * [Process each row of a DataFrame](#process-each-row-of-a-dataframe)
+      * [DataFrame Map example](#dataframe-map-example)
+      * [DataFrame Flatmap example](#dataframe-flatmap-example)
+      * [Create a custom UDF](#create-a-custom-udf)
    * [Transforming Data](#transforming-data)
-      * [Convert string to date](#convert-string-to-date)
-      * [Convert string to date with custom format](#convert-string-to-date-with-custom-format)
-      * [Convert UNIX (seconds since epoch) timestamp to date](#convert-unix-seconds-since-epoch-timestamp-to-date)
       * [Fill NULL values in specific columns](#fill-null-values-in-specific-columns)
       * [Fill NULL values with column average](#fill-null-values-with-column-average)
       * [Fill NULL values with group average](#fill-null-values-with-group-average)
+      * [Convert string to date](#convert-string-to-date)
+      * [Convert string to date with custom format](#convert-string-to-date-with-custom-format)
+      * [Convert UNIX (seconds since epoch) timestamp to date](#convert-unix-seconds-since-epoch-timestamp-to-date)
       * [Unpack a DataFrame's JSON column to a new DataFrame](#unpack-a-dataframe-s-json-column-to-a-new-dataframe)
       * [Query a JSON column](#query-a-json-column)
    * [Sorting and Searching](#sorting-and-searching)
-      * [Get distinct values of a column](#get-distinct-values-of-a-column)
-      * [Filter a Dataframe based on substring search](#filter-a-dataframe-based-on-substring-search)
+      * [Filter a column using a condition](#filter-a-column-using-a-condition)
+      * [Filter based on a specific column value](#filter-based-on-a-specific-column-value)
       * [Filter based on an IN list](#filter-based-on-an-in-list)
       * [Filter based on a NOT IN list](#filter-based-on-a-not-in-list)
+      * [Filter a Dataframe based on substring search](#filter-a-dataframe-based-on-substring-search)
       * [Filter based on a column's length](#filter-based-on-a-column-s-length)
-      * [Filter based on a specific column value](#filter-based-on-a-specific-column-value)
+      * [Multiple filter conditions](#multiple-filter-conditions)
       * [Sort DataFrame by a column](#sort-dataframe-by-a-column)
       * [Take the first N rows of a DataFrame](#take-the-first-n-rows-of-a-dataframe)
-      * [Multiple filter conditions](#multiple-filter-conditions)
+      * [Get distinct values of a column](#get-distinct-values-of-a-column)
       * [Remove duplicates](#remove-duplicates)
-      * [Filter a column](#filter-a-column)
    * [Grouping](#grouping)
-      * [Get the maximum of a column](#get-the-maximum-of-a-column)
-      * [Group by then filter on the count](#group-by-then-filter-on-the-count)
-      * [Find the top N per row group (use N=1 for maximum)](#find-the-top-n-per-row-group-use-n-1-for-maximum)
-      * [Count unique after grouping](#count-unique-after-grouping)
-      * [Sum a list of columns](#sum-a-list-of-columns)
-      * [Aggregate all numeric columns](#aggregate-all-numeric-columns)
-      * [Sum a column](#sum-a-column)
-      * [Compute a histogram](#compute-a-histogram)
-      * [Group key/values into a list](#group-key-values-into-a-list)
       * [Group and sort](#group-and-sort)
       * [Group by multiple columns](#group-by-multiple-columns)
       * [Aggregate multiple columns](#aggregate-multiple-columns)
-      * [Aggregate multiple columns](#aggregate-multiple-columns)
+      * [Aggregate multiple columns with custom orderings](#aggregate-multiple-columns-with-custom-orderings)
+      * [Get the maximum of a column](#get-the-maximum-of-a-column)
+      * [Sum a list of columns](#sum-a-list-of-columns)
+      * [Sum a column](#sum-a-column)
+      * [Aggregate all numeric columns](#aggregate-all-numeric-columns)
+      * [Count unique after grouping](#count-unique-after-grouping)
       * [Count distinct values on all columns](#count-distinct-values-on-all-columns)
+      * [Group by then filter on the count](#group-by-then-filter-on-the-count)
+      * [Find the top N per row group (use N=1 for maximum)](#find-the-top-n-per-row-group-use-n-1-for-maximum)
+      * [Group key/values into a list](#group-key-values-into-a-list)
+      * [Compute a histogram](#compute-a-histogram)
    * [Joining DataFrames](#joining-dataframes)
-      * [Concatenate two DataFrames](#concatenate-two-dataframes)
       * [Join two DataFrames by column name](#join-two-dataframes-by-column-name)
       * [Join two DataFrames with an expression](#join-two-dataframes-with-an-expression)
-      * [Load multiple files into a single DataFrame](#load-multiple-files-into-a-single-dataframe)
       * [Multiple join conditions](#multiple-join-conditions)
-      * [Subtract DataFrames](#subtract-dataframes)
       * [Various Spark join types](#various-spark-join-types)
+      * [Concatenate two DataFrames](#concatenate-two-dataframes)
+      * [Load multiple files into a single DataFrame](#load-multiple-files-into-a-single-dataframe)
+      * [Subtract DataFrames](#subtract-dataframes)
    * [Handling Missing Data](#handling-missing-data)
       * [Filter rows with None or Null values](#filter-rows-with-none-or-null-values)
       * [Drop rows with Null values](#drop-rows-with-null-values)
@@ -100,8 +108,8 @@ Table of contents
       * [Define a UDAF with Pandas](#define-a-udaf-with-pandas)
       * [Define a Pandas Grouped Map Function](#define-a-pandas-grouped-map-function)
    * [Performance](#performance)
-      * [Change DataFrame partitioning](#change-dataframe-partitioning)
       * [Coalesce DataFrame partitions](#coalesce-dataframe-partitions)
+      * [Change DataFrame partitioning](#change-dataframe-partitioning)
       * [Increase Spark driver/executor heap space](#increase-spark-driver-executor-heap-space)
 <!--te-->
     
@@ -110,51 +118,13 @@ Loading and Saving Data
 =======================
 Loading data into DataFrames from various formats, and saving it out again.
 
-Save a DataFrame in Parquet format
-----------------------------------
-
-```python
-df.write.parquet("output.parquet")
-```
-
-
 Load a DataFrame from CSV
 -------------------------
 
 ```python
+# See https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameReader.html
+# for a list of supported options.
 df = spark.read.format("csv").option("header", True).load("auto-mpg.csv")
-```
-
-
-Save a DataFrame in CSV format
-------------------------------
-
-```python
-df.write.csv("output.csv")
-```
-
-
-Save a DataFrame in a single CSV file
--------------------------------------
-
-```python
-df.coalesce(1).write.csv("single.csv")
-```
-
-
-Save a DataFrame to CSV with a header
--------------------------------------
-
-```python
-df.coalesce(1).write.csv("header.csv", header="true")
-```
-
-
-Save a DataFrame to CSV, overwriting existing data
---------------------------------------------------
-
-```python
-df.write.mode("overwrite").csv("output.csv")
 ```
 
 
@@ -162,6 +132,8 @@ Provide the schema when loading a DataFrame from CSV
 ----------------------------------------------------
 
 ```python
+# See https://spark.apache.org/docs/latest/api/python/_modules/pyspark/sql/types.html
+# for a list of types.
 from pyspark.sql.types import (
     DoubleType,
     IntegerType,
@@ -192,17 +164,8 @@ df = (
 ```
 
 
-Save DataFrame as a dynamic partitioned table
----------------------------------------------
-
-```python
-spark.conf.set("spark.sql.sources.partitionOverwriteMode", "dynamic")
-df.write.mode("append").partitionBy("modelyear").saveAsTable("autompg")
-```
-
-
-Read a CSV file from OCI Object Storage
----------------------------------------
+Configure security to read a CSV file from Oracle Cloud Infrastructure Object Storage
+-------------------------------------------------------------------------------------
 
 ```python
 import oci
@@ -216,8 +179,61 @@ conf.set(
     "fs.oci.client.hostname",
     "https://objectstorage.{0}.oraclecloud.com".format(oci_config["region"]),
 )
-PATH = "oci://your_path_here"
+PATH = "oci://<your_bucket>@<your_namespace/<your_path>"
 df = spark.read.format("csv").option("header", True).load(PATH)
+```
+
+
+Save a DataFrame in Parquet format
+----------------------------------
+
+```python
+df.write.parquet("output.parquet")
+```
+
+
+Save a DataFrame in CSV format
+------------------------------
+
+```python
+# See https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameWriter.html
+# for a list of supported options.
+df.write.csv("output.csv")
+```
+
+
+Save a DataFrame to CSV, overwriting existing data
+--------------------------------------------------
+
+```python
+df.write.mode("overwrite").csv("output.csv")
+```
+
+
+Save a DataFrame to CSV with a header
+-------------------------------------
+
+```python
+# See https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameWriter.html
+# for a list of supported options.
+df.coalesce(1).write.csv("header.csv", header="true")
+```
+
+
+Save a DataFrame in a single CSV file
+-------------------------------------
+
+```python
+df.coalesce(1).write.csv("single.csv")
+```
+
+
+Save DataFrame as a dynamic partitioned table
+---------------------------------------------
+
+```python
+spark.conf.set("spark.sql.sources.partitionOverwriteMode", "dynamic")
+df.write.mode("append").partitionBy("modelyear").saveAsTable("autompg")
 ```
 
 
@@ -234,18 +250,8 @@ DataFrame Operations
 ====================
 Adding, removing and modifying DataFrame columns.
 
-Modify a DataFrame column
--------------------------
-
-```python
-from pyspark.sql.functions import col, concat, lit
-
-df = df.withColumn("modelyear", concat(lit("19"), col("modelyear")))
-```
-
-
-Add a new column with builtin UDF
----------------------------------
+Add a new column with to a DataFrame
+------------------------------------
 
 ```python
 from pyspark.sql.functions import upper, lower
@@ -256,116 +262,13 @@ df = df.withColumn("upper", upper(df.carname)).withColumn(
 ```
 
 
-Create a custom UDF
--------------------
-
-```python
-from pyspark.sql.functions import udf
-from pyspark.sql.types import StringType
-
-first_word_udf = udf(lambda x: x.split()[0], StringType())
-df = df.withColumn("manufacturer", first_word_udf(df.carname))
-```
-
-
-Concatenate columns
--------------------
-
-```python
-from pyspark.sql.functions import concat, col, lit
-
-df = df.withColumn(
-    "concatenated", concat(col("cylinders"), lit("_"), col("mpg"))
-)
-```
-
-
-Convert String to Double
-------------------------
-
-```python
-from pyspark.sql.functions import col
-
-df = df.withColumn("horsepower", col("horsepower").cast("double"))
-```
-
-
-Convert String to Integer
+Modify a DataFrame column
 -------------------------
 
 ```python
-from pyspark.sql.functions import col
+from pyspark.sql.functions import col, concat, lit
 
-df = df.withColumn("horsepower", col("horsepower").cast("int"))
-```
-
-
-Change a column name
---------------------
-
-```python
-df = df.withColumnRenamed("horsepower", "horses")
-```
-
-
-Change multiple column names
-----------------------------
-
-```python
-df = df.withColumnRenamed("horsepower", "horses").withColumnRenamed(
-    "modelyear", "year"
-)
-```
-
-
-Convert an RDD to Data Frame
-----------------------------
-
-```python
-from pyspark.sql import Row
-
-row = Row("val")
-df = rdd.map(row).toDF()
-```
-
-
-Create an empty dataframe with a specified schema
--------------------------------------------------
-
-```python
-from pyspark.sql.types import StructField, StructType, LongType, StringType
-
-schema = StructType(
-    [
-        StructField("my_id", LongType(), True),
-        StructField("my_string", StringType(), True),
-    ]
-)
-df = spark.createDataFrame([], schema)
-```
-
-
-Drop a column
--------------
-
-```python
-df = df.drop("horsepower")
-```
-
-
-Print the contents of an RDD
-----------------------------
-
-```python
-print(rdd.take(10))
-```
-
-
-Print the contents of a DataFrame
----------------------------------
-
-```python
-df.show(10)
+df = df.withColumn("modelyear", concat(lit("19"), col("modelyear")))
 ```
 
 
@@ -392,6 +295,170 @@ Add a constant column
 from pyspark.sql.functions import lit
 
 df = df.withColumn("one", lit(1))
+```
+
+
+Concatenate columns
+-------------------
+
+```python
+from pyspark.sql.functions import concat, col, lit
+
+df = df.withColumn(
+    "concatenated", concat(col("cylinders"), lit("_"), col("mpg"))
+)
+```
+
+
+Drop a column
+-------------
+
+```python
+df = df.drop("horsepower")
+```
+
+
+Change a column name
+--------------------
+
+```python
+df = df.withColumnRenamed("horsepower", "horses")
+```
+
+
+Change multiple column names
+----------------------------
+
+```python
+df = df.withColumnRenamed("horsepower", "horses").withColumnRenamed(
+    "modelyear", "year"
+)
+```
+
+
+Select particular columns from a DataFrame
+------------------------------------------
+
+```python
+df = df.select(["mpg", "cylinders", "displacement"])
+```
+
+
+Create an empty dataframe with a specified schema
+-------------------------------------------------
+
+```python
+from pyspark.sql.types import StructField, StructType, LongType, StringType
+
+schema = StructType(
+    [
+        StructField("my_id", LongType(), True),
+        StructField("my_string", StringType(), True),
+    ]
+)
+df = spark.createDataFrame([], schema)
+```
+
+
+Create a constant dataframe
+---------------------------
+
+```python
+import datetime
+from pyspark.sql.types import (
+    StructField,
+    StructType,
+    LongType,
+    StringType,
+    TimestampType,
+)
+
+schema = StructType(
+    [
+        StructField("my_id", LongType(), True),
+        StructField("my_string", StringType(), True),
+        StructField("my_timestamp", TimestampType(), True),
+    ]
+)
+df = spark.createDataFrame(
+    [
+        (1, "foo", datetime.datetime.strptime("2021-01-01", "%Y-%m-%d")),
+        (2, "bar", datetime.datetime.strptime("2021-01-02", "%Y-%m-%d")),
+    ],
+    schema,
+)
+```
+
+
+Convert String to Double
+------------------------
+
+```python
+from pyspark.sql.functions import col
+
+df = df.withColumn("horsepower", col("horsepower").cast("double"))
+```
+
+
+Convert String to Integer
+-------------------------
+
+```python
+from pyspark.sql.functions import col
+
+df = df.withColumn("horsepower", col("horsepower").cast("int"))
+```
+
+
+Get the size of a DataFrame
+---------------------------
+
+```python
+print("{} rows".format(df.count()))
+print("{} columns".format(len(df.columns)))
+```
+
+
+Get a DataFrame's number of partitions
+--------------------------------------
+
+```python
+print("{} partition(s)".format(df.rdd.getNumPartitions()))
+```
+
+
+Get data types of a DataFrame's columns
+---------------------------------------
+
+```python
+print(df.dtypes)
+```
+
+
+Convert an RDD to Data Frame
+----------------------------
+
+```python
+from pyspark.sql import Row
+
+row = Row("val")
+df = rdd.map(row).toDF()
+```
+
+
+Print the contents of an RDD
+----------------------------
+
+```python
+print(rdd.take(10))
+```
+
+
+Print the contents of a DataFrame
+---------------------------------
+
+```python
+df.show(10)
 ```
 
 
@@ -441,72 +508,55 @@ df = rdd.map(row).toDF()
 ```
 
 
-Create a constant dataframe
----------------------------
+Create a custom UDF
+-------------------
 
 ```python
-import datetime
-from pyspark.sql.types import (
-    StructField,
-    StructType,
-    LongType,
-    StringType,
-    TimestampType,
-)
+from pyspark.sql.functions import udf
+from pyspark.sql.types import StringType
 
-schema = StructType(
-    [
-        StructField("my_id", LongType(), True),
-        StructField("my_string", StringType(), True),
-        StructField("my_timestamp", TimestampType(), True),
-    ]
-)
-df = spark.createDataFrame(
-    [
-        (1, "foo", datetime.datetime.strptime("2021-01-01", "%Y-%m-%d")),
-        (2, "bar", datetime.datetime.strptime("2021-01-02", "%Y-%m-%d")),
-    ],
-    schema,
-)
-```
-
-
-Select particular columns from a DataFrame
-------------------------------------------
-
-```python
-df = df.select(["mpg", "cylinders", "displacement"])
-```
-
-
-Get the size of a DataFrame
----------------------------
-
-```python
-print("{} rows".format(df.count()))
-print("{} columns".format(len(df.columns)))
-```
-
-
-Get a DataFrame's number of partitions
---------------------------------------
-
-```python
-print("{} partition(s)".format(df.rdd.getNumPartitions()))
-```
-
-
-Get data types of a DataFrame's columns
----------------------------------------
-
-```python
-print(df.dtypes)
+first_word_udf = udf(lambda x: x.split()[0], StringType())
+df = df.withColumn("manufacturer", first_word_udf(df.carname))
 ```
 
 
 Transforming Data
 =================
 Data conversions and other modifications.
+
+Fill NULL values in specific columns
+------------------------------------
+
+```python
+df.fillna({"horsepower": 0})
+```
+
+
+Fill NULL values with column average
+------------------------------------
+
+```python
+from pyspark.sql.functions import avg
+
+df.fillna({"horsepower": df.agg(avg("horsepower")).first()[0]})
+```
+
+
+Fill NULL values with group average
+-----------------------------------
+
+```python
+from pyspark.sql.functions import avg, coalesce
+
+unmodified_columns = df.columns
+unmodified_columns.remove("horsepower")
+manufacturer_avg = df.groupBy("cylinders").agg({"horsepower": "avg"})
+df = df.join(manufacturer_avg, "cylinders").select(
+    *unmodified_columns,
+    coalesce("horsepower", "avg(horsepower)").alias("horsepower")
+)
+```
+
 
 Convert string to date
 ----------------------
@@ -547,40 +597,6 @@ df = df.withColumn("date_col", from_unixtime(col("ts_col")))
 ```
 
 
-Fill NULL values in specific columns
-------------------------------------
-
-```python
-df.fillna({"horsepower": 0})
-```
-
-
-Fill NULL values with column average
-------------------------------------
-
-```python
-from pyspark.sql.functions import avg
-
-df.fillna({"horsepower": df.agg(avg("horsepower")).first()[0]})
-```
-
-
-Fill NULL values with group average
------------------------------------
-
-```python
-from pyspark.sql.functions import avg, coalesce
-
-unmodified_columns = df.columns
-unmodified_columns.remove("horsepower")
-manufacturer_avg = df.groupBy("cylinders").agg({"horsepower": "avg"})
-df = df.join(manufacturer_avg, "cylinders").select(
-    *unmodified_columns,
-    coalesce("horsepower", "avg(horsepower)").alias("horsepower")
-)
-```
-
-
 Unpack a DataFrame's JSON column to a new DataFrame
 ---------------------------------------------------
 
@@ -616,21 +632,23 @@ Sorting and Searching
 =====================
 Filtering, sorting, removing duplicates and more.
 
-Get distinct values of a column
--------------------------------
-
-```python
-distinct = df.select("cylinders").distinct()
-```
-
-
-Filter a Dataframe based on substring search
---------------------------------------------
+Filter a column using a condition
+---------------------------------
 
 ```python
 from pyspark.sql.functions import col
 
-filtered = df.where(col("carname").like("%custom%"))
+filtered = df.filter(col("mpg") > "30")
+```
+
+
+Filter based on a specific column value
+---------------------------------------
+
+```python
+from pyspark.sql.functions import col
+
+filtered = df.where(col("cylinders") == "8")
 ```
 
 
@@ -654,6 +672,16 @@ filtered = df.where(~col("cylinders").isin(["4", "6"]))
 ```
 
 
+Filter a Dataframe based on substring search
+--------------------------------------------
+
+```python
+from pyspark.sql.functions import col
+
+filtered = df.where(col("carname").like("%custom%"))
+```
+
+
 Filter based on a column's length
 ---------------------------------
 
@@ -664,13 +692,14 @@ filtered = df.where(length(col("carname")) < 12)
 ```
 
 
-Filter based on a specific column value
----------------------------------------
+Multiple filter conditions
+--------------------------
 
 ```python
 from pyspark.sql.functions import col
 
-filtered = df.where(col("cylinders") == "8")
+or_conditions = df.filter((col("mpg") > "30") | (col("acceleration") < "10"))
+and_conditions = df.filter((col("mpg") > "30") & (col("acceleration") < "13"))
 ```
 
 
@@ -694,14 +723,11 @@ reduced = df.limit(n)
 ```
 
 
-Multiple filter conditions
---------------------------
+Get distinct values of a column
+-------------------------------
 
 ```python
-from pyspark.sql.functions import col
-
-or_conditions = df.filter((col("mpg") > "30") | (col("acceleration") < "10"))
-and_conditions = df.filter((col("mpg") > "30") & (col("acceleration") < "13"))
+distinct = df.select("cylinders").distinct()
 ```
 
 
@@ -713,19 +739,60 @@ filtered = df.dropDuplicates(["carname"])
 ```
 
 
-Filter a column
----------------
-
-```python
-from pyspark.sql.functions import col
-
-filtered = df.filter(col("mpg") > "30")
-```
-
-
 Grouping
 ========
 Group DataFrame data by key to perform aggregats like sums, averages, etc.
+
+Group and sort
+--------------
+
+```python
+from pyspark.sql.functions import avg, desc
+grouped = (
+    df.groupBy("cylinders")
+    .agg(avg("horsepower").alias("avg_horsepower"))
+    .orderBy(desc("avg_horsepower"))
+)
+```
+
+
+Group by multiple columns
+-------------------------
+
+```python
+from pyspark.sql.functions import avg, desc
+grouped = (
+    df.groupBy(["modelyear", "cylinders"])
+    .agg(avg("horsepower").alias("avg_horsepower"))
+    .orderBy(desc("avg_horsepower"))
+)
+```
+
+
+Aggregate multiple columns
+--------------------------
+
+```python
+from pyspark.sql.functions import asc, desc_nulls_last
+expressions = dict(horsepower="avg", weight="max", displacement="max")
+grouped = df.groupBy("modelyear").agg(expressions)
+```
+
+
+Aggregate multiple columns with custom orderings
+------------------------------------------------
+
+```python
+from pyspark.sql.functions import asc, desc_nulls_last
+expressions = dict(horsepower="avg", weight="max", displacement="max")
+orderings = [
+    desc_nulls_last("max(displacement)"),
+    desc_nulls_last("avg(horsepower)"),
+    asc("max(weight)"),
+]
+grouped = df.groupBy("modelyear").agg(expressions).orderBy(*orderings)
+```
+
 
 Get the maximum of a column
 ---------------------------
@@ -734,6 +801,52 @@ Get the maximum of a column
 from pyspark.sql.functions import col, max
 
 grouped = df.select(max(col("horsepower")).alias("max_horsepower"))
+```
+
+
+Sum a list of columns
+---------------------
+
+```python
+exprs = {x: "sum" for x in ("weight", "cylinders", "mpg")}
+summed = df.agg(exprs)
+```
+
+
+Sum a column
+------------
+
+```python
+from pyspark.sql.functions import sum
+grouped = df.groupBy("cylinders").agg(sum("weight").alias("total_weight"))
+```
+
+
+Aggregate all numeric columns
+-----------------------------
+
+```python
+numerics = set(["decimal", "double", "float", "integer", "long", "short"])
+exprs = {x[0]: "sum" for x in df.dtypes if x[1] in numerics}
+summed = df.agg(exprs)
+```
+
+
+Count unique after grouping
+---------------------------
+
+```python
+from pyspark.sql.functions import countDistinct
+grouped = df.groupBy("cylinders").agg(countDistinct("mpg"))
+```
+
+
+Count distinct values on all columns
+------------------------------------
+
+```python
+from pyspark.sql.functions import countDistinct
+grouped = df.agg(*(countDistinct(c) for c in df.columns))
 ```
 
 
@@ -754,6 +867,7 @@ Find the top N per row group (use N=1 for maximum)
 from pyspark.sql.functions import col, row_number
 from pyspark.sql.window import Window
 
+# To get the maximum per group, set n=1.
 n = 5
 w = Window().partitionBy("cylinders").orderBy(col("horsepower").desc())
 result = (
@@ -765,48 +879,14 @@ result = (
 ```
 
 
-Count unique after grouping
----------------------------
+Group key/values into a list
+----------------------------
 
 ```python
-from pyspark.sql.functions import countDistinct, udf
-from pyspark.sql.types import StringType
-
-manufacturer_udf = udf(lambda x: x.split()[0], StringType())
-df = df.withColumn("manufacturer", manufacturer_udf(df.carname))
-grouped = df.groupBy("manufacturer").agg(countDistinct("cylinders"))
-```
-
-
-Sum a list of columns
----------------------
-
-```python
-exprs = {x: "sum" for x in ("weight", "cylinders", "mpg")}
-summed = df.agg(exprs)
-```
-
-
-Aggregate all numeric columns
------------------------------
-
-```python
-numerics = set(["decimal", "double", "float", "integer", "long", "short"])
-exprs = {x[0]: "sum" for x in df.dtypes if x[1] in numerics}
-summed = df.agg(exprs)
-```
-
-
-Sum a column
-------------
-
-```python
-from pyspark.sql.functions import sum, udf
-from pyspark.sql.types import StringType
-
-manufacturer_udf = udf(lambda x: x.split()[0], StringType())
-df = df.withColumn("manufacturer", manufacturer_udf(df.carname))
-grouped = df.groupBy("manufacturer").agg(sum("weight").alias("total_weight"))
+from pyspark.sql.functions import col, collect_list
+collected = df.groupBy("cylinders").agg(
+    collect_list(col("carname")).alias("models")
+)
 ```
 
 
@@ -814,112 +894,20 @@ Compute a histogram
 -------------------
 
 ```python
-assert False, ""
-```
+from pyspark.sql.functions import col
 
+# Target column must be numeric.
+df = df.withColumn("horsepower", col("horsepower").cast("double"))
 
-Group key/values into a list
-----------------------------
-
-```python
-from pyspark.sql.functions import col, collect_list, udf
-from pyspark.sql.types import StringType
-
-manufacturer_udf = udf(lambda x: x.split()[0], StringType())
-df = df.withColumn("manufacturer", manufacturer_udf(df.carname))
-collected = df.groupBy("manufacturer").agg(
-    collect_list(col("carname")).alias("models")
-)
-```
-
-
-Group and sort
---------------
-
-```python
-from pyspark.sql.functions import avg, desc
-
-grouped = (
-    df.groupBy("cylinders")
-    .agg(avg("horsepower").alias("avg_horsepower"))
-    .orderBy(desc("avg_horsepower"))
-)
-```
-
-
-Group by multiple columns
--------------------------
-
-```python
-from pyspark.sql.functions import avg, desc, udf
-from pyspark.sql.types import StringType
-
-manufacturer_udf = udf(lambda x: x.split()[0], StringType())
-df = df.withColumn("manufacturer", manufacturer_udf(df.carname))
-grouped = (
-    df.groupBy(["manufacturer", "cylinders"])
-    .agg(avg("horsepower").alias("avg_horsepower"))
-    .orderBy(desc("avg_horsepower"))
-)
-```
-
-
-Aggregate multiple columns
---------------------------
-
-```python
-from pyspark.sql.functions import asc, desc_nulls_last, udf
-from pyspark.sql.types import StringType
-
-manufacturer_udf = udf(lambda x: x.split()[0], StringType())
-df = df.withColumn("manufacturer", manufacturer_udf(df.carname))
-expressions = dict(horsepower="avg", weight="max", displacement="max")
-grouped = df.groupBy("manufacturer").agg(expressions)
-```
-
-
-Aggregate multiple columns
---------------------------
-
-```python
-from pyspark.sql.functions import asc, desc_nulls_last, udf
-from pyspark.sql.types import StringType
-
-manufacturer_udf = udf(lambda x: x.split()[0], StringType())
-df = df.withColumn("manufacturer", manufacturer_udf(df.carname))
-expressions = dict(horsepower="avg", weight="max", displacement="max")
-orderings = [
-    desc_nulls_last("max(displacement)"),
-    desc_nulls_last("avg(horsepower)"),
-    asc("max(weight)"),
-]
-grouped = df.groupBy("manufacturer").agg(expressions).orderBy(*orderings)
-```
-
-
-Count distinct values on all columns
-------------------------------------
-
-```python
-from pyspark.sql.functions import countDistinct
-
-grouped = df.agg(*(countDistinct(c) for c in df.columns))
+# N is the number of bins.
+N = 11
+histogram = df.select("horsepower").rdd.flatMap(lambda x: x).histogram(N)
 ```
 
 
 Joining DataFrames
 ==================
 Joining and stacking DataFrames.
-
-Concatenate two DataFrames
---------------------------
-
-```python
-df1 = spark.read.format("csv").option("header", True).load("part1.csv")
-df2 = spark.read.format("csv").option("header", True).load("part2.csv")
-df = df1.union(df2)
-```
-
 
 Join two DataFrames by column name
 ----------------------------------
@@ -928,11 +916,16 @@ Join two DataFrames by column name
 from pyspark.sql.functions import udf
 from pyspark.sql.types import StringType
 
-first_word_udf = udf(lambda x: x.split()[0], StringType())
-df = df.withColumn("manufacturer", first_word_udf(df.carname))
+# Load a list of manufacturer / country pairs.
 countries = (
     spark.read.format("csv").option("header", True).load("manufacturers.csv")
 )
+
+# Add a manufacturers column, to join with the manufacturers list.
+first_word_udf = udf(lambda x: x.split()[0], StringType())
+df = df.withColumn("manufacturer", first_word_udf(df.carname))
+
+# The actual join.
 joined = df.join(countries, "manufacturer")
 ```
 
@@ -944,28 +937,17 @@ Join two DataFrames with an expression
 from pyspark.sql.functions import udf
 from pyspark.sql.types import StringType
 
-first_word_udf = udf(lambda x: x.split()[0], StringType())
-df = df.withColumn("manufacturer", first_word_udf(df.carname))
+# Load a list of manufacturer / country pairs.
 countries = (
     spark.read.format("csv").option("header", True).load("manufacturers.csv")
 )
+
+# Add a manufacturers column, to join with the manufacturers list.
+first_word_udf = udf(lambda x: x.split()[0], StringType())
+df = df.withColumn("manufacturer", first_word_udf(df.carname))
+
+# The actual join.
 joined = df.join(countries, df.manufacturer == countries.manufacturer)
-```
-
-
-Load multiple files into a single DataFrame
--------------------------------------------
-
-```python
-# Approach 1: Use a list.
-df = (
-    spark.read.format("csv")
-    .option("header", True)
-    .load(["part1.csv", "part2.csv"])
-)
-
-# Approach 2: Use a wildcard.
-df = spark.read.format("csv").option("header", True).load("part*.csv")
 ```
 
 
@@ -976,26 +958,21 @@ Multiple join conditions
 from pyspark.sql.functions import udf
 from pyspark.sql.types import StringType
 
-first_word_udf = udf(lambda x: x.split()[0], StringType())
-df = df.withColumn("manufacturer", first_word_udf(df.carname))
+# Load a list of manufacturer / country pairs.
 countries = (
     spark.read.format("csv").option("header", True).load("manufacturers.csv")
 )
+
+# Add a manufacturers column, to join with the manufacturers list.
+first_word_udf = udf(lambda x: x.split()[0], StringType())
+df = df.withColumn("manufacturer", first_word_udf(df.carname))
+
+# The actual join.
 joined = df.join(
     countries,
     (df.manufacturer == countries.manufacturer)
     | (df.mpg == countries.manufacturer),
 )
-```
-
-
-Subtract DataFrames
--------------------
-
-```python
-from pyspark.sql.functions import col
-
-reduced = df.subtract(df.where(col("mpg") < "25"))
 ```
 
 
@@ -1017,6 +994,42 @@ joined = df.join(df, "carname", "right")
 
 # Full join.
 joined = df.join(df, "carname", "full")
+```
+
+
+Concatenate two DataFrames
+--------------------------
+
+```python
+df1 = spark.read.format("csv").option("header", True).load("part1.csv")
+df2 = spark.read.format("csv").option("header", True).load("part2.csv")
+df = df1.union(df2)
+```
+
+
+Load multiple files into a single DataFrame
+-------------------------------------------
+
+```python
+# Approach 1: Use a list.
+df = (
+    spark.read.format("csv")
+    .option("header", True)
+    .load(["part1.csv", "part2.csv"])
+)
+
+# Approach 2: Use a wildcard.
+df = spark.read.format("csv").option("header", True).load("part*.csv")
+```
+
+
+Subtract DataFrames
+-------------------
+
+```python
+from pyspark.sql.functions import col
+
+reduced = df.subtract(df.where(col("mpg") < "25"))
 ```
 
 
@@ -1118,6 +1131,17 @@ Performance
 ===========
 A few performance tips and tricks.
 
+Coalesce DataFrame partitions
+-----------------------------
+
+```python
+import math
+
+target_partitions = math.ceil(df.rdd.getNumPartitions() / 2)
+df = df.coalesce(target_partitions)
+```
+
+
 Change DataFrame partitioning
 -----------------------------
 
@@ -1130,20 +1154,15 @@ df = df.repartitionByRange(number_of_partitions, col("mpg"))
 ```
 
 
-Coalesce DataFrame partitions
------------------------------
-
-```python
-import math
-
-target_partitions = math.ceil(df.rdd.getNumPartitions() / 2)
-df = df.coalesce(target_partitions)
-```
-
-
 Increase Spark driver/executor heap space
 -----------------------------------------
 
 ```python
-
+# Memory configuration depends entirely on your runtime.
+# In OCI Data Flow you control memory by selecting a larger or smaller VM.
+# No other configuration is needed.
+#
+# For other environments see the Spark "Cluster Mode Overview" to get started.
+# https://spark.apache.org/docs/latest/cluster-overview.html
+# And good luck!
 ```

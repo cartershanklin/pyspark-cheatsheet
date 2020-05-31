@@ -44,7 +44,7 @@ class dfo_modify_column(snippet):
         self.name = "Modify a DataFrame column"
         self.category = "DataFrame Operations"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 200
 
     def snippet(self, df):
         from pyspark.sql.functions import col, concat, lit
@@ -56,7 +56,7 @@ class dfo_modify_column(snippet):
 class dfo_add_column_builtin(snippet):
     def __init__(self):
         super().__init__()
-        self.name = "Add a new column with builtin UDF"
+        self.name = "Add a new column with to a DataFrame"
         self.category = "DataFrame Operations"
         self.dataset = "auto-mpg.csv"
         self.priority = 100
@@ -76,7 +76,7 @@ class dfo_add_column_custom_udf(snippet):
         self.name = "Create a custom UDF"
         self.category = "DataFrame Operations"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 2100
 
     def snippet(self, df):
         from pyspark.sql.functions import udf
@@ -93,7 +93,7 @@ class dfo_concat_columns(snippet):
         self.name = "Concatenate columns"
         self.category = "DataFrame Operations"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 450
 
     def snippet(self, df):
         from pyspark.sql.functions import concat, col, lit
@@ -110,7 +110,7 @@ class dfo_string_to_double(snippet):
         self.name = "Convert String to Double"
         self.category = "DataFrame Operations"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 1000
 
     def snippet(self, df):
         from pyspark.sql.functions import col
@@ -125,7 +125,7 @@ class dfo_string_to_integer(snippet):
         self.name = "Convert String to Integer"
         self.category = "DataFrame Operations"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 1100
 
     def snippet(self, df):
         from pyspark.sql.functions import col
@@ -140,7 +140,7 @@ class dfo_change_column_name_single(snippet):
         self.name = "Change a column name"
         self.category = "DataFrame Operations"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 600
 
     def snippet(self, df):
         df = df.withColumnRenamed("horsepower", "horses")
@@ -153,7 +153,7 @@ class dfo_change_column_name_multi(snippet):
         self.name = "Change multiple column names"
         self.category = "DataFrame Operations"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 700
 
     def snippet(self, df):
         df = df.withColumnRenamed("horsepower", "horses").withColumnRenamed(
@@ -168,7 +168,7 @@ class dfo_dataframe_from_rdd(snippet):
         self.name = "Convert an RDD to Data Frame"
         self.category = "DataFrame Operations"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 1500
 
     def load_data(self):
         return spark.sparkContext.textFile(self.dataset)
@@ -187,7 +187,7 @@ class dfo_empty_dataframe(snippet):
         self.name = "Create an empty dataframe with a specified schema"
         self.category = "DataFrame Operations"
         self.dataset = "NA"
-        self.priority = 100
+        self.priority = 900
 
     def load_data(self):
         pass
@@ -211,7 +211,7 @@ class dfo_drop_column(snippet):
         self.name = "Drop a column"
         self.category = "DataFrame Operations"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 500
 
     def snippet(self, df):
         df = df.drop("horsepower")
@@ -224,7 +224,7 @@ class dfo_print_contents_rdd(snippet):
         self.name = "Print the contents of an RDD"
         self.category = "DataFrame Operations"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 1600
 
     def load_data(self):
         return spark.sparkContext.textFile(self.dataset)
@@ -239,7 +239,7 @@ class dfo_print_contents_dataframe(snippet):
         self.name = "Print the contents of a DataFrame"
         self.category = "DataFrame Operations"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 1700
 
     def snippet(self, df):
         df.show(10)
@@ -251,7 +251,7 @@ class dfo_column_conditional(snippet):
         self.name = "Add a column with multiple conditions"
         self.category = "DataFrame Operations"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 300
 
     def snippet(self, df):
         from pyspark.sql.functions import col, when
@@ -272,7 +272,7 @@ class dfo_constant_column(snippet):
         self.name = "Add a constant column"
         self.category = "DataFrame Operations"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 400
 
     def snippet(self, df):
         from pyspark.sql.functions import lit
@@ -287,7 +287,7 @@ class dfo_foreach(snippet):
         self.name = "Process each row of a DataFrame"
         self.category = "DataFrame Operations"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 1800
 
     def snippet(self, df):
         import os
@@ -305,7 +305,7 @@ class dfo_map(snippet):
         self.name = "DataFrame Map example"
         self.category = "DataFrame Operations"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 1900
 
     def snippet(self, df):
         def map_function(row):
@@ -324,7 +324,7 @@ class dfo_flatmap(snippet):
         self.name = "DataFrame Flatmap example"
         self.category = "DataFrame Operations"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 2000
 
     def snippet(self, df):
         from pyspark.sql.types import Row
@@ -347,7 +347,7 @@ class dfo_constant_dataframe(snippet):
         self.name = "Create a constant dataframe"
         self.category = "DataFrame Operations"
         self.dataset = "UNUSED"
-        self.priority = 100
+        self.priority = 950
 
     def snippet(self, df):
         import datetime
@@ -382,7 +382,7 @@ class dfo_select_particular(snippet):
         self.name = "Select particular columns from a DataFrame"
         self.category = "DataFrame Operations"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 800
 
     def snippet(self, df):
         df = df.select(["mpg", "cylinders", "displacement"])
@@ -395,7 +395,7 @@ class dfo_size(snippet):
         self.name = "Get the size of a DataFrame"
         self.category = "DataFrame Operations"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 1200
 
     def snippet(self, df):
         print("{} rows".format(df.count()))
@@ -408,7 +408,7 @@ class dfo_get_number_partitions(snippet):
         self.name = "Get a DataFrame's number of partitions"
         self.category = "DataFrame Operations"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 1300
 
     def snippet(self, df):
         print("{} partition(s)".format(df.rdd.getNumPartitions()))
@@ -420,7 +420,7 @@ class dfo_get_dtypes(snippet):
         self.name = "Get data types of a DataFrame's columns"
         self.category = "DataFrame Operations"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 1400
 
     def snippet(self, df):
         print(df.dtypes)
@@ -432,7 +432,7 @@ class group_max_value(snippet):
         self.name = "Get the maximum of a column"
         self.category = "Grouping"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 500
 
     def snippet(self, df):
         from pyspark.sql.functions import col, max
@@ -447,7 +447,7 @@ class group_filter_on_count(snippet):
         self.name = "Group by then filter on the count"
         self.category = "Grouping"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 1100
 
     def snippet(self, df):
         from pyspark.sql.functions import col
@@ -462,12 +462,13 @@ class group_topn_per_group(snippet):
         self.name = "Find the top N per row group (use N=1 for maximum)"
         self.category = "Grouping"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 1200
 
     def snippet(self, df):
         from pyspark.sql.functions import col, row_number
         from pyspark.sql.window import Window
 
+        # To get the maximum per group, set n=1.
         n = 5
         w = Window().partitionBy("cylinders").orderBy(col("horsepower").desc())
         result = (
@@ -485,15 +486,11 @@ class group_count_unique_after_group(snippet):
         self.name = "Count unique after grouping"
         self.category = "Grouping"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 900
 
     def snippet(self, df):
-        from pyspark.sql.functions import countDistinct, udf
-        from pyspark.sql.types import StringType
-
-        manufacturer_udf = udf(lambda x: x.split()[0], StringType())
-        df = df.withColumn("manufacturer", manufacturer_udf(df.carname))
-        grouped = df.groupBy("manufacturer").agg(countDistinct("cylinders"))
+        from pyspark.sql.functions import countDistinct
+        grouped = df.groupBy("cylinders").agg(countDistinct("mpg"))
         return grouped
 
 
@@ -503,15 +500,11 @@ class group_sum_column(snippet):
         self.name = "Sum a column"
         self.category = "Grouping"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 700
 
     def snippet(self, df):
-        from pyspark.sql.functions import sum, udf
-        from pyspark.sql.types import StringType
-
-        manufacturer_udf = udf(lambda x: x.split()[0], StringType())
-        df = df.withColumn("manufacturer", manufacturer_udf(df.carname))
-        grouped = df.groupBy("manufacturer").agg(sum("weight").alias("total_weight"))
+        from pyspark.sql.functions import sum
+        grouped = df.groupBy("cylinders").agg(sum("weight").alias("total_weight"))
         return grouped
 
 
@@ -521,7 +514,7 @@ class group_sum_columns_no_group(snippet):
         self.name = "Sum a list of columns"
         self.category = "Grouping"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 600
 
     def snippet(self, df):
         exprs = {x: "sum" for x in ("weight", "cylinders", "mpg")}
@@ -535,10 +528,17 @@ class group_histogram(snippet):
         self.name = "Compute a histogram"
         self.category = "Grouping"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 1400
 
     def snippet(self, df):
-        assert False, ""
+        from pyspark.sql.functions import col
+
+        # Target column must be numeric.
+        df = df.withColumn("horsepower", col("horsepower").cast("double"))
+
+        # N is the number of bins.
+        N = 11
+        histogram = df.select("horsepower").rdd.flatMap(lambda x: x).histogram(N)
 
 
 class group_key_value_to_key_list(snippet):
@@ -547,15 +547,11 @@ class group_key_value_to_key_list(snippet):
         self.name = "Group key/values into a list"
         self.category = "Grouping"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 1300
 
     def snippet(self, df):
-        from pyspark.sql.functions import col, collect_list, udf
-        from pyspark.sql.types import StringType
-
-        manufacturer_udf = udf(lambda x: x.split()[0], StringType())
-        df = df.withColumn("manufacturer", manufacturer_udf(df.carname))
-        collected = df.groupBy("manufacturer").agg(
+        from pyspark.sql.functions import col, collect_list
+        collected = df.groupBy("cylinders").agg(
             collect_list(col("carname")).alias("models")
         )
         return collected
@@ -571,7 +567,6 @@ class group_group_and_sort(snippet):
 
     def snippet(self, df):
         from pyspark.sql.functions import avg, desc
-
         grouped = (
             df.groupBy("cylinders")
             .agg(avg("horsepower").alias("avg_horsepower"))
@@ -586,16 +581,12 @@ class group_multiple_columns(snippet):
         self.name = "Group by multiple columns"
         self.category = "Grouping"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 200
 
     def snippet(self, df):
-        from pyspark.sql.functions import avg, desc, udf
-        from pyspark.sql.types import StringType
-
-        manufacturer_udf = udf(lambda x: x.split()[0], StringType())
-        df = df.withColumn("manufacturer", manufacturer_udf(df.carname))
+        from pyspark.sql.functions import avg, desc
         grouped = (
-            df.groupBy(["manufacturer", "cylinders"])
+            df.groupBy(["modelyear", "cylinders"])
             .agg(avg("horsepower").alias("avg_horsepower"))
             .orderBy(desc("avg_horsepower"))
         )
@@ -608,40 +599,32 @@ class group_agg_multiple_columns(snippet):
         self.name = "Aggregate multiple columns"
         self.category = "Grouping"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 300
 
     def snippet(self, df):
-        from pyspark.sql.functions import asc, desc_nulls_last, udf
-        from pyspark.sql.types import StringType
-
-        manufacturer_udf = udf(lambda x: x.split()[0], StringType())
-        df = df.withColumn("manufacturer", manufacturer_udf(df.carname))
+        from pyspark.sql.functions import asc, desc_nulls_last
         expressions = dict(horsepower="avg", weight="max", displacement="max")
-        grouped = df.groupBy("manufacturer").agg(expressions)
+        grouped = df.groupBy("modelyear").agg(expressions)
         return grouped
 
 
 class group_order_multiple_columns(snippet):
     def __init__(self):
         super().__init__()
-        self.name = "Aggregate multiple columns"
+        self.name = "Aggregate multiple columns with custom orderings"
         self.category = "Grouping"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 400
 
     def snippet(self, df):
-        from pyspark.sql.functions import asc, desc_nulls_last, udf
-        from pyspark.sql.types import StringType
-
-        manufacturer_udf = udf(lambda x: x.split()[0], StringType())
-        df = df.withColumn("manufacturer", manufacturer_udf(df.carname))
+        from pyspark.sql.functions import asc, desc_nulls_last
         expressions = dict(horsepower="avg", weight="max", displacement="max")
         orderings = [
             desc_nulls_last("max(displacement)"),
             desc_nulls_last("avg(horsepower)"),
             asc("max(weight)"),
         ]
-        grouped = df.groupBy("manufacturer").agg(expressions).orderBy(*orderings)
+        grouped = df.groupBy("modelyear").agg(expressions).orderBy(*orderings)
         return grouped
 
 
@@ -651,11 +634,10 @@ class group_distinct_all_columns(snippet):
         self.name = "Count distinct values on all columns"
         self.category = "Grouping"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 1000
 
     def snippet(self, df):
         from pyspark.sql.functions import countDistinct
-
         grouped = df.agg(*(countDistinct(c) for c in df.columns))
         return grouped
 
@@ -666,7 +648,7 @@ class group_aggregate_all_numerics(snippet):
         self.name = "Aggregate all numeric columns"
         self.category = "Grouping"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 800
 
     def snippet(self, df):
         numerics = set(["decimal", "double", "float", "integer", "long", "short"])
@@ -681,7 +663,7 @@ class sortsearch_distinct_values(snippet):
         self.name = "Get distinct values of a column"
         self.category = "Sorting and Searching"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 1000
 
     def snippet(self, df):
         distinct = df.select("cylinders").distinct()
@@ -694,7 +676,7 @@ class sortsearch_string_contents(snippet):
         self.name = "Filter a Dataframe based on substring search"
         self.category = "Sorting and Searching"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 500
 
     def snippet(self, df):
         from pyspark.sql.functions import col
@@ -709,7 +691,7 @@ class sortsearch_in_list(snippet):
         self.name = "Filter based on an IN list"
         self.category = "Sorting and Searching"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 300
 
     def snippet(self, df):
         from pyspark.sql.functions import col
@@ -724,7 +706,7 @@ class sortsearch_not_in_list(snippet):
         self.name = "Filter based on a NOT IN list"
         self.category = "Sorting and Searching"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 400
 
     def snippet(self, df):
         from pyspark.sql.functions import col
@@ -739,7 +721,7 @@ class sortsearch_column_length(snippet):
         self.name = "Filter based on a column's length"
         self.category = "Sorting and Searching"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 600
 
     def snippet(self, df):
         from pyspark.sql.functions import col, length
@@ -754,7 +736,7 @@ class sortsearch_equality(snippet):
         self.name = "Filter based on a specific column value"
         self.category = "Sorting and Searching"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 200
 
     def snippet(self, df):
         from pyspark.sql.functions import col
@@ -769,7 +751,7 @@ class sortsearch_sort_descending(snippet):
         self.name = "Sort DataFrame by a column"
         self.category = "Sorting and Searching"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 800
 
     def snippet(self, df):
         from pyspark.sql.functions import col
@@ -785,7 +767,7 @@ class sortsearch_first_1k_rows(snippet):
         self.name = "Take the first N rows of a DataFrame"
         self.category = "Sorting and Searching"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 900
 
     def snippet(self, df):
         n = 10
@@ -799,7 +781,7 @@ class sortsearch_multi_filter(snippet):
         self.name = "Multiple filter conditions"
         self.category = "Sorting and Searching"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 700
 
     def snippet(self, df):
         from pyspark.sql.functions import col
@@ -815,7 +797,7 @@ class sortsearch_remove_duplicates(snippet):
         self.name = "Remove duplicates"
         self.category = "Sorting and Searching"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 1100
 
     def snippet(self, df):
         filtered = df.dropDuplicates(["carname"])
@@ -825,7 +807,7 @@ class sortsearch_remove_duplicates(snippet):
 class sortsearch_filtering_basic(snippet):
     def __init__(self):
         super().__init__()
-        self.name = "Filter a column"
+        self.name = "Filter a column using a condition"
         self.category = "Sorting and Searching"
         self.dataset = "auto-mpg.csv"
         self.priority = 100
@@ -843,7 +825,7 @@ class transform_string_to_date(snippet):
         self.name = "Convert string to date"
         self.category = "Transforming Data"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 400
 
     def snippet(self, df):
         from pyspark.sql.functions import col
@@ -861,7 +843,7 @@ class transform_string_to_date_custom(snippet):
         self.name = "Convert string to date with custom format"
         self.category = "Transforming Data"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 500
 
     def snippet(self, df):
         from pyspark.sql.functions import col, to_date
@@ -879,7 +861,7 @@ class transform_unix_timestamp_to_date(snippet):
         self.name = "Convert UNIX (seconds since epoch) timestamp to date"
         self.category = "Transforming Data"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 600
 
     def snippet(self, df):
         from pyspark.sql.functions import col, from_unixtime
@@ -897,7 +879,7 @@ class loadsave_overwrite_specific_partitions(snippet):
         self.name = "Overwrite specific partitions"
         self.category = "Loading and Saving Data"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 900
 
     def snippet(self, df):
         spark.conf.set("spark.sql.sources.partitionOverwriteMode", "dynamic")
@@ -923,7 +905,7 @@ class transform_fillna_col_avg(snippet):
         self.name = "Fill NULL values with column average"
         self.category = "Transforming Data"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 200
 
     def snippet(self, df):
         from pyspark.sql.functions import avg
@@ -938,7 +920,7 @@ class transform_fillna_group_avg(snippet):
         self.name = "Fill NULL values with group average"
         self.category = "Transforming Data"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 300
 
     def snippet(self, df):
         from pyspark.sql.functions import avg, coalesce
@@ -959,7 +941,7 @@ class transform_json_to_key_value(snippet):
         self.name = "Unpack a DataFrame's JSON column to a new DataFrame"
         self.category = "Transforming Data"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 700
 
     def snippet(self, df):
         from pyspark.sql.functions import col, explode, from_json, json_tuple
@@ -977,7 +959,7 @@ class transform_query_json_column(snippet):
         self.name = "Query a JSON column"
         self.category = "Transforming Data"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 800
 
     def snippet(self, df):
         from pyspark.sql.functions import col, explode, from_json, json_tuple
@@ -1000,7 +982,7 @@ class join_concatenate(snippet):
         self.name = "Concatenate two DataFrames"
         self.category = "Joining DataFrames"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 500
 
     def snippet(self, df):
         df1 = spark.read.format("csv").option("header", True).load("part1.csv")
@@ -1021,11 +1003,16 @@ class join_basic(snippet):
         from pyspark.sql.functions import udf
         from pyspark.sql.types import StringType
 
-        first_word_udf = udf(lambda x: x.split()[0], StringType())
-        df = df.withColumn("manufacturer", first_word_udf(df.carname))
+        # Load a list of manufacturer / country pairs.
         countries = (
             spark.read.format("csv").option("header", True).load("manufacturers.csv")
         )
+
+        # Add a manufacturers column, to join with the manufacturers list.
+        first_word_udf = udf(lambda x: x.split()[0], StringType())
+        df = df.withColumn("manufacturer", first_word_udf(df.carname))
+
+        # The actual join.
         joined = df.join(countries, "manufacturer")
         return joined
 
@@ -1036,17 +1023,22 @@ class join_basic2(snippet):
         self.name = "Join two DataFrames with an expression"
         self.category = "Joining DataFrames"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 200
 
     def snippet(self, df):
         from pyspark.sql.functions import udf
         from pyspark.sql.types import StringType
 
-        first_word_udf = udf(lambda x: x.split()[0], StringType())
-        df = df.withColumn("manufacturer", first_word_udf(df.carname))
+        # Load a list of manufacturer / country pairs.
         countries = (
             spark.read.format("csv").option("header", True).load("manufacturers.csv")
         )
+
+        # Add a manufacturers column, to join with the manufacturers list.
+        first_word_udf = udf(lambda x: x.split()[0], StringType())
+        df = df.withColumn("manufacturer", first_word_udf(df.carname))
+
+        # The actual join.
         joined = df.join(countries, df.manufacturer == countries.manufacturer)
         return joined
 
@@ -1057,7 +1049,7 @@ class join_multiple_files_single_dataframe(snippet):
         self.name = "Load multiple files into a single DataFrame"
         self.category = "Joining DataFrames"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 600
 
     def snippet(self, df):
         # Approach 1: Use a list.
@@ -1078,17 +1070,22 @@ class join_multiple_conditions(snippet):
         self.name = "Multiple join conditions"
         self.category = "Joining DataFrames"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 300
 
     def snippet(self, df):
         from pyspark.sql.functions import udf
         from pyspark.sql.types import StringType
 
-        first_word_udf = udf(lambda x: x.split()[0], StringType())
-        df = df.withColumn("manufacturer", first_word_udf(df.carname))
+        # Load a list of manufacturer / country pairs.
         countries = (
             spark.read.format("csv").option("header", True).load("manufacturers.csv")
         )
+
+        # Add a manufacturers column, to join with the manufacturers list.
+        first_word_udf = udf(lambda x: x.split()[0], StringType())
+        df = df.withColumn("manufacturer", first_word_udf(df.carname))
+
+        # The actual join.
         joined = df.join(
             countries,
             (df.manufacturer == countries.manufacturer)
@@ -1103,7 +1100,7 @@ class join_subtract_dataframes(snippet):
         self.name = "Subtract DataFrames"
         self.category = "Joining DataFrames"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 700
 
     def snippet(self, df):
         from pyspark.sql.functions import col
@@ -1118,7 +1115,7 @@ class join_different_types(snippet):
         self.name = "Various Spark join types"
         self.category = "Joining DataFrames"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 400
 
     def snippet(self, df):
         # Inner join on one column.
@@ -1144,7 +1141,7 @@ class loadsave_to_parquet(snippet):
         self.name = "Save a DataFrame in Parquet format"
         self.category = "Loading and Saving Data"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 400
 
     def snippet(self, df):
         df.write.parquet("output.parquet")
@@ -1159,6 +1156,8 @@ class loadsave_dataframe_from_csv(snippet):
         self.priority = 100
 
     def snippet(self, df):
+        # See https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameReader.html
+        # for a list of supported options.
         df = spark.read.format("csv").option("header", True).load("auto-mpg.csv")
         return df
 
@@ -1169,9 +1168,11 @@ class loadsave_export_to_csv(snippet):
         self.name = "Save a DataFrame in CSV format"
         self.category = "Loading and Saving Data"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 500
 
     def snippet(self, df):
+        # See https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameWriter.html
+        # for a list of supported options.
         df.write.csv("output.csv")
 
 
@@ -1181,7 +1182,7 @@ class loadsave_single_output_file(snippet):
         self.name = "Save a DataFrame in a single CSV file"
         self.category = "Loading and Saving Data"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 700
 
     def snippet(self, df):
         df.coalesce(1).write.csv("single.csv")
@@ -1193,9 +1194,11 @@ class loadsave_csv_with_header(snippet):
         self.name = "Save a DataFrame to CSV with a header"
         self.category = "Loading and Saving Data"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 600
 
     def snippet(self, df):
+        # See https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameWriter.html
+        # for a list of supported options.
         df.coalesce(1).write.csv("header.csv", header="true")
 
 
@@ -1205,7 +1208,7 @@ class loadsave_overwrite_output_directory(snippet):
         self.name = "Save a DataFrame to CSV, overwriting existing data"
         self.category = "Loading and Saving Data"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 501
 
     def snippet(self, df):
         df.write.mode("overwrite").csv("output.csv")
@@ -1217,9 +1220,11 @@ class loadsave_dataframe_from_csv_provide_schema(snippet):
         self.name = "Provide the schema when loading a DataFrame from CSV"
         self.category = "Loading and Saving Data"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 200
 
     def snippet(self, df):
+        # See https://spark.apache.org/docs/latest/api/python/_modules/pyspark/sql/types.html
+        # for a list of types.
         from pyspark.sql.types import (
             DoubleType,
             IntegerType,
@@ -1256,7 +1261,7 @@ class loadsave_dynamic_partitioning(snippet):
         self.name = "Save DataFrame as a dynamic partitioned table"
         self.category = "Loading and Saving Data"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 800
 
     def snippet(self, df):
         spark.conf.set("spark.sql.sources.partitionOverwriteMode", "dynamic")
@@ -1269,7 +1274,7 @@ class loadsave_read_from_oci(snippet):
         self.name = "Configure security to read a CSV file from Oracle Cloud Infrastructure Object Storage"
         self.category = "Loading and Saving Data"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 300
 
     def snippet(self, df):
         import oci
@@ -1283,7 +1288,7 @@ class loadsave_read_from_oci(snippet):
             "fs.oci.client.hostname",
             "https://objectstorage.{0}.oraclecloud.com".format(oci_config["region"]),
         )
-        PATH = "oci://your_path_here"
+        PATH = "oci://<your_bucket>@<your_namespace/<your_path>"
         df = spark.read.format("csv").option("header", True).load(PATH)
 
 
@@ -1309,7 +1314,7 @@ class missing_filter_null_value(snippet):
         self.name = "Drop rows with Null values"
         self.category = "Handling Missing Data"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 200
 
     def snippet(self, df):
         # thresh controls the number of nulls before the row gets dropped.
@@ -1323,7 +1328,7 @@ class missing_count_of_null_nan(snippet):
         self.name = "Count all Null or NaN values in a DataFrame"
         self.category = "Handling Missing Data"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 300
 
     def snippet(self, df):
         from pyspark.sql.functions import col, count, isnan, when
@@ -1341,7 +1346,7 @@ class performance_partitioning(snippet):
         self.name = "Change DataFrame partitioning"
         self.category = "Performance"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 200
 
     def snippet(self, df):
         from pyspark.sql.functions import col
@@ -1374,9 +1379,16 @@ class performance_increase_heap_space(snippet):
         self.name = "Increase Spark driver/executor heap space"
         self.category = "Performance"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 300
 
     def snippet(self, df):
+        # Memory configuration depends entirely on your runtime.
+        # In OCI Data Flow you control memory by selecting a larger or smaller VM.
+        # No other configuration is needed.
+        #
+        # For other environments see the Spark "Cluster Mode Overview" to get started.
+        # https://spark.apache.org/docs/latest/cluster-overview.html
+        # And good luck!
         return df
 
 
@@ -1398,7 +1410,7 @@ class pandas_udaf(snippet):
         super().__init__()
         self.name = "Define a UDAF with Pandas"
         self.category = "Pandas"
-        self.priority = 100
+        self.priority = 300
         self.dataset = "auto-mpg.csv"
 
     def snippet(self, df):
@@ -1420,7 +1432,7 @@ class pandas_rescale_column(snippet):
         self.name = "Define a Pandas Grouped Map Function"
         self.category = "Pandas"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 400
 
     def snippet(self, df):
         from pyspark.sql.functions import pandas_udf, PandasUDFType
@@ -1438,37 +1450,13 @@ class pandas_rescale_column(snippet):
         return df
 
 
-class pandas_replace_null_avg_column(snippet):
-    def __init__(self):
-        super().__init__()
-        self.name = "Replace nulls in a column with the average value"
-        self.category = "Pandas"
-        self.dataset = "auto-mpg.csv"
-        self.priority = 100
-
-    def snippet(self, df):
-        assert False, ""
-
-
-class pandas_replace_null_avg_group(snippet):
-    def __init__(self):
-        super().__init__()
-        self.name = "Replace nulls in a column with the group's average"
-        self.category = "Pandas"
-        self.dataset = "auto-mpg.csv"
-        self.priority = 100
-
-    def snippet(self, df):
-        assert False, ""
-
-
 class pandas_n_rows_from_dataframe_to_pandas(snippet):
     def __init__(self):
         super().__init__()
         self.name = "Convert N rows from a DataFrame to a Pandas DataFrame"
         self.category = "Pandas"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 200
 
     def snippet(self, df):
         N = 10
@@ -1563,11 +1551,6 @@ cheat_sheet = [
 ]
 
 
-def test_code():
-    for cheat in cheat_sheet:
-        cheat.run()
-
-
 def generate_cheatsheet():
     # Gather up all the categories and snippets.
     snippets = dict()
@@ -1644,4 +1627,39 @@ Table of contents
                 fd.write(snippet_template.format(code=source))
 
 
-generate_cheatsheet()
+def all_tests():
+    for cheat in cheat_sheet:
+        cheat.run()
+
+
+def dump_priorities():
+    for cheat in cheat_sheet:
+        print("{},{},{}".format(cheat.category, cheat.name, cheat.priority))
+
+
+def test(test_name):
+    for cheat in cheat_sheet:
+        if cheat.name == test_name:
+            cheat.run()
+            sys.exit(0)
+    assert False, "No test named " + test_name
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--all-tests", action='store_true')
+    parser.add_argument("--dump-priorities", action='store_true')
+    parser.add_argument("--test")
+    args = parser.parse_args()
+
+    if args.all_tests:
+        all_tests()
+    elif args.dump_priorities:
+        dump_priorities()
+    elif args.test:
+        test(args.test)
+    else:
+        generate_cheatsheet()
+
+if __name__ == "__main__":
+    main()

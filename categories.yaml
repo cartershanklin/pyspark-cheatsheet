@@ -43,13 +43,23 @@ Preamble:
         This cheat sheet will help you learn PySpark and write PySpark apps faster. Everything in here is fully functional PySpark code you can run or adapt to your programs.
 
         
-        These snippets are licensed under the CC0 1.0 Universal license. That means you can freely copy and adapt these code snippets and you don't need to give attribution or include any notices.
+        These snippets are licensed under the CC0 1.0 Universal License. That means you can freely copy and adapt these code snippets and you don't need to give attribution or include any notices.
 
 
-        These snippets below refer to DataFrames loaded from the "Auto MPG Data Set" available from the [UCI Machine Learning Repository](https://archive.ics.uci.edu/ml/datasets/auto+mpg). You can download that dataset or clone this repository to test the code yourself.
+        The snippets below refer to DataFrames loaded from the "Auto MPG Data Set" available from the [UCI Machine Learning Repository](https://archive.ics.uci.edu/ml/datasets/auto+mpg). You can download that dataset or clone this repository to test the code yourself.
 
         
-        These snippets were developed against the Spark 2.4.4 API. This page was last updated {last_updated}.
+        These snippets were tested against the Spark 2.4.4 API. This page was last updated {last_updated}.
+
+
+        Make note of these helpful links:
+
+        - [Built-in Spark SQL Functions](https://spark.apache.org/docs/latest/api/sql/index.html)
+
+        - [PySpark SQL Functions Source](https://spark.apache.org/docs/latest/api/python/_modules/pyspark/sql/functions.html)
+
+
+        If you find this guide helpful and want an easy way to run Spark, check out [Oracle Cloud Infrastructure Data Flow](https://www.oracle.com/big-data/data-flow/), a fully-managed Spark service that lets you run Spark jobs at any scale with no administrative overhead. You can try Data Flow free.
 
 Postscript:
     description:
