@@ -31,8 +31,12 @@ Pandas:
     description: Using Python's Pandas library to augment Spark. Some operations require the pyarrow library.
 
 Performance:
-    priority: 9
+    priority: 10
     description: A few performance tips and tricks.
+
+Data Profiling:
+    priority: 9
+    description: Extracting key statistics out of a body of data.
 
 Preamble:
     description: >

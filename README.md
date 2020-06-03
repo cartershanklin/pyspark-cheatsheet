@@ -6,7 +6,7 @@ These snippets are licensed under the CC0 1.0 Universal License. That means you 
 
 The snippets below refer to DataFrames loaded from the "Auto MPG Data Set" available from the [UCI Machine Learning Repository](https://archive.ics.uci.edu/ml/datasets/auto+mpg). You can download that dataset or clone this repository to test the code yourself.
 
-These snippets were tested against the Spark 2.4.4 API. This page was last updated 2020-05-31 16:56:46.
+These snippets were tested against the Spark 2.4.4 API. This page was last updated 2020-06-03 14:28:30.
 
 Make note of these helpful links:
 - [Built-in Spark SQL Functions](https://spark.apache.org/docs/latest/api/sql/index.html)
@@ -107,6 +107,11 @@ Table of contents
       * [Convert N rows from a DataFrame to a Pandas DataFrame](#convert-n-rows-from-a-dataframe-to-a-pandas-dataframe)
       * [Define a UDAF with Pandas](#define-a-udaf-with-pandas)
       * [Define a Pandas Grouped Map Function](#define-a-pandas-grouped-map-function)
+   * [Data Profiling](#data-profiling)
+      * [Compute the number of NULLs across all columns](#compute-the-number-of-nulls-across-all-columns)
+      * [Compute average values of all numeric columns](#compute-average-values-of-all-numeric-columns)
+      * [Compute minimum values of all numeric columns](#compute-minimum-values-of-all-numeric-columns)
+      * [Compute maximum values of all numeric columns](#compute-maximum-values-of-all-numeric-columns)
    * [Performance](#performance)
       * [Coalesce DataFrame partitions](#coalesce-dataframe-partitions)
       * [Change DataFrame partitioning](#change-dataframe-partitioning)
@@ -1124,6 +1129,49 @@ def rescale(pdf):
     return pdf.assign(horsepower=(pdf.horsepower - minv) / maxv * 100)
 
 df = df.groupby("cylinders").apply(rescale)
+```
+
+
+Data Profiling
+==============
+Extracting key statistics out of a body of data.
+
+Compute the number of NULLs across all columns
+----------------------------------------------
+
+```python
+from pyspark.sql.functions import col, count, when
+result = df.select([count(when(col(c).isNull(), c)).alias(c) for c in df.columns])
+```
+
+
+Compute average values of all numeric columns
+---------------------------------------------
+
+```python
+numerics = set(["decimal", "double", "float", "integer", "long", "short"])
+exprs = {x[0]: "avg" for x in df.dtypes if x[1] in numerics}
+result = df.agg(exprs)
+```
+
+
+Compute minimum values of all numeric columns
+---------------------------------------------
+
+```python
+numerics = set(["decimal", "double", "float", "integer", "long", "short"])
+exprs = {x[0]: "min" for x in df.dtypes if x[1] in numerics}
+result = df.agg(exprs)
+```
+
+
+Compute maximum values of all numeric columns
+---------------------------------------------
+
+```python
+numerics = set(["decimal", "double", "float", "integer", "long", "short"])
+exprs = {x[0]: "max" for x in df.dtypes if x[1] in numerics}
+result = df.agg(exprs)
 ```
 
 

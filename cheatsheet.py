@@ -18,12 +18,18 @@ class snippet:
         self.dataset = None
         self.name = None
         self.hash = hashlib.md5(str(self.__class__).encode()).hexdigest()
+        self.convert_numerics = False
 
     def load_data(self):
         assert self.dataset is not None, "Dataset not set"
         if self.dataset == "UNUSED":
             return None
-        return spark.read.format("csv").option("header", True).load(self.dataset)
+        df = spark.read.format("csv").option("header", True).load(self.dataset)
+        if self.convert_numerics:
+            from pyspark.sql.functions import col
+            for column_name in "mpg cylinders displacement horsepower weight acceleration".split():
+                df = df.withColumn(column_name, col(column_name).cast("double"))
+        return df
 
     def snippet(self, df):
         assert False, "Snippet not overridden"
@@ -1463,6 +1469,64 @@ class pandas_n_rows_from_dataframe_to_pandas(snippet):
         pdf = df.limit(N).toPandas()
         return df
 
+class profile_number_nulls(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Compute the number of NULLs across all columns"
+        self.category = "Data Profiling"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 100
+
+    def snippet(self, df):
+        from pyspark.sql.functions import col, count, when
+        result = df.select([count(when(col(c).isNull(), c)).alias(c) for c in df.columns])
+        return result
+
+class profile_numeric_averages(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Compute average values of all numeric columns"
+        self.category = "Data Profiling"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 200
+        self.convert_numerics = True
+
+    def snippet(self, df):
+        numerics = set(["decimal", "double", "float", "integer", "long", "short"])
+        exprs = {x[0]: "avg" for x in df.dtypes if x[1] in numerics}
+        result = df.agg(exprs)
+        return result
+
+class profile_numeric_min(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Compute minimum values of all numeric columns"
+        self.category = "Data Profiling"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 300
+        self.convert_numerics = True
+
+    def snippet(self, df):
+        numerics = set(["decimal", "double", "float", "integer", "long", "short"])
+        exprs = {x[0]: "min" for x in df.dtypes if x[1] in numerics}
+        result = df.agg(exprs)
+        return result
+
+class profile_numeric_max(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Compute maximum values of all numeric columns"
+        self.category = "Data Profiling"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 400
+        self.convert_numerics = True
+
+    def snippet(self, df):
+        numerics = set(["decimal", "double", "float", "integer", "long", "short"])
+        exprs = {x[0]: "max" for x in df.dtypes if x[1] in numerics}
+        result = df.agg(exprs)
+        return result
+
 
 cheat_sheet = [
     pandas_spark_dataframe_to_pandas_dataframe(),
@@ -1548,6 +1612,10 @@ cheat_sheet = [
     dfo_size(),
     dfo_get_number_partitions(),
     dfo_get_dtypes(),
+    profile_number_nulls(),
+    profile_numeric_averages(),
+    profile_numeric_min(),
+    profile_numeric_max(),
 ]
 
 
