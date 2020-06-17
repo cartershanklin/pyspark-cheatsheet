@@ -22,21 +22,29 @@ Joining DataFrames:
     priority: 6
     description: Joining and stacking DataFrames.
 
-Handling Missing Data:
+File Processing:
     priority: 7
+    description: Loading File Metadata and Processing Files
+
+Handling Missing Data:
+    priority: 8
     description: Dealing with NULLs and NaNs in DataFrames.
 
 Pandas:
-    priority: 8
+    priority: 9
     description: Using Python's Pandas library to augment Spark. Some operations require the pyarrow library.
 
-Performance:
-    priority: 10
-    description: A few performance tips and tricks.
-
 Data Profiling:
-    priority: 9
+    priority: 10
     description: Extracting key statistics out of a body of data.
+
+Time Series:
+    priority: 11
+    description: Techniques for dealing with time series data.
+
+Performance:
+    priority: 12
+    description: A few performance tips and tricks.
 
 Preamble:
     description: >

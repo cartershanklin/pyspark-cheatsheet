@@ -3,6 +3,7 @@ import datetime
 import hashlib
 import inspect
 import os
+import re
 import sys
 import yaml
 from pyspark import SparkConf, SparkContext
@@ -24,11 +25,34 @@ class snippet:
         assert self.dataset is not None, "Dataset not set"
         if self.dataset == "UNUSED":
             return None
-        df = spark.read.format("csv").option("header", True).load(self.dataset)
+        df = (
+            spark.read.format("csv")
+            .option("header", True)
+            .load(os.path.join("data", self.dataset))
+        )
         if self.convert_numerics:
-            from pyspark.sql.functions import col
-            for column_name in "mpg cylinders displacement horsepower weight acceleration".split():
-                df = df.withColumn(column_name, col(column_name).cast("double"))
+            if self.dataset == "auto-mpg.csv":
+                from pyspark.sql.functions import col
+
+                for (
+                    column_name
+                ) in (
+                    "mpg cylinders displacement horsepower weight acceleration".split()
+                ):
+                    df = df.withColumn(column_name, col(column_name).cast("double"))
+            elif self.dataset == "customer_spend.csv":
+                from pyspark.sql.functions import col, udf
+                from pyspark.sql.types import DecimalType
+                from decimal import Decimal
+                from money_parser import price_str
+
+                money_convert = udf(
+                    lambda x: Decimal(price_str(x)) if x is not None else None,
+                    DecimalType(8, 4),
+                )
+                df = df.withColumn(
+                    "customer_id", col("customer_id").cast("integer")
+                ).withColumn("spend_dollars", money_convert(df.spend_dollars))
         return df
 
     def snippet(self, df):
@@ -496,6 +520,7 @@ class group_count_unique_after_group(snippet):
 
     def snippet(self, df):
         from pyspark.sql.functions import countDistinct
+
         grouped = df.groupBy("cylinders").agg(countDistinct("mpg"))
         return grouped
 
@@ -510,6 +535,7 @@ class group_sum_column(snippet):
 
     def snippet(self, df):
         from pyspark.sql.functions import sum
+
         grouped = df.groupBy("cylinders").agg(sum("weight").alias("total_weight"))
         return grouped
 
@@ -557,6 +583,7 @@ class group_key_value_to_key_list(snippet):
 
     def snippet(self, df):
         from pyspark.sql.functions import col, collect_list
+
         collected = df.groupBy("cylinders").agg(
             collect_list(col("carname")).alias("models")
         )
@@ -573,6 +600,7 @@ class group_group_and_sort(snippet):
 
     def snippet(self, df):
         from pyspark.sql.functions import avg, desc
+
         grouped = (
             df.groupBy("cylinders")
             .agg(avg("horsepower").alias("avg_horsepower"))
@@ -591,6 +619,7 @@ class group_multiple_columns(snippet):
 
     def snippet(self, df):
         from pyspark.sql.functions import avg, desc
+
         grouped = (
             df.groupBy(["modelyear", "cylinders"])
             .agg(avg("horsepower").alias("avg_horsepower"))
@@ -609,6 +638,7 @@ class group_agg_multiple_columns(snippet):
 
     def snippet(self, df):
         from pyspark.sql.functions import asc, desc_nulls_last
+
         expressions = dict(horsepower="avg", weight="max", displacement="max")
         grouped = df.groupBy("modelyear").agg(expressions)
         return grouped
@@ -624,6 +654,7 @@ class group_order_multiple_columns(snippet):
 
     def snippet(self, df):
         from pyspark.sql.functions import asc, desc_nulls_last
+
         expressions = dict(horsepower="avg", weight="max", displacement="max")
         orderings = [
             desc_nulls_last("max(displacement)"),
@@ -644,6 +675,7 @@ class group_distinct_all_columns(snippet):
 
     def snippet(self, df):
         from pyspark.sql.functions import countDistinct
+
         grouped = df.agg(*(countDistinct(c) for c in df.columns))
         return grouped
 
@@ -991,8 +1023,8 @@ class join_concatenate(snippet):
         self.priority = 500
 
     def snippet(self, df):
-        df1 = spark.read.format("csv").option("header", True).load("part1.csv")
-        df2 = spark.read.format("csv").option("header", True).load("part2.csv")
+        df1 = spark.read.format("csv").option("header", True).load("data/part1.csv")
+        df2 = spark.read.format("csv").option("header", True).load("data/part2.csv")
         df = df1.union(df2)
         return df
 
@@ -1011,7 +1043,9 @@ class join_basic(snippet):
 
         # Load a list of manufacturer / country pairs.
         countries = (
-            spark.read.format("csv").option("header", True).load("manufacturers.csv")
+            spark.read.format("csv")
+            .option("header", True)
+            .load("data/manufacturers.csv")
         )
 
         # Add a manufacturers column, to join with the manufacturers list.
@@ -1037,7 +1071,9 @@ class join_basic2(snippet):
 
         # Load a list of manufacturer / country pairs.
         countries = (
-            spark.read.format("csv").option("header", True).load("manufacturers.csv")
+            spark.read.format("csv")
+            .option("header", True)
+            .load("data/manufacturers.csv")
         )
 
         # Add a manufacturers column, to join with the manufacturers list.
@@ -1062,11 +1098,11 @@ class join_multiple_files_single_dataframe(snippet):
         df = (
             spark.read.format("csv")
             .option("header", True)
-            .load(["part1.csv", "part2.csv"])
+            .load(["data/part1.csv", "data/part2.csv"])
         )
 
         # Approach 2: Use a wildcard.
-        df = spark.read.format("csv").option("header", True).load("part*.csv")
+        df = spark.read.format("csv").option("header", True).load("data/part*.csv")
         return df
 
 
@@ -1084,7 +1120,9 @@ class join_multiple_conditions(snippet):
 
         # Load a list of manufacturer / country pairs.
         countries = (
-            spark.read.format("csv").option("header", True).load("manufacturers.csv")
+            spark.read.format("csv")
+            .option("header", True)
+            .load("data/manufacturers.csv")
         )
 
         # Add a manufacturers column, to join with the manufacturers list.
@@ -1138,6 +1176,9 @@ class join_different_types(snippet):
 
         # Full join.
         joined = df.join(df, "carname", "full")
+
+        # Cross join.
+        joined = df.crossJoin(df)
         return joined
 
 
@@ -1158,13 +1199,94 @@ class loadsave_dataframe_from_csv(snippet):
         super().__init__()
         self.name = "Load a DataFrame from CSV"
         self.category = "Loading and Saving Data"
-        self.dataset = "auto-mpg.csv"
+        self.dataset = "UNUSED"
         self.priority = 100
 
     def snippet(self, df):
         # See https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameReader.html
         # for a list of supported options.
-        df = spark.read.format("csv").option("header", True).load("auto-mpg.csv")
+        df = spark.read.format("csv").option("header", True).load("data/auto-mpg.csv")
+        return df
+
+
+class loadsave_dataframe_from_csv_delimiter(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Load a DataFrame from a Tab Separated Value (TSV) file"
+        self.category = "Loading and Saving Data"
+        self.dataset = "UNUSED"
+        self.priority = 110
+
+    def snippet(self, df):
+        # See https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameReader.html
+        # for a list of supported options.
+        df = (
+            spark.read.format("csv")
+            .option("header", True)
+            .option("sep", "\t")
+            .load("data/auto-mpg.tsv")
+        )
+        return df
+
+
+class loadsave_money(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Load a CSV file with a money column into a DataFrame"
+        self.category = "Loading and Saving Data"
+        self.dataset = "UNUSED"
+        self.priority = 120
+
+    def snippet(self, df):
+        from pyspark.sql.functions import col, udf
+        from pyspark.sql.types import DecimalType
+        from decimal import Decimal
+
+        # Load the text file.
+        df = (
+            spark.read.format("csv")
+            .option("header", True)
+            .load("data/customer_spend.csv")
+        )
+
+        # Convert with a hardcoded custom UDF.
+        money_udf = udf(lambda x: Decimal(x[1:].replace(",", "")), DecimalType(8, 4))
+        money1 = df.withColumn("spend_dollars", money_udf(df.spend_dollars))
+
+        # Convert with the money_parser library (much safer).
+        from money_parser import price_str
+
+        money_convert = udf(
+            lambda x: Decimal(price_str(x)) if x is not None else None,
+            DecimalType(8, 4),
+        )
+        money2 = df.withColumn("spend_dollars", money_convert(df.spend_dollars))
+        return money2
+
+
+class loadsave_date(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Load a CSV file with complex dates into a DataFrame"
+        self.category = "Loading and Saving Data"
+        self.dataset = "UNUSED"
+        self.priority = 130
+
+    def snippet(self, df):
+        from pyspark.sql.functions import udf
+        from pyspark.sql.types import TimestampType
+        import dateparser
+
+        # Use the dateparser module to convert many formats into timestamps.
+        date_convert = udf(
+            lambda x: dateparser.parse(x) if x is not None else None, TimestampType()
+        )
+        df = (
+            spark.read.format("csv")
+            .option("header", True)
+            .load("data/date_examples.csv")
+        )
+        df = df.withColumn("parsed", date_convert(df.date))
         return df
 
 
@@ -1256,7 +1378,7 @@ class loadsave_dataframe_from_csv_provide_schema(snippet):
             spark.read.format("csv")
             .option("header", "true")
             .schema(schema)
-            .load("auto-mpg.csv")
+            .load("data/auto-mpg.csv")
         )
         return df
 
@@ -1469,6 +1591,7 @@ class pandas_n_rows_from_dataframe_to_pandas(snippet):
         pdf = df.limit(N).toPandas()
         return df
 
+
 class profile_number_nulls(snippet):
     def __init__(self):
         super().__init__()
@@ -1479,8 +1602,12 @@ class profile_number_nulls(snippet):
 
     def snippet(self, df):
         from pyspark.sql.functions import col, count, when
-        result = df.select([count(when(col(c).isNull(), c)).alias(c) for c in df.columns])
+
+        result = df.select(
+            [count(when(col(c).isNull(), c)).alias(c) for c in df.columns]
+        )
         return result
+
 
 class profile_numeric_averages(snippet):
     def __init__(self):
@@ -1497,6 +1624,7 @@ class profile_numeric_averages(snippet):
         result = df.agg(exprs)
         return result
 
+
 class profile_numeric_min(snippet):
     def __init__(self):
         super().__init__()
@@ -1511,6 +1639,7 @@ class profile_numeric_min(snippet):
         exprs = {x[0]: "min" for x in df.dtypes if x[1] in numerics}
         result = df.agg(exprs)
         return result
+
 
 class profile_numeric_max(snippet):
     def __init__(self):
@@ -1528,6 +1657,233 @@ class profile_numeric_max(snippet):
         return result
 
 
+class timeseries_zero_fill(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Zero fill missing values in a timeseries"
+        self.category = "Time Series"
+        self.dataset = "customer_spend.csv"
+        self.priority = 100
+        self.convert_numerics = True
+
+    def snippet(self, df):
+        from pyspark.sql.functions import coalesce, lit
+
+        # Use distinct values of customer and date from the dataset itself.
+        # In general it's safer to use known reference tables for IDs and dates.
+        filled = df.join(
+            df.select("customer_id").distinct().crossJoin(df.select("date").distinct()),
+            ["date", "customer_id"],
+            "right",
+        ).select("date", "customer_id", coalesce("spend_dollars", lit(0)))
+        return filled
+
+
+class timeseries_first_seen(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "First Time an ID is Seen"
+        self.category = "Time Series"
+        self.dataset = "customer_spend.csv"
+        self.priority = 150
+        self.convert_numerics = True
+
+    def snippet(self, df):
+        from pyspark.sql.functions import first
+        from pyspark.sql.window import Window
+
+        w = Window().partitionBy("customer_id").orderBy("date")
+        df = df.withColumn("first_seen", first("date").over(w))
+        return df
+
+
+class timeseries_running_sum(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Running or Cumulative Sum"
+        self.category = "Time Series"
+        self.dataset = "customer_spend.csv"
+        self.priority = 200
+        self.convert_numerics = True
+
+    def snippet(self, df):
+        from pyspark.sql.functions import col, sum
+        from pyspark.sql.window import Window
+
+        w = (
+            Window()
+            .partitionBy("customer_id")
+            .orderBy("date")
+            .rangeBetween(Window.unboundedPreceding, 0)
+        )
+        df = df.withColumn(
+            "spend_dollars", col("spend_dollars").cast("double")
+        ).withColumn("running_sum", sum("spend_dollars").over(w))
+        return df
+
+
+class timeseries_running_average(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Running or Cumulative Average"
+        self.category = "Time Series"
+        self.dataset = "customer_spend.csv"
+        self.priority = 300
+        self.convert_numerics = True
+
+    def snippet(self, df):
+        from pyspark.sql.functions import avg, col
+        from pyspark.sql.window import Window
+
+        w = (
+            Window()
+            .partitionBy("customer_id")
+            .orderBy("date")
+            .rangeBetween(Window.unboundedPreceding, 0)
+        )
+        df = df.withColumn(
+            "spend_dollars", col("spend_dollars").cast("double")
+        ).withColumn("running_avg", avg("spend_dollars").over(w))
+        return df
+
+
+class fileprocessing_load_files(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Load Local File Details into a DataFrame"
+        self.category = "File Processing"
+        self.dataset = "UNUSED"
+        self.priority = 100
+
+    def snippet(self, df):
+        from pyspark.sql.types import (
+            StructField,
+            StructType,
+            LongType,
+            StringType,
+            TimestampType,
+        )
+        import datetime
+        import os
+
+        # Simple: Use glob and only file names.
+        files = [[x] for x in glob.glob("/etc/*")]
+        df = spark.createDataFrame(files)
+
+        # Advanced: Use os.walk and extended attributes.
+        target_path = "/etc"
+        entries = []
+        walker = os.walk(target_path)
+        for root, dirs, files in walker:
+            for file in files:
+                full_path = os.path.join(root, file)
+                try:
+                    stat_info = os.stat(full_path)
+                    entries.append(
+                        [
+                            file,
+                            full_path,
+                            stat_info.st_size,
+                            datetime.datetime.fromtimestamp(stat_info.st_mtime),
+                        ]
+                    )
+                except:
+                    pass
+        schema = StructType(
+            [
+                StructField("file", StringType(), False),
+                StructField("path", StringType(), False),
+                StructField("size", LongType(), False),
+                StructField("mtime", TimestampType(), False),
+            ]
+        )
+        df = spark.createDataFrame(entries, schema)
+        return df
+
+
+class fileprocessing_load_files_oci(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Load Files from Oracle Cloud Infrastructure into a DataFrame"
+        self.category = "File Processing"
+        self.dataset = "UNUSED"
+        self.priority = 200
+
+    def snippet(self, df):
+        # EXCLUDE
+        import oci
+
+        def get_authenticated_client(client):
+            config = oci.config.from_file()
+            authenticated_client = client(config)
+            return authenticated_client
+
+        object_store_client = get_authenticated_client(
+            oci.object_storage.ObjectStorageClient
+        )
+        # INCLUDE
+        from pyspark.sql.types import (
+            StructField,
+            StructType,
+            LongType,
+            StringType,
+            TimestampType,
+        )
+        import datetime
+
+        # Requires an object_store_client object.
+        # See https://oracle-cloud-infrastructure-python-sdk.readthedocs.io/en/latest/api/object_storage/client/oci.object_storage.ObjectStorageClient.html
+        input_bucket = "input"
+        raw_inputs = object_store_client.list_objects(
+            object_store_client.get_namespace().data, input_bucket
+        )
+        files = [
+            [
+                x.name,
+                x.size,
+                datetime.datetime.fromtimestamp(x.time_modified)
+                if x.time_modified is not None
+                else None,
+            ]
+            for x in raw_inputs.data.objects
+        ]
+        schema = StructType(
+            [
+                StructField("name", StringType(), False),
+                StructField("size", LongType(), True),
+                StructField("modified", TimestampType(), True),
+            ]
+        )
+        df = spark.createDataFrame(files, schema)
+        return df
+
+
+class fileprocessing_transform_images(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Transform Many Images using Pillow"
+        self.category = "File Processing"
+        self.dataset = "UNUSED"
+        self.priority = 300
+
+    def snippet(self, df):
+        from PIL import Image
+        from pyspark.sql.types import StructField, StructType, StringType
+        import glob
+
+        def resize_an_image(row):
+            width, height = 128, 128
+            file_name = row._1
+            new_name = file_name.replace(".png", ".resized.png")
+            img = Image.open(file_name)
+            img = img.resize((width, height), Image.ANTIALIAS)
+            img.save(new_name)
+
+        files = [[x] for x in glob.glob("data/*.png")]
+        df = spark.createDataFrame(files)
+        df.foreach(resize_an_image)
+
+
 cheat_sheet = [
     pandas_spark_dataframe_to_pandas_dataframe(),
     pandas_n_rows_from_dataframe_to_pandas(),
@@ -1541,9 +1897,12 @@ cheat_sheet = [
     missing_count_of_null_nan(),
     loadsave_to_parquet(),
     loadsave_dataframe_from_csv(),
+    loadsave_dataframe_from_csv_delimiter(),
     loadsave_export_to_csv(),
-    loadsave_single_output_file(),
     loadsave_csv_with_header(),
+    loadsave_single_output_file(),
+    loadsave_money(),
+    loadsave_date(),
     loadsave_overwrite_output_directory(),
     loadsave_dataframe_from_csv_provide_schema(),
     loadsave_dynamic_partitioning(),
@@ -1616,6 +1975,13 @@ cheat_sheet = [
     profile_numeric_averages(),
     profile_numeric_min(),
     profile_numeric_max(),
+    timeseries_zero_fill(),
+    timeseries_first_seen(),
+    timeseries_running_sum(),
+    timeseries_running_average(),
+    fileprocessing_load_files(),
+    fileprocessing_load_files_oci(),
+    fileprocessing_transform_images(),
 ]
 
 
@@ -1665,7 +2031,9 @@ Table of contents
     with open("categories.yaml") as file:
         category_spec = yaml.safe_load(file)
 
-    sorted_categories = sorted(snippets.keys(), key=lambda x: category_spec[x]['priority'])
+    sorted_categories = sorted(
+        snippets.keys(), key=lambda x: category_spec[x]["priority"]
+    )
 
     # Generate our markdown.
     toc_content_list = []
@@ -1680,7 +2048,9 @@ Table of contents
 
     with open("README.md", "w") as fd:
         last_updated = str(datetime.datetime.now())[:-7]
-        fd.write(category_spec["Preamble"]["description"].format(last_updated=last_updated))
+        fd.write(
+            category_spec["Preamble"]["description"].format(last_updated=last_updated)
+        )
         fd.write("\n")
         fd.write(toc_template.format(toc_contents=toc_contents))
         for category in sorted_categories:
@@ -1690,13 +2060,16 @@ Table of contents
             fd.write(category_spec[category]["description"])
             toc_content_list.append("   * [{}](#{})".format(category, category_slug))
             for name, priority, source, hash in list:
+                source = re.sub(r"# EXCLUDE.*# INCLUDE\n", "", source, flags=re.S)
                 header_text = header.format(name, "-" * len(name))
                 fd.write(header_text)
                 fd.write(snippet_template.format(code=source))
 
 
-def all_tests():
+def all_tests(category=None):
     for cheat in cheat_sheet:
+        if category is not None and cheat.category != category:
+            continue
         cheat.run()
 
 
@@ -1715,19 +2088,21 @@ def test(test_name):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--all-tests", action='store_true')
-    parser.add_argument("--dump-priorities", action='store_true')
+    parser.add_argument("--all-tests", action="store_true")
+    parser.add_argument("--category")
+    parser.add_argument("--dump-priorities", action="store_true")
     parser.add_argument("--test")
     args = parser.parse_args()
 
-    if args.all_tests:
-        all_tests()
+    if args.all_tests or args.category:
+        all_tests(args.category)
     elif args.dump_priorities:
         dump_priorities()
     elif args.test:
         test(args.test)
     else:
         generate_cheatsheet()
+
 
 if __name__ == "__main__":
     main()

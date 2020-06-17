@@ -6,7 +6,7 @@ These snippets are licensed under the CC0 1.0 Universal License. That means you 
 
 The snippets below refer to DataFrames loaded from the "Auto MPG Data Set" available from the [UCI Machine Learning Repository](https://archive.ics.uci.edu/ml/datasets/auto+mpg). You can download that dataset or clone this repository to test the code yourself.
 
-These snippets were tested against the Spark 2.4.4 API. This page was last updated 2020-06-03 14:28:30.
+These snippets were tested against the Spark 2.4.4 API. This page was last updated 2020-06-17 07:21:14.
 
 Make note of these helpful links:
 - [Built-in Spark SQL Functions](https://spark.apache.org/docs/latest/api/sql/index.html)
@@ -21,6 +21,9 @@ Table of contents
 <!--ts-->
    * [Loading and Saving Data](#loading-and-saving-data)
       * [Load a DataFrame from CSV](#load-a-dataframe-from-csv)
+      * [Load a DataFrame from a Tab Separated Value (TSV) file](#load-a-dataframe-from-a-tab-separated-value-tsv-file)
+      * [Load a CSV file with a money column into a DataFrame](#load-a-csv-file-with-a-money-column-into-a-dataframe)
+      * [Load a CSV file with complex dates into a DataFrame](#load-a-csv-file-with-complex-dates-into-a-dataframe)
       * [Provide the schema when loading a DataFrame from CSV](#provide-the-schema-when-loading-a-dataframe-from-csv)
       * [Configure security to read a CSV file from Oracle Cloud Infrastructure Object Storage](#configure-security-to-read-a-csv-file-from-oracle-cloud-infrastructure-object-storage)
       * [Save a DataFrame in Parquet format](#save-a-dataframe-in-parquet-format)
@@ -98,6 +101,10 @@ Table of contents
       * [Concatenate two DataFrames](#concatenate-two-dataframes)
       * [Load multiple files into a single DataFrame](#load-multiple-files-into-a-single-dataframe)
       * [Subtract DataFrames](#subtract-dataframes)
+   * [File Processing](#file-processing)
+      * [Load Local File Details into a DataFrame](#load-local-file-details-into-a-dataframe)
+      * [Load Files from Oracle Cloud Infrastructure into a DataFrame](#load-files-from-oracle-cloud-infrastructure-into-a-dataframe)
+      * [Transform Many Images using Pillow](#transform-many-images-using-pillow)
    * [Handling Missing Data](#handling-missing-data)
       * [Filter rows with None or Null values](#filter-rows-with-none-or-null-values)
       * [Drop rows with Null values](#drop-rows-with-null-values)
@@ -112,6 +119,11 @@ Table of contents
       * [Compute average values of all numeric columns](#compute-average-values-of-all-numeric-columns)
       * [Compute minimum values of all numeric columns](#compute-minimum-values-of-all-numeric-columns)
       * [Compute maximum values of all numeric columns](#compute-maximum-values-of-all-numeric-columns)
+   * [Time Series](#time-series)
+      * [Zero fill missing values in a timeseries](#zero-fill-missing-values-in-a-timeseries)
+      * [First Time an ID is Seen](#first-time-an-id-is-seen)
+      * [Running or Cumulative Sum](#running-or-cumulative-sum)
+      * [Running or Cumulative Average](#running-or-cumulative-average)
    * [Performance](#performance)
       * [Coalesce DataFrame partitions](#coalesce-dataframe-partitions)
       * [Change DataFrame partitioning](#change-dataframe-partitioning)
@@ -129,7 +141,73 @@ Load a DataFrame from CSV
 ```python
 # See https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameReader.html
 # for a list of supported options.
-df = spark.read.format("csv").option("header", True).load("auto-mpg.csv")
+df = spark.read.format("csv").option("header", True).load("data/auto-mpg.csv")
+```
+
+
+Load a DataFrame from a Tab Separated Value (TSV) file
+------------------------------------------------------
+
+```python
+# See https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameReader.html
+# for a list of supported options.
+df = (
+    spark.read.format("csv")
+    .option("header", True)
+    .option("sep", "\t")
+    .load("data/auto-mpg.tsv")
+)
+```
+
+
+Load a CSV file with a money column into a DataFrame
+----------------------------------------------------
+
+```python
+from pyspark.sql.functions import col, udf
+from pyspark.sql.types import DecimalType
+from decimal import Decimal
+
+# Load the text file.
+df = (
+    spark.read.format("csv")
+    .option("header", True)
+    .load("data/customer_spend.csv")
+)
+
+# Convert with a hardcoded custom UDF.
+money_udf = udf(lambda x: Decimal(x[1:].replace(",", "")), DecimalType(8, 4))
+money1 = df.withColumn("spend_dollars", money_udf(df.spend_dollars))
+
+# Convert with the money_parser library (much safer).
+from money_parser import price_str
+
+money_convert = udf(
+    lambda x: Decimal(price_str(x)) if x is not None else None,
+    DecimalType(8, 4),
+)
+money2 = df.withColumn("spend_dollars", money_convert(df.spend_dollars))
+```
+
+
+Load a CSV file with complex dates into a DataFrame
+---------------------------------------------------
+
+```python
+from pyspark.sql.functions import udf
+from pyspark.sql.types import TimestampType
+import dateparser
+
+# Use the dateparser module to convert many formats into timestamps.
+date_convert = udf(
+    lambda x: dateparser.parse(x) if x is not None else None, TimestampType()
+)
+df = (
+    spark.read.format("csv")
+    .option("header", True)
+    .load("data/date_examples.csv")
+)
+df = df.withColumn("parsed", date_convert(df.date))
 ```
 
 
@@ -164,7 +242,7 @@ df = (
     spark.read.format("csv")
     .option("header", "true")
     .schema(schema)
-    .load("auto-mpg.csv")
+    .load("data/auto-mpg.csv")
 )
 ```
 
@@ -753,6 +831,7 @@ Group and sort
 
 ```python
 from pyspark.sql.functions import avg, desc
+
 grouped = (
     df.groupBy("cylinders")
     .agg(avg("horsepower").alias("avg_horsepower"))
@@ -766,6 +845,7 @@ Group by multiple columns
 
 ```python
 from pyspark.sql.functions import avg, desc
+
 grouped = (
     df.groupBy(["modelyear", "cylinders"])
     .agg(avg("horsepower").alias("avg_horsepower"))
@@ -779,6 +859,7 @@ Aggregate multiple columns
 
 ```python
 from pyspark.sql.functions import asc, desc_nulls_last
+
 expressions = dict(horsepower="avg", weight="max", displacement="max")
 grouped = df.groupBy("modelyear").agg(expressions)
 ```
@@ -789,6 +870,7 @@ Aggregate multiple columns with custom orderings
 
 ```python
 from pyspark.sql.functions import asc, desc_nulls_last
+
 expressions = dict(horsepower="avg", weight="max", displacement="max")
 orderings = [
     desc_nulls_last("max(displacement)"),
@@ -823,6 +905,7 @@ Sum a column
 
 ```python
 from pyspark.sql.functions import sum
+
 grouped = df.groupBy("cylinders").agg(sum("weight").alias("total_weight"))
 ```
 
@@ -842,6 +925,7 @@ Count unique after grouping
 
 ```python
 from pyspark.sql.functions import countDistinct
+
 grouped = df.groupBy("cylinders").agg(countDistinct("mpg"))
 ```
 
@@ -851,6 +935,7 @@ Count distinct values on all columns
 
 ```python
 from pyspark.sql.functions import countDistinct
+
 grouped = df.agg(*(countDistinct(c) for c in df.columns))
 ```
 
@@ -889,6 +974,7 @@ Group key/values into a list
 
 ```python
 from pyspark.sql.functions import col, collect_list
+
 collected = df.groupBy("cylinders").agg(
     collect_list(col("carname")).alias("models")
 )
@@ -923,7 +1009,9 @@ from pyspark.sql.types import StringType
 
 # Load a list of manufacturer / country pairs.
 countries = (
-    spark.read.format("csv").option("header", True).load("manufacturers.csv")
+    spark.read.format("csv")
+    .option("header", True)
+    .load("data/manufacturers.csv")
 )
 
 # Add a manufacturers column, to join with the manufacturers list.
@@ -944,7 +1032,9 @@ from pyspark.sql.types import StringType
 
 # Load a list of manufacturer / country pairs.
 countries = (
-    spark.read.format("csv").option("header", True).load("manufacturers.csv")
+    spark.read.format("csv")
+    .option("header", True)
+    .load("data/manufacturers.csv")
 )
 
 # Add a manufacturers column, to join with the manufacturers list.
@@ -965,7 +1055,9 @@ from pyspark.sql.types import StringType
 
 # Load a list of manufacturer / country pairs.
 countries = (
-    spark.read.format("csv").option("header", True).load("manufacturers.csv")
+    spark.read.format("csv")
+    .option("header", True)
+    .load("data/manufacturers.csv")
 )
 
 # Add a manufacturers column, to join with the manufacturers list.
@@ -999,6 +1091,9 @@ joined = df.join(df, "carname", "right")
 
 # Full join.
 joined = df.join(df, "carname", "full")
+
+# Cross join.
+joined = df.crossJoin(df)
 ```
 
 
@@ -1006,8 +1101,8 @@ Concatenate two DataFrames
 --------------------------
 
 ```python
-df1 = spark.read.format("csv").option("header", True).load("part1.csv")
-df2 = spark.read.format("csv").option("header", True).load("part2.csv")
+df1 = spark.read.format("csv").option("header", True).load("data/part1.csv")
+df2 = spark.read.format("csv").option("header", True).load("data/part2.csv")
 df = df1.union(df2)
 ```
 
@@ -1020,11 +1115,11 @@ Load multiple files into a single DataFrame
 df = (
     spark.read.format("csv")
     .option("header", True)
-    .load(["part1.csv", "part2.csv"])
+    .load(["data/part1.csv", "data/part2.csv"])
 )
 
 # Approach 2: Use a wildcard.
-df = spark.read.format("csv").option("header", True).load("part*.csv")
+df = spark.read.format("csv").option("header", True).load("data/part*.csv")
 ```
 
 
@@ -1035,6 +1130,121 @@ Subtract DataFrames
 from pyspark.sql.functions import col
 
 reduced = df.subtract(df.where(col("mpg") < "25"))
+```
+
+
+File Processing
+===============
+Loading File Metadata and Processing Files
+
+Load Local File Details into a DataFrame
+----------------------------------------
+
+```python
+from pyspark.sql.types import (
+    StructField,
+    StructType,
+    LongType,
+    StringType,
+    TimestampType,
+)
+import datetime
+import os
+
+# Simple: Use glob and only file names.
+files = [[x] for x in glob.glob("/etc/*")]
+df = spark.createDataFrame(files)
+
+# Advanced: Use os.walk and extended attributes.
+target_path = "/etc"
+entries = []
+walker = os.walk(target_path)
+for root, dirs, files in walker:
+    for file in files:
+        full_path = os.path.join(root, file)
+        try:
+            stat_info = os.stat(full_path)
+            entries.append(
+                [
+                    file,
+                    full_path,
+                    stat_info.st_size,
+                    datetime.datetime.fromtimestamp(stat_info.st_mtime),
+                ]
+            )
+        except:
+            pass
+schema = StructType(
+    [
+        StructField("file", StringType(), False),
+        StructField("path", StringType(), False),
+        StructField("size", LongType(), False),
+        StructField("mtime", TimestampType(), False),
+    ]
+)
+df = spark.createDataFrame(entries, schema)
+```
+
+
+Load Files from Oracle Cloud Infrastructure into a DataFrame
+------------------------------------------------------------
+
+```python
+from pyspark.sql.types import (
+    StructField,
+    StructType,
+    LongType,
+    StringType,
+    TimestampType,
+)
+import datetime
+
+# Requires an object_store_client object.
+# See https://oracle-cloud-infrastructure-python-sdk.readthedocs.io/en/latest/api/object_storage/client/oci.object_storage.ObjectStorageClient.html
+input_bucket = "input"
+raw_inputs = object_store_client.list_objects(
+    object_store_client.get_namespace().data, input_bucket
+)
+files = [
+    [
+        x.name,
+        x.size,
+        datetime.datetime.fromtimestamp(x.time_modified)
+        if x.time_modified is not None
+        else None,
+    ]
+    for x in raw_inputs.data.objects
+]
+schema = StructType(
+    [
+        StructField("name", StringType(), False),
+        StructField("size", LongType(), True),
+        StructField("modified", TimestampType(), True),
+    ]
+)
+df = spark.createDataFrame(files, schema)
+```
+
+
+Transform Many Images using Pillow
+----------------------------------
+
+```python
+from PIL import Image
+from pyspark.sql.types import StructField, StructType, StringType
+import glob
+
+def resize_an_image(row):
+    width, height = 128, 128
+    file_name = row._1
+    new_name = file_name.replace(".png", ".resized.png")
+    img = Image.open(file_name)
+    img = img.resize((width, height), Image.ANTIALIAS)
+    img.save(new_name)
+
+files = [[x] for x in glob.glob("data/*.png")]
+df = spark.createDataFrame(files)
+df.foreach(resize_an_image)
 ```
 
 
@@ -1141,7 +1351,10 @@ Compute the number of NULLs across all columns
 
 ```python
 from pyspark.sql.functions import col, count, when
-result = df.select([count(when(col(c).isNull(), c)).alias(c) for c in df.columns])
+
+result = df.select(
+    [count(when(col(c).isNull(), c)).alias(c) for c in df.columns]
+)
 ```
 
 
@@ -1172,6 +1385,76 @@ Compute maximum values of all numeric columns
 numerics = set(["decimal", "double", "float", "integer", "long", "short"])
 exprs = {x[0]: "max" for x in df.dtypes if x[1] in numerics}
 result = df.agg(exprs)
+```
+
+
+Time Series
+===========
+Techniques for dealing with time series data.
+
+Zero fill missing values in a timeseries
+----------------------------------------
+
+```python
+from pyspark.sql.functions import coalesce, lit
+
+# Use distinct values of customer and date from the dataset itself.
+# In general it's safer to use known reference tables for IDs and dates.
+filled = df.join(
+    df.select("customer_id").distinct().crossJoin(df.select("date").distinct()),
+    ["date", "customer_id"],
+    "right",
+).select("date", "customer_id", coalesce("spend_dollars", lit(0)))
+```
+
+
+First Time an ID is Seen
+------------------------
+
+```python
+from pyspark.sql.functions import first
+from pyspark.sql.window import Window
+
+w = Window().partitionBy("customer_id").orderBy("date")
+df = df.withColumn("first_seen", first("date").over(w))
+```
+
+
+Running or Cumulative Sum
+-------------------------
+
+```python
+from pyspark.sql.functions import col, sum
+from pyspark.sql.window import Window
+
+w = (
+    Window()
+    .partitionBy("customer_id")
+    .orderBy("date")
+    .rangeBetween(Window.unboundedPreceding, 0)
+)
+df = df.withColumn(
+    "spend_dollars", col("spend_dollars").cast("double")
+).withColumn("running_sum", sum("spend_dollars").over(w))
+```
+
+
+Running or Cumulative Average
+-----------------------------
+
+```python
+from pyspark.sql.functions import avg, col
+from pyspark.sql.window import Window
+
+w = (
+    Window()
+    .partitionBy("customer_id")
+    .orderBy("date")
+    .rangeBetween(Window.unboundedPreceding, 0)
+)
+df = df.withColumn(
+    "spend_dollars", col("spend_dollars").cast("double")
+).withColumn("running_avg", avg("spend_dollars").over(w))
 ```
 
 
