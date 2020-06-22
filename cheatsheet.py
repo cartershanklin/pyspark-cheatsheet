@@ -19,7 +19,7 @@ class snippet:
         self.dataset = None
         self.name = None
         self.hash = hashlib.md5(str(self.__class__).encode()).hexdigest()
-        self.convert_numerics = False
+        self.preconvert = False
 
     def load_data(self):
         assert self.dataset is not None, "Dataset not set"
@@ -30,7 +30,7 @@ class snippet:
             .option("header", True)
             .load(os.path.join("data", self.dataset))
         )
-        if self.convert_numerics:
+        if self.preconvert:
             if self.dataset == "auto-mpg.csv":
                 from pyspark.sql.functions import col
 
@@ -41,7 +41,7 @@ class snippet:
                 ):
                     df = df.withColumn(column_name, col(column_name).cast("double"))
             elif self.dataset == "customer_spend.csv":
-                from pyspark.sql.functions import col, udf
+                from pyspark.sql.functions import col, to_date, udf
                 from pyspark.sql.types import DecimalType
                 from decimal import Decimal
                 from money_parser import price_str
@@ -50,9 +50,11 @@ class snippet:
                     lambda x: Decimal(price_str(x)) if x is not None else None,
                     DecimalType(8, 4),
                 )
-                df = df.withColumn(
-                    "customer_id", col("customer_id").cast("integer")
-                ).withColumn("spend_dollars", money_convert(df.spend_dollars))
+                df = (
+                    df.withColumn("customer_id", col("customer_id").cast("integer"))
+                    .withColumn("spend_dollars", money_convert(df.spend_dollars))
+                    .withColumn("date", to_date(df.date))
+                )
         return df
 
     def snippet(self, df):
@@ -924,6 +926,70 @@ class loadsave_overwrite_specific_partitions(snippet):
         data.write.mode("overwrite").insertInto("my_table")
 
 
+class loadsave_read_oracle(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Read an Oracle DB table into a DataFrame using a Wallet"
+        self.category = "Loading and Saving Data"
+        self.dataset = "UNUSED"
+        self.priority = 1000
+
+    def snippet(self, df):
+        # EXCLUDE
+        return
+        # INCLUDE
+        # Key variables you need.
+        # Get the tnsname from tnsnames.ora.
+        # Wallet path should point to an extracted wallet file.
+        password = "my_password"
+        table = "source_table"
+        tnsname = "my_tns_name"
+        user = "ADMIN"
+        wallet_path = "/path/to/your/wallet"
+
+        properties = {
+            "driver": "oracle.jdbc.driver.OracleDriver",
+            "oracle.net.tns_admin": tnsname,
+            "password": password,
+            "user": user,
+        }
+        url = f"jdbc:oracle:thin:@{tnsname}?TNS_ADMIN={wallet_path}"
+        df = spark.read.jdbc(url=url, table=table, properties=properties)
+
+
+class loadsave_write_oracle(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Write a DataFrame to an Oracle DB table using a Wallet"
+        self.category = "Loading and Saving Data"
+        self.dataset = "UNUSED"
+        self.priority = 1100
+
+    def snippet(self, df):
+        # EXCLUDE
+        return
+        # INCLUDE
+        # Key variables you need.
+        # Get the tnsname from tnsnames.ora.
+        # Wallet path should point to an extracted wallet file.
+        password = "my_password"
+        table = "target_table"
+        tnsname = "my_tns_name"
+        user = "ADMIN"
+        wallet_path = "/path/to/your/wallet"
+
+        properties = {
+            "driver": "oracle.jdbc.driver.OracleDriver",
+            "oracle.net.tns_admin": tnsname,
+            "password": password,
+            "user": user,
+        }
+        url = f"jdbc:oracle:thin:@{tnsname}?TNS_ADMIN={wallet_path}"
+
+        # Possible modes are "Append", "Overwrite", "Ignore", "Error"
+        df.write.jdbc(url=url, table=table, mode="Append", properties=properties)
+
+
 class transform_fillna_specific_columns(snippet):
     def __init__(self):
         super().__init__()
@@ -968,7 +1034,7 @@ class transform_fillna_group_avg(snippet):
         manufacturer_avg = df.groupBy("cylinders").agg({"horsepower": "avg"})
         df = df.join(manufacturer_avg, "cylinders").select(
             *unmodified_columns,
-            coalesce("horsepower", "avg(horsepower)").alias("horsepower")
+            coalesce("horsepower", "avg(horsepower)").alias("horsepower"),
         )
         return df
 
@@ -1616,7 +1682,7 @@ class profile_numeric_averages(snippet):
         self.category = "Data Profiling"
         self.dataset = "auto-mpg.csv"
         self.priority = 200
-        self.convert_numerics = True
+        self.preconvert = True
 
     def snippet(self, df):
         numerics = set(["decimal", "double", "float", "integer", "long", "short"])
@@ -1632,7 +1698,7 @@ class profile_numeric_min(snippet):
         self.category = "Data Profiling"
         self.dataset = "auto-mpg.csv"
         self.priority = 300
-        self.convert_numerics = True
+        self.preconvert = True
 
     def snippet(self, df):
         numerics = set(["decimal", "double", "float", "integer", "long", "short"])
@@ -1648,7 +1714,7 @@ class profile_numeric_max(snippet):
         self.category = "Data Profiling"
         self.dataset = "auto-mpg.csv"
         self.priority = 400
-        self.convert_numerics = True
+        self.preconvert = True
 
     def snippet(self, df):
         numerics = set(["decimal", "double", "float", "integer", "long", "short"])
@@ -1664,7 +1730,7 @@ class timeseries_zero_fill(snippet):
         self.category = "Time Series"
         self.dataset = "customer_spend.csv"
         self.priority = 100
-        self.convert_numerics = True
+        self.preconvert = True
 
     def snippet(self, df):
         from pyspark.sql.functions import coalesce, lit
@@ -1686,7 +1752,7 @@ class timeseries_first_seen(snippet):
         self.category = "Time Series"
         self.dataset = "customer_spend.csv"
         self.priority = 150
-        self.convert_numerics = True
+        self.preconvert = True
 
     def snippet(self, df):
         from pyspark.sql.functions import first
@@ -1700,14 +1766,14 @@ class timeseries_first_seen(snippet):
 class timeseries_running_sum(snippet):
     def __init__(self):
         super().__init__()
-        self.name = "Running or Cumulative Sum"
+        self.name = "Cumulative Sum"
         self.category = "Time Series"
         self.dataset = "customer_spend.csv"
         self.priority = 200
-        self.convert_numerics = True
+        self.preconvert = True
 
     def snippet(self, df):
-        from pyspark.sql.functions import col, sum
+        from pyspark.sql.functions import sum
         from pyspark.sql.window import Window
 
         w = (
@@ -1716,23 +1782,45 @@ class timeseries_running_sum(snippet):
             .orderBy("date")
             .rangeBetween(Window.unboundedPreceding, 0)
         )
-        df = df.withColumn(
-            "spend_dollars", col("spend_dollars").cast("double")
-        ).withColumn("running_sum", sum("spend_dollars").over(w))
+        df = df.withColumn("running_sum", sum("spend_dollars").over(w))
+        return df
+
+
+class timeseries_running_sum_period(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Cumulative Sum in a Period"
+        self.category = "Time Series"
+        self.dataset = "customer_spend.csv"
+        self.priority = 210
+        self.preconvert = True
+
+    def snippet(self, df):
+        from pyspark.sql.functions import sum, year
+        from pyspark.sql.window import Window
+
+        # Add an additional partition clause for the sub-period.
+        w = (
+            Window()
+            .partitionBy(["customer_id", year("date")])
+            .orderBy("date")
+            .rangeBetween(Window.unboundedPreceding, 0)
+        )
+        df = df.withColumn("running_sum", sum("spend_dollars").over(w))
         return df
 
 
 class timeseries_running_average(snippet):
     def __init__(self):
         super().__init__()
-        self.name = "Running or Cumulative Average"
+        self.name = "Cumulative Average"
         self.category = "Time Series"
         self.dataset = "customer_spend.csv"
         self.priority = 300
-        self.convert_numerics = True
+        self.preconvert = True
 
     def snippet(self, df):
-        from pyspark.sql.functions import avg, col
+        from pyspark.sql.functions import avg
         from pyspark.sql.window import Window
 
         w = (
@@ -1741,9 +1829,31 @@ class timeseries_running_average(snippet):
             .orderBy("date")
             .rangeBetween(Window.unboundedPreceding, 0)
         )
-        df = df.withColumn(
-            "spend_dollars", col("spend_dollars").cast("double")
-        ).withColumn("running_avg", avg("spend_dollars").over(w))
+        df = df.withColumn("running_avg", avg("spend_dollars").over(w))
+        return df
+
+
+class timeseries_running_average_period(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Cumulative Average in a Period"
+        self.category = "Time Series"
+        self.dataset = "customer_spend.csv"
+        self.priority = 310
+        self.preconvert = True
+
+    def snippet(self, df):
+        from pyspark.sql.functions import avg, year
+        from pyspark.sql.window import Window
+
+        # Add an additional partition clause for the sub-period.
+        w = (
+            Window()
+            .partitionBy(["customer_id", year("date")])
+            .orderBy("date")
+            .rangeBetween(Window.unboundedPreceding, 0)
+        )
+        df = df.withColumn("running_avg", avg("spend_dollars").over(w))
         return df
 
 
@@ -1908,6 +2018,8 @@ cheat_sheet = [
     loadsave_dynamic_partitioning(),
     loadsave_read_from_oci(),
     loadsave_overwrite_specific_partitions(),
+    loadsave_read_oracle(),
+    loadsave_write_oracle(),
     join_concatenate(),
     join_basic(),
     join_basic2(),
@@ -1978,7 +2090,9 @@ cheat_sheet = [
     timeseries_zero_fill(),
     timeseries_first_seen(),
     timeseries_running_sum(),
+    timeseries_running_sum_period(),
     timeseries_running_average(),
+    timeseries_running_average_period(),
     fileprocessing_load_files(),
     fileprocessing_load_files_oci(),
     fileprocessing_transform_images(),

@@ -6,7 +6,7 @@ These snippets are licensed under the CC0 1.0 Universal License. That means you 
 
 The snippets below refer to DataFrames loaded from the "Auto MPG Data Set" available from the [UCI Machine Learning Repository](https://archive.ics.uci.edu/ml/datasets/auto+mpg). You can download that dataset or clone this repository to test the code yourself.
 
-These snippets were tested against the Spark 2.4.4 API. This page was last updated 2020-06-17 07:21:14.
+These snippets were tested against the Spark 2.4.4 API. This page was last updated 2020-06-21 20:47:52.
 
 Make note of these helpful links:
 - [Built-in Spark SQL Functions](https://spark.apache.org/docs/latest/api/sql/index.html)
@@ -33,6 +33,8 @@ Table of contents
       * [Save a DataFrame in a single CSV file](#save-a-dataframe-in-a-single-csv-file)
       * [Save DataFrame as a dynamic partitioned table](#save-dataframe-as-a-dynamic-partitioned-table)
       * [Overwrite specific partitions](#overwrite-specific-partitions)
+      * [Read an Oracle DB table into a DataFrame using a Wallet](#read-an-oracle-db-table-into-a-dataframe-using-a-wallet)
+      * [Write a DataFrame to an Oracle DB table using a Wallet](#write-a-dataframe-to-an-oracle-db-table-using-a-wallet)
    * [DataFrame Operations](#dataframe-operations)
       * [Add a new column with to a DataFrame](#add-a-new-column-with-to-a-dataframe)
       * [Modify a DataFrame column](#modify-a-dataframe-column)
@@ -122,8 +124,10 @@ Table of contents
    * [Time Series](#time-series)
       * [Zero fill missing values in a timeseries](#zero-fill-missing-values-in-a-timeseries)
       * [First Time an ID is Seen](#first-time-an-id-is-seen)
-      * [Running or Cumulative Sum](#running-or-cumulative-sum)
-      * [Running or Cumulative Average](#running-or-cumulative-average)
+      * [Cumulative Sum](#cumulative-sum)
+      * [Cumulative Sum in a Period](#cumulative-sum-in-a-period)
+      * [Cumulative Average](#cumulative-average)
+      * [Cumulative Average in a Period](#cumulative-average-in-a-period)
    * [Performance](#performance)
       * [Coalesce DataFrame partitions](#coalesce-dataframe-partitions)
       * [Change DataFrame partitioning](#change-dataframe-partitioning)
@@ -326,6 +330,56 @@ Overwrite specific partitions
 ```python
 spark.conf.set("spark.sql.sources.partitionOverwriteMode", "dynamic")
 data.write.mode("overwrite").insertInto("my_table")
+```
+
+
+Read an Oracle DB table into a DataFrame using a Wallet
+-------------------------------------------------------
+
+```python
+# Key variables you need.
+# Get the tnsname from tnsnames.ora.
+# Wallet path should point to an extracted wallet file.
+password = "my_password"
+table = "source_table"
+tnsname = "my_tns_name"
+user = "ADMIN"
+wallet_path = "/path/to/your/wallet"
+
+properties = {
+    "driver": "oracle.jdbc.driver.OracleDriver",
+    "oracle.net.tns_admin": tnsname,
+    "password": password,
+    "user": user,
+}
+url = f"jdbc:oracle:thin:@{tnsname}?TNS_ADMIN={wallet_path}"
+df = spark.read.jdbc(url=url, table=table, properties=properties)
+```
+
+
+Write a DataFrame to an Oracle DB table using a Wallet
+------------------------------------------------------
+
+```python
+# Key variables you need.
+# Get the tnsname from tnsnames.ora.
+# Wallet path should point to an extracted wallet file.
+password = "my_password"
+table = "target_table"
+tnsname = "my_tns_name"
+user = "ADMIN"
+wallet_path = "/path/to/your/wallet"
+
+properties = {
+    "driver": "oracle.jdbc.driver.OracleDriver",
+    "oracle.net.tns_admin": tnsname,
+    "password": password,
+    "user": user,
+}
+url = f"jdbc:oracle:thin:@{tnsname}?TNS_ADMIN={wallet_path}"
+
+# Possible modes are "Append", "Overwrite", "Ignore", "Error"
+df.write.jdbc(url=url, table=table, mode="Append", properties=properties)
 ```
 
 
@@ -636,7 +690,7 @@ unmodified_columns.remove("horsepower")
 manufacturer_avg = df.groupBy("cylinders").agg({"horsepower": "avg"})
 df = df.join(manufacturer_avg, "cylinders").select(
     *unmodified_columns,
-    coalesce("horsepower", "avg(horsepower)").alias("horsepower")
+    coalesce("horsepower", "avg(horsepower)").alias("horsepower"),
 )
 ```
 
@@ -1420,11 +1474,11 @@ df = df.withColumn("first_seen", first("date").over(w))
 ```
 
 
-Running or Cumulative Sum
--------------------------
+Cumulative Sum
+--------------
 
 ```python
-from pyspark.sql.functions import col, sum
+from pyspark.sql.functions import sum
 from pyspark.sql.window import Window
 
 w = (
@@ -1433,17 +1487,33 @@ w = (
     .orderBy("date")
     .rangeBetween(Window.unboundedPreceding, 0)
 )
-df = df.withColumn(
-    "spend_dollars", col("spend_dollars").cast("double")
-).withColumn("running_sum", sum("spend_dollars").over(w))
+df = df.withColumn("running_sum", sum("spend_dollars").over(w))
 ```
 
 
-Running or Cumulative Average
------------------------------
+Cumulative Sum in a Period
+--------------------------
 
 ```python
-from pyspark.sql.functions import avg, col
+from pyspark.sql.functions import sum, year
+from pyspark.sql.window import Window
+
+# Add an additional partition clause for the sub-period.
+w = (
+    Window()
+    .partitionBy(["customer_id", year("date")])
+    .orderBy("date")
+    .rangeBetween(Window.unboundedPreceding, 0)
+)
+df = df.withColumn("running_sum", sum("spend_dollars").over(w))
+```
+
+
+Cumulative Average
+------------------
+
+```python
+from pyspark.sql.functions import avg
 from pyspark.sql.window import Window
 
 w = (
@@ -1452,9 +1522,25 @@ w = (
     .orderBy("date")
     .rangeBetween(Window.unboundedPreceding, 0)
 )
-df = df.withColumn(
-    "spend_dollars", col("spend_dollars").cast("double")
-).withColumn("running_avg", avg("spend_dollars").over(w))
+df = df.withColumn("running_avg", avg("spend_dollars").over(w))
+```
+
+
+Cumulative Average in a Period
+------------------------------
+
+```python
+from pyspark.sql.functions import avg, year
+from pyspark.sql.window import Window
+
+# Add an additional partition clause for the sub-period.
+w = (
+    Window()
+    .partitionBy(["customer_id", year("date")])
+    .orderBy("date")
+    .rangeBetween(Window.unboundedPreceding, 0)
+)
+df = df.withColumn("running_avg", avg("spend_dollars").over(w))
 ```
 
 
