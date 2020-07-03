@@ -6,7 +6,7 @@ These snippets are licensed under the CC0 1.0 Universal License. That means you 
 
 The snippets below refer to DataFrames loaded from the "Auto MPG Data Set" available from the [UCI Machine Learning Repository](https://archive.ics.uci.edu/ml/datasets/auto+mpg). You can download that dataset or clone this repository to test the code yourself.
 
-These snippets were tested against the Spark 2.4.4 API. This page was last updated 2020-06-21 20:47:52.
+These snippets were tested against the Spark 2.4.4 API. This page was last updated 2020-07-03 08:02:08.
 
 Make note of these helpful links:
 - [Built-in Spark SQL Functions](https://spark.apache.org/docs/latest/api/sql/index.html)
@@ -147,7 +147,24 @@ Load a DataFrame from CSV
 # for a list of supported options.
 df = spark.read.format("csv").option("header", True).load("data/auto-mpg.csv")
 ```
-
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+----------+------+------------+---------+------+----------+
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|
+|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|
+|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|
+|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|
+|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|
+|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|
+|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|
+|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|
+|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|
+|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|
++----+---------+------------+----------+------+------------+---------+------+----------+
+only showing top 10 rows
+```
 
 Load a DataFrame from a Tab Separated Value (TSV) file
 ------------------------------------------------------
@@ -162,13 +179,30 @@ df = (
     .load("data/auto-mpg.tsv")
 )
 ```
-
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+----------+------+------------+---------+------+----------+
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|
+|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|
+|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|
+|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|
+|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|
+|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|
+|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|
+|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|
+|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|
+|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|
++----+---------+------------+----------+------+------------+---------+------+----------+
+only showing top 10 rows
+```
 
 Load a CSV file with a money column into a DataFrame
 ----------------------------------------------------
 
 ```python
-from pyspark.sql.functions import col, udf
+from pyspark.sql.functions import udf
 from pyspark.sql.types import DecimalType
 from decimal import Decimal
 
@@ -192,7 +226,24 @@ money_convert = udf(
 )
 money2 = df.withColumn("spend_dollars", money_convert(df.spend_dollars))
 ```
-
+```
+# Code snippet result:
++----------+-----------+-------------+
+|      date|customer_id|spend_dollars|
++----------+-----------+-------------+
+|2020-01-31|          0|       0.0700|
+|2020-01-31|          1|       0.9800|
+|2020-01-31|          2|       0.0600|
+|2020-01-31|          3|       0.6500|
+|2020-01-31|          4|       0.5700|
+|2020-02-29|          0|       0.1000|
+|2020-02-29|          2|       4.4000|
+|2020-02-29|          3|       0.3900|
+|2020-02-29|          4|       2.1300|
+|2020-02-29|          5|       0.8200|
++----------+-----------+-------------+
+only showing top 10 rows
+```
 
 Load a CSV file with complex dates into a DataFrame
 ---------------------------------------------------
@@ -213,7 +264,24 @@ df = (
 )
 df = df.withColumn("parsed", date_convert(df.date))
 ```
-
+```
+# Code snippet result:
++----------+----------+
+|      date|    parsed|
++----------+----------+
+|2012-01...|2012-01...|
+|2012-01...|2011-12...|
+|2012-01...|2012-01...|
+|2012-01...|2012-01...|
+|2012-01...|2011-12...|
+|2012-01...|2012-01...|
+|01-01-2...|2012-01...|
+|01-01-2...|2011-12...|
+|01-01-2...|2012-01...|
+|01-01-2...|2012-01...|
++----------+----------+
+only showing top 10 rows
+```
 
 Provide the schema when loading a DataFrame from CSV
 ----------------------------------------------------
@@ -249,7 +317,24 @@ df = (
     .load("data/auto-mpg.csv")
 )
 ```
-
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+----------+------+------------+---------+------+----------+
+|18.0|        8|       307.0|     130.0|3504.0|        12.0|       70|     1|chevrol...|
+|15.0|        8|       350.0|     165.0|3693.0|        11.5|       70|     1|buick s...|
+|18.0|        8|       318.0|     150.0|3436.0|        11.0|       70|     1|plymout...|
+|16.0|        8|       304.0|     150.0|3433.0|        12.0|       70|     1|amc reb...|
+|17.0|        8|       302.0|     140.0|3449.0|        10.5|       70|     1|ford to...|
+|15.0|        8|       429.0|     198.0|4341.0|        10.0|       70|     1|ford ga...|
+|14.0|        8|       454.0|     220.0|4354.0|         9.0|       70|     1|chevrol...|
+|14.0|        8|       440.0|     215.0|4312.0|         8.5|       70|     1|plymout...|
+|14.0|        8|       455.0|     225.0|4425.0|        10.0|       70|     1|pontiac...|
+|15.0|        8|       390.0|     190.0|3850.0|         8.5|       70|     1|amc amb...|
++----+---------+------------+----------+------+------------+---------+------+----------+
+only showing top 10 rows
+```
 
 Configure security to read a CSV file from Oracle Cloud Infrastructure Object Storage
 -------------------------------------------------------------------------------------
@@ -258,6 +343,7 @@ Configure security to read a CSV file from Oracle Cloud Infrastructure Object St
 import oci
 
 oci_config = oci.config.from_file()
+conf = spark.sparkContext.getConf()
 conf.set("fs.oci.client.auth.tenantId", oci_config["tenancy"])
 conf.set("fs.oci.client.auth.userId", oci_config["user"])
 conf.set("fs.oci.client.auth.fingerprint", oci_config["fingerprint"])
@@ -329,7 +415,7 @@ Overwrite specific partitions
 
 ```python
 spark.conf.set("spark.sql.sources.partitionOverwriteMode", "dynamic")
-data.write.mode("overwrite").insertInto("my_table")
+your_dataframe.write.mode("overwrite").insertInto("your_table")
 ```
 
 
@@ -397,7 +483,24 @@ df = df.withColumn("upper", upper(df.carname)).withColumn(
     "lower", lower(df.carname)
 )
 ```
-
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+----------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|     upper|     lower|
++----+---------+------------+----------+------+------------+---------+------+----------+----------+----------+
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|CHEVROL...|chevrol...|
+|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|BUICK S...|buick s...|
+|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|PLYMOUT...|plymout...|
+|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|AMC REB...|amc reb...|
+|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|FORD TO...|ford to...|
+|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|FORD GA...|ford ga...|
+|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|CHEVROL...|chevrol...|
+|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|PLYMOUT...|plymout...|
+|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|PONTIAC...|pontiac...|
+|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|AMC AMB...|amc amb...|
++----+---------+------------+----------+------+------------+---------+------+----------+----------+----------+
+only showing top 10 rows
+```
 
 Modify a DataFrame column
 -------------------------
@@ -407,7 +510,24 @@ from pyspark.sql.functions import col, concat, lit
 
 df = df.withColumn("modelyear", concat(lit("19"), col("modelyear")))
 ```
-
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+----------+------+------------+---------+------+----------+
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|     1970|     1|chevrol...|
+|15.0|        8|       350.0|     165.0| 3693.|        11.5|     1970|     1|buick s...|
+|18.0|        8|       318.0|     150.0| 3436.|        11.0|     1970|     1|plymout...|
+|16.0|        8|       304.0|     150.0| 3433.|        12.0|     1970|     1|amc reb...|
+|17.0|        8|       302.0|     140.0| 3449.|        10.5|     1970|     1|ford to...|
+|15.0|        8|       429.0|     198.0| 4341.|        10.0|     1970|     1|ford ga...|
+|14.0|        8|       454.0|     220.0| 4354.|         9.0|     1970|     1|chevrol...|
+|14.0|        8|       440.0|     215.0| 4312.|         8.5|     1970|     1|plymout...|
+|14.0|        8|       455.0|     225.0| 4425.|        10.0|     1970|     1|pontiac...|
+|15.0|        8|       390.0|     190.0| 3850.|         8.5|     1970|     1|amc amb...|
++----+---------+------------+----------+------+------------+---------+------+----------+
+only showing top 10 rows
+```
 
 Add a column with multiple conditions
 -------------------------------------
@@ -423,7 +543,24 @@ df = df.withColumn(
     .otherwise("very high"),
 )
 ```
-
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+---------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|mpg_class|
++----+---------+------------+----------+------+------------+---------+------+----------+---------+
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|      low|
+|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|      low|
+|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|      low|
+|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|      low|
+|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|      low|
+|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|      low|
+|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|      low|
+|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|      low|
+|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|      low|
+|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|      low|
++----+---------+------------+----------+------+------------+---------+------+----------+---------+
+only showing top 10 rows
+```
 
 Add a constant column
 ---------------------
@@ -433,7 +570,24 @@ from pyspark.sql.functions import lit
 
 df = df.withColumn("one", lit(1))
 ```
-
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+---+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|one|
++----+---------+------------+----------+------+------------+---------+------+----------+---+
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|  1|
+|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|  1|
+|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|  1|
+|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|  1|
+|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|  1|
+|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|  1|
+|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|  1|
+|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|  1|
+|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|  1|
+|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|  1|
++----+---------+------------+----------+------+------------+---------+------+----------+---+
+only showing top 10 rows
+```
 
 Concatenate columns
 -------------------
@@ -445,7 +599,24 @@ df = df.withColumn(
     "concatenated", concat(col("cylinders"), lit("_"), col("mpg"))
 )
 ```
-
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+------------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|concatenated|
++----+---------+------------+----------+------+------------+---------+------+----------+------------+
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|      8_18.0|
+|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|      8_15.0|
+|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|      8_18.0|
+|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|      8_16.0|
+|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|      8_17.0|
+|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|      8_15.0|
+|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|      8_14.0|
+|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|      8_14.0|
+|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|      8_14.0|
+|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|      8_15.0|
++----+---------+------------+----------+------+------------+---------+------+----------+------------+
+only showing top 10 rows
+```
 
 Drop a column
 -------------
@@ -453,7 +624,24 @@ Drop a column
 ```python
 df = df.drop("horsepower")
 ```
-
+```
+# Code snippet result:
++----+---------+------------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+------+------------+---------+------+----------+
+|18.0|        8|       307.0| 3504.|        12.0|       70|     1|chevrol...|
+|15.0|        8|       350.0| 3693.|        11.5|       70|     1|buick s...|
+|18.0|        8|       318.0| 3436.|        11.0|       70|     1|plymout...|
+|16.0|        8|       304.0| 3433.|        12.0|       70|     1|amc reb...|
+|17.0|        8|       302.0| 3449.|        10.5|       70|     1|ford to...|
+|15.0|        8|       429.0| 4341.|        10.0|       70|     1|ford ga...|
+|14.0|        8|       454.0| 4354.|         9.0|       70|     1|chevrol...|
+|14.0|        8|       440.0| 4312.|         8.5|       70|     1|plymout...|
+|14.0|        8|       455.0| 4425.|        10.0|       70|     1|pontiac...|
+|15.0|        8|       390.0| 3850.|         8.5|       70|     1|amc amb...|
++----+---------+------------+------+------------+---------+------+----------+
+only showing top 10 rows
+```
 
 Change a column name
 --------------------
@@ -461,7 +649,24 @@ Change a column name
 ```python
 df = df.withColumnRenamed("horsepower", "horses")
 ```
-
+```
+# Code snippet result:
++----+---------+------------+------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|horses|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+------+------+------------+---------+------+----------+
+|18.0|        8|       307.0| 130.0| 3504.|        12.0|       70|     1|chevrol...|
+|15.0|        8|       350.0| 165.0| 3693.|        11.5|       70|     1|buick s...|
+|18.0|        8|       318.0| 150.0| 3436.|        11.0|       70|     1|plymout...|
+|16.0|        8|       304.0| 150.0| 3433.|        12.0|       70|     1|amc reb...|
+|17.0|        8|       302.0| 140.0| 3449.|        10.5|       70|     1|ford to...|
+|15.0|        8|       429.0| 198.0| 4341.|        10.0|       70|     1|ford ga...|
+|14.0|        8|       454.0| 220.0| 4354.|         9.0|       70|     1|chevrol...|
+|14.0|        8|       440.0| 215.0| 4312.|         8.5|       70|     1|plymout...|
+|14.0|        8|       455.0| 225.0| 4425.|        10.0|       70|     1|pontiac...|
+|15.0|        8|       390.0| 190.0| 3850.|         8.5|       70|     1|amc amb...|
++----+---------+------------+------+------+------------+---------+------+----------+
+only showing top 10 rows
+```
 
 Change multiple column names
 ----------------------------
@@ -471,7 +676,24 @@ df = df.withColumnRenamed("horsepower", "horses").withColumnRenamed(
     "modelyear", "year"
 )
 ```
-
+```
+# Code snippet result:
++----+---------+------------+------+------+------------+----+------+----------+
+| mpg|cylinders|displacement|horses|weight|acceleration|year|origin|   carname|
++----+---------+------------+------+------+------------+----+------+----------+
+|18.0|        8|       307.0| 130.0| 3504.|        12.0|  70|     1|chevrol...|
+|15.0|        8|       350.0| 165.0| 3693.|        11.5|  70|     1|buick s...|
+|18.0|        8|       318.0| 150.0| 3436.|        11.0|  70|     1|plymout...|
+|16.0|        8|       304.0| 150.0| 3433.|        12.0|  70|     1|amc reb...|
+|17.0|        8|       302.0| 140.0| 3449.|        10.5|  70|     1|ford to...|
+|15.0|        8|       429.0| 198.0| 4341.|        10.0|  70|     1|ford ga...|
+|14.0|        8|       454.0| 220.0| 4354.|         9.0|  70|     1|chevrol...|
+|14.0|        8|       440.0| 215.0| 4312.|         8.5|  70|     1|plymout...|
+|14.0|        8|       455.0| 225.0| 4425.|        10.0|  70|     1|pontiac...|
+|15.0|        8|       390.0| 190.0| 3850.|         8.5|  70|     1|amc amb...|
++----+---------+------------+------+------+------------+----+------+----------+
+only showing top 10 rows
+```
 
 Select particular columns from a DataFrame
 ------------------------------------------
@@ -479,7 +701,24 @@ Select particular columns from a DataFrame
 ```python
 df = df.select(["mpg", "cylinders", "displacement"])
 ```
-
+```
+# Code snippet result:
++----+---------+------------+
+| mpg|cylinders|displacement|
++----+---------+------------+
+|18.0|        8|       307.0|
+|15.0|        8|       350.0|
+|18.0|        8|       318.0|
+|16.0|        8|       304.0|
+|17.0|        8|       302.0|
+|15.0|        8|       429.0|
+|14.0|        8|       454.0|
+|14.0|        8|       440.0|
+|14.0|        8|       455.0|
+|15.0|        8|       390.0|
++----+---------+------------+
+only showing top 10 rows
+```
 
 Create an empty dataframe with a specified schema
 -------------------------------------------------
@@ -495,7 +734,13 @@ schema = StructType(
 )
 df = spark.createDataFrame([], schema)
 ```
-
+```
+# Code snippet result:
++-----+---------+
+|my_id|my_string|
++-----+---------+
++-----+---------+
+```
 
 Create a constant dataframe
 ---------------------------
@@ -525,7 +770,15 @@ df = spark.createDataFrame(
     schema,
 )
 ```
-
+```
+# Code snippet result:
++-----+---------+------------+
+|my_id|my_string|my_timestamp|
++-----+---------+------------+
+|    1|      foo|  2021-01...|
+|    2|      bar|  2021-01...|
++-----+---------+------------+
+```
 
 Convert String to Double
 ------------------------
@@ -535,7 +788,24 @@ from pyspark.sql.functions import col
 
 df = df.withColumn("horsepower", col("horsepower").cast("double"))
 ```
-
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+----------+------+------------+---------+------+----------+
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|
+|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|
+|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|
+|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|
+|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|
+|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|
+|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|
+|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|
+|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|
+|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|
++----+---------+------------+----------+------+------------+---------+------+----------+
+only showing top 10 rows
+```
 
 Convert String to Integer
 -------------------------
@@ -545,7 +815,24 @@ from pyspark.sql.functions import col
 
 df = df.withColumn("horsepower", col("horsepower").cast("int"))
 ```
-
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+----------+------+------------+---------+------+----------+
+|18.0|        8|       307.0|       130| 3504.|        12.0|       70|     1|chevrol...|
+|15.0|        8|       350.0|       165| 3693.|        11.5|       70|     1|buick s...|
+|18.0|        8|       318.0|       150| 3436.|        11.0|       70|     1|plymout...|
+|16.0|        8|       304.0|       150| 3433.|        12.0|       70|     1|amc reb...|
+|17.0|        8|       302.0|       140| 3449.|        10.5|       70|     1|ford to...|
+|15.0|        8|       429.0|       198| 4341.|        10.0|       70|     1|ford ga...|
+|14.0|        8|       454.0|       220| 4354.|         9.0|       70|     1|chevrol...|
+|14.0|        8|       440.0|       215| 4312.|         8.5|       70|     1|plymout...|
+|14.0|        8|       455.0|       225| 4425.|        10.0|       70|     1|pontiac...|
+|15.0|        8|       390.0|       190| 3850.|         8.5|       70|     1|amc amb...|
++----+---------+------------+----------+------+------------+---------+------+----------+
+only showing top 10 rows
+```
 
 Get the size of a DataFrame
 ---------------------------
@@ -553,8 +840,16 @@ Get the size of a DataFrame
 ```python
 print("{} rows".format(df.count()))
 print("{} columns".format(len(df.columns)))
+# EXCLUDE
+    "{} rows".format(df.count()),
+    "{} columns".format(len(df.columns)),
+]
 ```
-
+```
+# Code snippet result:
+398 rows
+9 columns
+```
 
 Get a DataFrame's number of partitions
 --------------------------------------
@@ -562,7 +857,10 @@ Get a DataFrame's number of partitions
 ```python
 print("{} partition(s)".format(df.rdd.getNumPartitions()))
 ```
-
+```
+# Code snippet result:
+1 partition(s)
+```
 
 Get data types of a DataFrame's columns
 ---------------------------------------
@@ -570,7 +868,10 @@ Get data types of a DataFrame's columns
 ```python
 print(df.dtypes)
 ```
-
+```
+# Code snippet result:
+[('mpg', 'string'), ('cylinders', 'string'), ('displacement', 'string'), ('horsepower', 'string'), ('weight', 'string'), ('acceleration', 'string'), ('modelyear', 'string'), ('origin', 'string'), ('carname', 'string')]
+```
 
 Convert an RDD to Data Frame
 ----------------------------
@@ -581,7 +882,24 @@ from pyspark.sql import Row
 row = Row("val")
 df = rdd.map(row).toDF()
 ```
-
+```
+# Code snippet result:
++----------+
+|       val|
++----------+
+|mpg,cyl...|
+|18.0,8,...|
+|15.0,8,...|
+|18.0,8,...|
+|16.0,8,...|
+|17.0,8,...|
+|15.0,8,...|
+|14.0,8,...|
+|14.0,8,...|
+|14.0,8,...|
++----------+
+only showing top 10 rows
+```
 
 Print the contents of an RDD
 ----------------------------
@@ -589,7 +907,10 @@ Print the contents of an RDD
 ```python
 print(rdd.take(10))
 ```
-
+```
+# Code snippet result:
+['mpg,cylinders,displacement,horsepower,weight,acceleration,modelyear,origin,carname', '18.0,8,307.0,130.0,3504.,12.0,70,1,"chevrolet chevelle malibu"', '15.0,8,350.0,165.0,3693.,11.5,70,1,"buick skylark 320"', '18.0,8,318.0,150.0,3436.,11.0,70,1,"plymouth satellite"', '16.0,8,304.0,150.0,3433.,12.0,70,1,"amc rebel sst"', '17.0,8,302.0,140.0,3449.,10.5,70,1,"ford torino"', '15.0,8,429.0,198.0,4341.,10.0,70,1,"ford galaxie 500"', '14.0,8,454.0,220.0,4354.,9.0,70,1,"chevrolet impala"', '14.0,8,440.0,215.0,4312.,8.5,70,1,"plymouth fury iii"', '14.0,8,455.0,225.0,4425.,10.0,70,1,"pontiac catalina"']
+```
 
 Print the contents of a DataFrame
 ---------------------------------
@@ -597,7 +918,24 @@ Print the contents of a DataFrame
 ```python
 df.show(10)
 ```
-
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+----------+------+------------+---------+------+----------+
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|
+|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|
+|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|
+|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|
+|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|
+|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|
+|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|
+|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|
+|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|
+|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|
++----+---------+------------+----------+------+------------+---------+------+----------+
+only showing top 10 rows
+```
 
 Process each row of a DataFrame
 -------------------------------
@@ -625,7 +963,24 @@ def map_function(row):
 
 df = df.rdd.map(map_function).toDF()
 ```
-
+```
+# Code snippet result:
++------+
+|    _1|
++------+
+|1300.0|
+|1650.0|
+|1500.0|
+|1500.0|
+|1400.0|
+|1980.0|
+|2200.0|
+|2150.0|
+|2250.0|
+|1900.0|
++------+
+only showing top 10 rows
+```
 
 DataFrame Flatmap example
 -------------------------
@@ -643,7 +998,24 @@ rdd = df.rdd.flatMap(flatmap_function)
 row = Row("val")
 df = rdd.map(row).toDF()
 ```
-
+```
+# Code snippet result:
++---+
+|val|
++---+
+|  0|
+|  1|
+|  2|
+|  3|
+|  4|
+|  5|
+|  6|
+|  7|
+|  0|
+|  1|
++---+
+only showing top 10 rows
+```
 
 Create a custom UDF
 -------------------
@@ -655,7 +1027,24 @@ from pyspark.sql.types import StringType
 first_word_udf = udf(lambda x: x.split()[0], StringType())
 df = df.withColumn("manufacturer", first_word_udf(df.carname))
 ```
-
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+------------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|manufacturer|
++----+---------+------------+----------+------+------------+---------+------+----------+------------+
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|   chevrolet|
+|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|       buick|
+|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|    plymouth|
+|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|         amc|
+|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|        ford|
+|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|        ford|
+|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|   chevrolet|
+|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|    plymouth|
+|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|     pontiac|
+|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|         amc|
++----+---------+------------+----------+------+------------+---------+------+----------+------------+
+only showing top 10 rows
+```
 
 Transforming Data
 =================
@@ -667,7 +1056,24 @@ Fill NULL values in specific columns
 ```python
 df.fillna({"horsepower": 0})
 ```
-
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+----------+------+------------+---------+------+----------+
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|
+|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|
+|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|
+|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|
+|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|
+|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|
+|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|
+|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|
+|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|
+|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|
++----+---------+------------+----------+------+------------+---------+------+----------+
+only showing top 10 rows
+```
 
 Fill NULL values with column average
 ------------------------------------
@@ -677,13 +1083,30 @@ from pyspark.sql.functions import avg
 
 df.fillna({"horsepower": df.agg(avg("horsepower")).first()[0]})
 ```
-
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+----------+------+------------+---------+------+----------+
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|
+|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|
+|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|
+|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|
+|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|
+|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|
+|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|
+|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|
+|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|
+|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|
++----+---------+------------+----------+------+------------+---------+------+----------+
+only showing top 10 rows
+```
 
 Fill NULL values with group average
 -----------------------------------
 
 ```python
-from pyspark.sql.functions import avg, coalesce
+from pyspark.sql.functions import coalesce
 
 unmodified_columns = df.columns
 unmodified_columns.remove("horsepower")
@@ -693,7 +1116,24 @@ df = df.join(manufacturer_avg, "cylinders").select(
     coalesce("horsepower", "avg(horsepower)").alias("horsepower"),
 )
 ```
-
+```
+# Code snippet result:
++----+---------+------------+------+------------+---------+------+----------+----------+
+| mpg|cylinders|displacement|weight|acceleration|modelyear|origin|   carname|horsepower|
++----+---------+------------+------+------------+---------+------+----------+----------+
+|18.0|        8|       307.0| 3504.|        12.0|       70|     1|chevrol...|     130.0|
+|15.0|        8|       350.0| 3693.|        11.5|       70|     1|buick s...|     165.0|
+|18.0|        8|       318.0| 3436.|        11.0|       70|     1|plymout...|     150.0|
+|16.0|        8|       304.0| 3433.|        12.0|       70|     1|amc reb...|     150.0|
+|17.0|        8|       302.0| 3449.|        10.5|       70|     1|ford to...|     140.0|
+|15.0|        8|       429.0| 4341.|        10.0|       70|     1|ford ga...|     198.0|
+|14.0|        8|       454.0| 4354.|         9.0|       70|     1|chevrol...|     220.0|
+|14.0|        8|       440.0| 4312.|         8.5|       70|     1|plymout...|     215.0|
+|14.0|        8|       455.0| 4425.|        10.0|       70|     1|pontiac...|     225.0|
+|15.0|        8|       390.0| 3850.|         8.5|       70|     1|amc amb...|     190.0|
++----+---------+------------+------+------------+---------+------+----------+----------+
+only showing top 10 rows
+```
 
 Convert string to date
 ----------------------
@@ -706,7 +1146,15 @@ df = spark.sparkContext.parallelize([["2021-01-01"], ["2022-01-01"]]).toDF(
 )
 df = df.withColumn("date_col", col("date_col").cast("date"))
 ```
-
+```
+# Code snippet result:
++----------+
+|  date_col|
++----------+
+|2021-01-01|
+|2022-01-01|
++----------+
+```
 
 Convert string to date with custom format
 -----------------------------------------
@@ -719,7 +1167,15 @@ df = spark.sparkContext.parallelize([["20210101"], ["20220101"]]).toDF(
 )
 df = df.withColumn("date_col", to_date(col("date_col"), "yyyyddMM"))
 ```
-
+```
+# Code snippet result:
++----------+
+|  date_col|
++----------+
+|2021-01-01|
+|2022-01-01|
++----------+
+```
 
 Convert UNIX (seconds since epoch) timestamp to date
 ----------------------------------------------------
@@ -732,26 +1188,42 @@ df = spark.sparkContext.parallelize([["1590183026"], ["2000000000"]]).toDF(
 )
 df = df.withColumn("date_col", from_unixtime(col("ts_col")))
 ```
-
+```
+# Code snippet result:
++----------+----------+
+|    ts_col|  date_col|
++----------+----------+
+|1590183026|2020-05...|
+|2000000000|2033-05...|
++----------+----------+
+```
 
 Unpack a DataFrame's JSON column to a new DataFrame
 ---------------------------------------------------
 
 ```python
-from pyspark.sql.functions import col, explode, from_json, json_tuple
+from pyspark.sql.functions import col, json_tuple
 
 source = spark.sparkContext.parallelize(
     [["1", '{ "a" : 10, "b" : 11 }'], ["2", '{ "a" : 20, "b" : 21 }']]
 ).toDF(["id", "json"])
 df = source.select("id", json_tuple(col("json"), "a", "b"))
 ```
-
+```
+# Code snippet result:
++---+---+---+
+| id| c0| c1|
++---+---+---+
+|  1| 10| 11|
+|  2| 20| 21|
++---+---+---+
+```
 
 Query a JSON column
 -------------------
 
 ```python
-from pyspark.sql.functions import col, explode, from_json, json_tuple
+from pyspark.sql.functions import col, json_tuple
 
 source = spark.sparkContext.parallelize(
     [["1", '{ "a" : 10, "b" : 11 }'], ["2", '{ "a" : 20, "b" : 21 }']]
@@ -763,7 +1235,14 @@ filtered = (
     .where(col("b") > 15)
 )
 ```
-
+```
+# Code snippet result:
++---+---+---+
+| id|  a|  b|
++---+---+---+
+|  2| 20| 21|
++---+---+---+
+```
 
 Sorting and Searching
 =====================
@@ -777,7 +1256,24 @@ from pyspark.sql.functions import col
 
 filtered = df.filter(col("mpg") > "30")
 ```
-
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+----------+------+------------+---------+------+----------+
+| 9.0|        8|       304.0|     193.0| 4732.|        18.5|       70|     1|  hi 1200d|
+|30.0|        4|       79.00|     70.00| 2074.|        19.5|       71|     2|peugeot...|
+|30.0|        4|       88.00|     76.00| 2065.|        14.5|       71|     2| fiat 124b|
+|31.0|        4|       71.00|     65.00| 1773.|        19.0|       71|     3|toyota ...|
+|35.0|        4|       72.00|     69.00| 1613.|        18.0|       71|     3|datsun ...|
+|31.0|        4|       79.00|     67.00| 1950.|        19.0|       74|     3|datsun ...|
+|32.0|        4|       71.00|     65.00| 1836.|        21.0|       74|     3|toyota ...|
+|31.0|        4|       76.00|     52.00| 1649.|        16.5|       74|     3|toyota ...|
+|32.0|        4|       83.00|     61.00| 2003.|        19.0|       74|     3|datsun 710|
+|31.0|        4|       79.00|     67.00| 2000.|        16.0|       74|     2| fiat x1.9|
++----+---------+------------+----------+------+------------+---------+------+----------+
+only showing top 10 rows
+```
 
 Filter based on a specific column value
 ---------------------------------------
@@ -787,7 +1283,24 @@ from pyspark.sql.functions import col
 
 filtered = df.where(col("cylinders") == "8")
 ```
-
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+----------+------+------------+---------+------+----------+
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|
+|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|
+|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|
+|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|
+|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|
+|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|
+|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|
+|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|
+|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|
+|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|
++----+---------+------------+----------+------+------------+---------+------+----------+
+only showing top 10 rows
+```
 
 Filter based on an IN list
 --------------------------
@@ -797,7 +1310,24 @@ from pyspark.sql.functions import col
 
 filtered = df.where(col("cylinders").isin(["4", "6"]))
 ```
-
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+----------+------+------------+---------+------+----------+
+|24.0|        4|       113.0|     95.00| 2372.|        15.0|       70|     3|toyota ...|
+|22.0|        6|       198.0|     95.00| 2833.|        15.5|       70|     1|plymout...|
+|18.0|        6|       199.0|     97.00| 2774.|        15.5|       70|     1|amc hornet|
+|21.0|        6|       200.0|     85.00| 2587.|        16.0|       70|     1|ford ma...|
+|27.0|        4|       97.00|     88.00| 2130.|        14.5|       70|     3|datsun ...|
+|26.0|        4|       97.00|     46.00| 1835.|        20.5|       70|     2|volkswa...|
+|25.0|        4|       110.0|     87.00| 2672.|        17.5|       70|     2|peugeot...|
+|24.0|        4|       107.0|     90.00| 2430.|        14.5|       70|     2|audi 10...|
+|25.0|        4|       104.0|     95.00| 2375.|        17.5|       70|     2|  saab 99e|
+|26.0|        4|       121.0|     113.0| 2234.|        12.5|       70|     2|  bmw 2002|
++----+---------+------------+----------+------+------------+---------+------+----------+
+only showing top 10 rows
+```
 
 Filter based on a NOT IN list
 -----------------------------
@@ -807,7 +1337,24 @@ from pyspark.sql.functions import col
 
 filtered = df.where(~col("cylinders").isin(["4", "6"]))
 ```
-
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+----------+------+------------+---------+------+----------+
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|
+|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|
+|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|
+|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|
+|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|
+|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|
+|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|
+|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|
+|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|
+|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|
++----+---------+------------+----------+------+------------+---------+------+----------+
+only showing top 10 rows
+```
 
 Filter a Dataframe based on substring search
 --------------------------------------------
@@ -817,7 +1364,24 @@ from pyspark.sql.functions import col
 
 filtered = df.where(col("carname").like("%custom%"))
 ```
-
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+----------+------+------------+---------+------+----------+
+|16.0|        6|       225.0|     105.0| 3439.|        15.5|       71|     1|plymout...|
+|13.0|        8|       350.0|     155.0| 4502.|        13.5|       72|     1|buick l...|
+|14.0|        8|       318.0|     150.0| 4077.|        14.0|       72|     1|plymout...|
+|15.0|        8|       318.0|     150.0| 3777.|        12.5|       73|     1|dodge c...|
+|12.0|        8|       455.0|     225.0| 4951.|        11.0|       73|     1|buick e...|
+|16.0|        6|       250.0|     100.0| 3278.|        18.0|       73|     1|chevrol...|
+|13.0|        8|       360.0|     170.0| 4654.|        13.0|       73|     1|plymout...|
+|15.0|        8|       318.0|     150.0| 3399.|        11.0|       73|     1|dodge d...|
+|14.0|        8|       318.0|     150.0| 4457.|        13.5|       74|     1|dodge c...|
+|19.0|        6|       225.0|     95.00| 3264.|        16.0|       75|     1|plymout...|
++----+---------+------------+----------+------+------------+---------+------+----------+
+only showing top 10 rows
+```
 
 Filter based on a column's length
 ---------------------------------
@@ -827,7 +1391,24 @@ from pyspark.sql.functions import col, length
 
 filtered = df.where(length(col("carname")) < 12)
 ```
-
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+----------+------+------------+---------+------+----------+
+|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|
+|18.0|        6|       199.0|     97.00| 2774.|        15.5|       70|     1|amc hornet|
+|25.0|        4|       110.0|     87.00| 2672.|        17.5|       70|     2|peugeot...|
+|24.0|        4|       107.0|     90.00| 2430.|        14.5|       70|     2|audi 10...|
+|25.0|        4|       104.0|     95.00| 2375.|        17.5|       70|     2|  saab 99e|
+|26.0|        4|       121.0|     113.0| 2234.|        12.5|       70|     2|  bmw 2002|
+|21.0|        6|       199.0|     90.00| 2648.|        15.0|       70|     1|amc gre...|
+|10.0|        8|       360.0|     215.0| 4615.|        14.0|       70|     1| ford f250|
+|10.0|        8|       307.0|     200.0| 4376.|        15.0|       70|     1| chevy c20|
+|11.0|        8|       318.0|     210.0| 4382.|        13.5|       70|     1|dodge d200|
++----+---------+------------+----------+------+------------+---------+------+----------+
+only showing top 10 rows
+```
 
 Multiple filter conditions
 --------------------------
@@ -838,7 +1419,16 @@ from pyspark.sql.functions import col
 or_conditions = df.filter((col("mpg") > "30") | (col("acceleration") < "10"))
 and_conditions = df.filter((col("mpg") > "30") & (col("acceleration") < "13"))
 ```
-
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+----------+------+------------+---------+------+----------+
+|32.7|        6|       168.0|     132.0| 2910.|        11.4|       80|     3|datsun ...|
+|30.0|        4|       135.0|     84.00| 2385.|        12.9|       81|     1|plymout...|
+|32.0|        4|       135.0|     84.00| 2295.|        11.6|       82|     1|dodge r...|
++----+---------+------------+----------+------+------------+---------+------+----------+
+```
 
 Sort DataFrame by a column
 --------------------------
@@ -849,7 +1439,24 @@ from pyspark.sql.functions import col
 ascending = df.orderBy("carname")
 descending = df.orderBy(col("carname").desc())
 ```
-
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+----------+------+------------+---------+------+----------+
+|31.9|        4|       89.00|     71.00| 1925.|        14.0|       79|     2|vw rabb...|
+|44.3|        4|       90.00|     48.00| 2085.|        21.7|       80|     2|vw rabb...|
+|29.0|        4|       90.00|     70.00| 1937.|        14.2|       76|     2| vw rabbit|
+|41.5|        4|       98.00|     76.00| 2144.|        14.7|       80|     2| vw rabbit|
+|44.0|        4|       97.00|     52.00| 2130.|        24.6|       82|     2| vw pickup|
+|43.4|        4|       90.00|     48.00| 2335.|        23.7|       80|     2|vw dash...|
+|30.7|        6|       145.0|     76.00| 3160.|        19.6|       81|     2|volvo d...|
+|17.0|        6|       163.0|     125.0| 3140.|        13.6|       78|     2|volvo 2...|
+|20.0|        4|       130.0|     102.0| 3150.|        15.7|       76|     2| volvo 245|
+|22.0|        4|       121.0|     98.00| 2945.|        14.5|       75|     2|volvo 2...|
++----+---------+------------+----------+------+------------+---------+------+----------+
+only showing top 10 rows
+```
 
 Take the first N rows of a DataFrame
 ------------------------------------
@@ -858,7 +1465,23 @@ Take the first N rows of a DataFrame
 n = 10
 reduced = df.limit(n)
 ```
-
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+----------+------+------------+---------+------+----------+
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|
+|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|
+|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|
+|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|
+|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|
+|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|
+|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|
+|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|
+|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|
+|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|
++----+---------+------------+----------+------+------------+---------+------+----------+
+```
 
 Get distinct values of a column
 -------------------------------
@@ -866,7 +1489,18 @@ Get distinct values of a column
 ```python
 distinct = df.select("cylinders").distinct()
 ```
-
+```
+# Code snippet result:
++---------+
+|cylinders|
++---------+
+|        3|
+|        8|
+|        5|
+|        6|
+|        4|
++---------+
+```
 
 Remove duplicates
 -----------------
@@ -874,7 +1508,24 @@ Remove duplicates
 ```python
 filtered = df.dropDuplicates(["carname"])
 ```
-
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+----------+------+------------+---------+------+----------+
+|24.0|        4|       107.0|     90.00| 2430.|        14.5|       70|     2|audi 10...|
+|32.0|        4|       135.0|     84.00| 2295.|        11.6|       82|     1|dodge r...|
+|24.5|        4|       151.0|     88.00| 2740.|        16.0|       77|     1|pontiac...|
+|13.0|        8|       350.0|     145.0| 3988.|        13.0|       73|     1|chevrol...|
+|15.0|        8|       350.0|     145.0| 4082.|        13.0|       73|     1|chevrol...|
+|16.0|        8|       351.0|     149.0| 4335.|        14.5|       77|     1|ford th...|
+|32.9|        4|       119.0|     100.0| 2615.|        14.8|       81|     3|datsun ...|
+|34.1|        4|       86.00|     65.00| 1975.|        15.2|       79|     3|maxda g...|
+|22.0|        4|       121.0|     98.00| 2945.|        14.5|       75|     2|volvo 2...|
+|18.0|        6|       232.0|     100.0| 3288.|        15.5|       71|     1|amc mat...|
++----+---------+------------+----------+------+------------+---------+------+----------+
+only showing top 10 rows
+```
 
 Grouping
 ========
@@ -892,7 +1543,18 @@ grouped = (
     .orderBy(desc("avg_horsepower"))
 )
 ```
-
+```
+# Code snippet result:
++---------+--------------+
+|cylinders|avg_horsepower|
++---------+--------------+
+|        8|    158.300...|
+|        6|    101.506...|
+|        3|         99.25|
+|        5|    82.3333...|
+|        4|    78.2814...|
++---------+--------------+
+```
 
 Group by multiple columns
 -------------------------
@@ -906,18 +1568,50 @@ grouped = (
     .orderBy(desc("avg_horsepower"))
 )
 ```
-
+```
+# Code snippet result:
++---------+---------+--------------+
+|modelyear|cylinders|avg_horsepower|
++---------+---------+--------------+
+|       70|        8|    183.666...|
+|       73|        8|         170.0|
+|       71|        8|    166.857...|
+|       72|        8|    159.692...|
+|       77|        8|       152.375|
+|       76|        8|    146.333...|
+|       74|        8|         146.0|
+|       75|        8|         142.0|
+|       78|        8|         135.5|
+|       79|        8|         131.9|
++---------+---------+--------------+
+only showing top 10 rows
+```
 
 Aggregate multiple columns
 --------------------------
 
 ```python
-from pyspark.sql.functions import asc, desc_nulls_last
-
 expressions = dict(horsepower="avg", weight="max", displacement="max")
 grouped = df.groupBy("modelyear").agg(expressions)
 ```
-
+```
+# Code snippet result:
++---------+---------------+-----------+-----------------+
+|modelyear|avg(horsepower)|max(weight)|max(displacement)|
++---------+---------------+-----------+-----------------+
+|       73|        130.475|      4997.|            98.00|
+|       71|     107.037...|      5140.|            98.00|
+|       70|     147.827...|      4732.|            97.00|
+|       75|     101.066...|      4668.|            97.00|
+|       78|     99.6944...|      4080.|            98.00|
+|       77|     105.071...|      4335.|            98.00|
+|       82|     81.4666...|      3035.|            98.00|
+|       81|     81.0357...|      3725.|            98.00|
+|       79|     101.206...|      4360.|            98.00|
+|       72|     120.178...|      4633.|            98.00|
++---------+---------------+-----------+-----------------+
+only showing top 10 rows
+```
 
 Aggregate multiple columns with custom orderings
 ------------------------------------------------
@@ -933,7 +1627,24 @@ orderings = [
 ]
 grouped = df.groupBy("modelyear").agg(expressions).orderBy(*orderings)
 ```
-
+```
+# Code snippet result:
++---------+---------------+-----------+-----------------+
+|modelyear|avg(horsepower)|max(weight)|max(displacement)|
++---------+---------------+-----------+-----------------+
+|       73|        130.475|      4997.|            98.00|
+|       72|     120.178...|      4633.|            98.00|
+|       71|     107.037...|      5140.|            98.00|
+|       77|     105.071...|      4335.|            98.00|
+|       79|     101.206...|      4360.|            98.00|
+|       76|     101.117...|      4380.|            98.00|
+|       78|     99.6944...|      4080.|            98.00|
+|       74|     94.2307...|      4699.|            98.00|
+|       82|     81.4666...|      3035.|            98.00|
+|       81|     81.0357...|      3725.|            98.00|
++---------+---------------+-----------+-----------------+
+only showing top 10 rows
+```
 
 Get the maximum of a column
 ---------------------------
@@ -943,7 +1654,14 @@ from pyspark.sql.functions import col, max
 
 grouped = df.select(max(col("horsepower")).alias("max_horsepower"))
 ```
-
+```
+# Code snippet result:
++--------------+
+|max_horsepower|
++--------------+
+|         98.00|
++--------------+
+```
 
 Sum a list of columns
 ---------------------
@@ -952,7 +1670,14 @@ Sum a list of columns
 exprs = {x: "sum" for x in ("weight", "cylinders", "mpg")}
 summed = df.agg(exprs)
 ```
-
+```
+# Code snippet result:
++----------+-----------+--------------+
+|  sum(mpg)|sum(weight)|sum(cylinders)|
++----------+-----------+--------------+
+|9358.80...|  1182229.0|        2171.0|
++----------+-----------+--------------+
+```
 
 Sum a column
 ------------
@@ -962,7 +1687,18 @@ from pyspark.sql.functions import sum
 
 grouped = df.groupBy("cylinders").agg(sum("weight").alias("total_weight"))
 ```
-
+```
+# Code snippet result:
++---------+------------+
+|cylinders|total_weight|
++---------+------------+
+|        3|      9594.0|
+|        8|    423816.0|
+|        5|      9310.0|
+|        6|    268651.0|
+|        4|    470858.0|
++---------+------------+
+```
 
 Aggregate all numeric columns
 -----------------------------
@@ -972,7 +1708,14 @@ numerics = set(["decimal", "double", "float", "integer", "long", "short"])
 exprs = {x[0]: "sum" for x in df.dtypes if x[1] in numerics}
 summed = df.agg(exprs)
 ```
-
+```
+# Code snippet result:
+++
+||
+++
+||
+++
+```
 
 Count unique after grouping
 ---------------------------
@@ -982,7 +1725,18 @@ from pyspark.sql.functions import countDistinct
 
 grouped = df.groupBy("cylinders").agg(countDistinct("mpg"))
 ```
-
+```
+# Code snippet result:
++---------+-------------------+
+|cylinders|count(DISTINCT mpg)|
++---------+-------------------+
+|        3|                  4|
+|        8|                 27|
+|        5|                  3|
+|        6|                 38|
+|        4|                 87|
++---------+-------------------+
+```
 
 Count distinct values on all columns
 ------------------------------------
@@ -992,7 +1746,14 @@ from pyspark.sql.functions import countDistinct
 
 grouped = df.agg(*(countDistinct(c) for c in df.columns))
 ```
-
+```
+# Code snippet result:
++-------------------+-------------------------+----------------------------+--------------------------+----------------------+----------------------------+-------------------------+----------------------+-----------------------+
+|count(DISTINCT mpg)|count(DISTINCT cylinders)|count(DISTINCT displacement)|count(DISTINCT horsepower)|count(DISTINCT weight)|count(DISTINCT acceleration)|count(DISTINCT modelyear)|count(DISTINCT origin)|count(DISTINCT carname)|
++-------------------+-------------------------+----------------------------+--------------------------+----------------------+----------------------------+-------------------------+----------------------+-----------------------+
+|                129|                        5|                          82|                        93|                   351|                          96|                       13|                     3|                    305|
++-------------------+-------------------------+----------------------------+--------------------------+----------------------+----------------------------+-------------------------+----------------------+-----------------------+
+```
 
 Group by then filter on the count
 ---------------------------------
@@ -1002,7 +1763,15 @@ from pyspark.sql.functions import col
 
 grouped = df.groupBy("cylinders").count().where(col("count") > 100)
 ```
-
+```
+# Code snippet result:
++---------+-----+
+|cylinders|count|
++---------+-----+
+|        8|  103|
+|        4|  204|
++---------+-----+
+```
 
 Find the top N per row group (use N=1 for maximum)
 --------------------------------------------------
@@ -1021,7 +1790,24 @@ result = (
     .select("*")
 )
 ```
-
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+---+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname| rn|
++----+---------+------------+----------+------+------------+---------+------+----------+---+
+|21.5|        3|       80.00|     110.0| 2720.|        13.5|       77|     3|mazda rx-4|  1|
+|23.7|        3|       70.00|     100.0| 2420.|        12.5|       80|     3|mazda r...|  2|
+|19.0|        3|       70.00|      97.0| 2330.|        13.5|       72|     3|mazda r...|  3|
+|18.0|        3|       70.00|      90.0| 2124.|        13.5|       73|     3| maxda rx3|  4|
+|16.0|        8|       400.0|     230.0| 4278.|        9.50|       73|     1|pontiac...|  1|
+|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|  2|
+|14.0|        8|       455.0|     225.0| 3086.|        10.0|       70|     1|buick e...|  3|
+|12.0|        8|       455.0|     225.0| 4951.|        11.0|       73|     1|buick e...|  4|
+|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|  5|
+|20.3|        5|       131.0|     103.0| 2830.|        15.9|       78|     2| audi 5000|  1|
++----+---------+------------+----------+------+------------+---------+------+----------+---+
+only showing top 10 rows
+```
 
 Group key/values into a list
 ----------------------------
@@ -1033,7 +1819,18 @@ collected = df.groupBy("cylinders").agg(
     collect_list(col("carname")).alias("models")
 )
 ```
-
+```
+# Code snippet result:
++---------+----------+
+|cylinders|    models|
++---------+----------+
+|        3|[mazda ...|
+|        8|[chevro...|
+|        5|[audi 5...|
+|        6|[plymou...|
+|        4|[toyota...|
++---------+----------+
+```
 
 Compute a histogram
 -------------------
@@ -1047,8 +1844,12 @@ df = df.withColumn("horsepower", col("horsepower").cast("double"))
 # N is the number of bins.
 N = 11
 histogram = df.select("horsepower").rdd.flatMap(lambda x: x).histogram(N)
+print(histogram)
 ```
-
+```
+# Code snippet result:
+([46.0, 62.72727272727273, 79.45454545454545, 96.18181818181819, 112.9090909090909, 129.63636363636363, 146.36363636363637, 163.0909090909091, 179.8181818181818, 196.54545454545453, 213.27272727272725, 230.0], [23, 89, 102, 65, 17, 27, 32, 15, 9, 5, 8])
+```
 
 Joining DataFrames
 ==================
@@ -1075,7 +1876,24 @@ df = df.withColumn("manufacturer", first_word_udf(df.carname))
 # The actual join.
 joined = df.join(countries, "manufacturer")
 ```
-
+```
+# Code snippet result:
++------------+----+---------+------------+----------+------+------------+---------+------+----------+-------+
+|manufacturer| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|country|
++------------+----+---------+------------+----------+------+------------+---------+------+----------+-------+
+|   chevrolet|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|     us|
+|       buick|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|     us|
+|    plymouth|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|     us|
+|         amc|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|     us|
+|        ford|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|     us|
+|        ford|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|     us|
+|   chevrolet|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|     us|
+|    plymouth|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|     us|
+|     pontiac|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|     us|
+|         amc|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|     us|
++------------+----+---------+------------+----------+------+------------+---------+------+----------+-------+
+only showing top 10 rows
+```
 
 Join two DataFrames with an expression
 --------------------------------------
@@ -1098,7 +1916,24 @@ df = df.withColumn("manufacturer", first_word_udf(df.carname))
 # The actual join.
 joined = df.join(countries, df.manufacturer == countries.manufacturer)
 ```
-
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+------------+------------+-------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|manufacturer|manufacturer|country|
++----+---------+------------+----------+------+------------+---------+------+----------+------------+------------+-------+
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|   chevrolet|   chevrolet|     us|
+|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|       buick|       buick|     us|
+|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|    plymouth|    plymouth|     us|
+|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|         amc|         amc|     us|
+|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|        ford|        ford|     us|
+|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|        ford|        ford|     us|
+|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|   chevrolet|   chevrolet|     us|
+|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|    plymouth|    plymouth|     us|
+|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|     pontiac|     pontiac|     us|
+|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|         amc|         amc|     us|
++----+---------+------------+----------+------+------------+---------+------+----------+------------+------------+-------+
+only showing top 10 rows
+```
 
 Multiple join conditions
 ------------------------
@@ -1125,7 +1960,24 @@ joined = df.join(
     | (df.mpg == countries.manufacturer),
 )
 ```
-
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+------------+------------+-------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|manufacturer|manufacturer|country|
++----+---------+------------+----------+------+------------+---------+------+----------+------------+------------+-------+
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|   chevrolet|   chevrolet|     us|
+|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|       buick|       buick|     us|
+|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|    plymouth|    plymouth|     us|
+|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|         amc|         amc|     us|
+|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|        ford|        ford|     us|
+|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|        ford|        ford|     us|
+|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|   chevrolet|   chevrolet|     us|
+|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|    plymouth|    plymouth|     us|
+|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|     pontiac|     pontiac|     us|
+|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|         amc|         amc|     us|
++----+---------+------------+----------+------+------------+---------+------+----------+------------+------------+-------+
+only showing top 10 rows
+```
 
 Various Spark join types
 ------------------------
@@ -1149,7 +2001,24 @@ joined = df.join(df, "carname", "full")
 # Cross join.
 joined = df.crossJoin(df)
 ```
-
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+----+---------+------------+----------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+----------+------+------------+---------+------+----------+----+---------+------------+----------+------+------------+---------+------+----------+
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|
++----+---------+------------+----------+------+------------+---------+------+----------+----+---------+------------+----------+------+------------+---------+------+----------+
+only showing top 10 rows
+```
 
 Concatenate two DataFrames
 --------------------------
@@ -1159,7 +2028,24 @@ df1 = spark.read.format("csv").option("header", True).load("data/part1.csv")
 df2 = spark.read.format("csv").option("header", True).load("data/part2.csv")
 df = df1.union(df2)
 ```
-
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+----------+------+------------+---------+------+----------+
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|
+|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|
+|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|
+|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|
+|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|
+|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|
+|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|
+|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|
+|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|
+|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|
++----+---------+------------+----------+------+------------+---------+------+----------+
+only showing top 10 rows
+```
 
 Load multiple files into a single DataFrame
 -------------------------------------------
@@ -1175,7 +2061,24 @@ df = (
 # Approach 2: Use a wildcard.
 df = spark.read.format("csv").option("header", True).load("data/part*.csv")
 ```
-
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+----------+------+------------+---------+------+----------+
+|20.0|        6|       225.0|     100.0| 3651.|        17.7|       76|     1|dodge a...|
+|18.0|        6|       250.0|     78.00| 3574.|        21.0|       76|     1|ford gr...|
+|18.5|        6|       250.0|     110.0| 3645.|        16.2|       76|     1|pontiac...|
+|17.5|        6|       258.0|     95.00| 3193.|        17.8|       76|     1|amc pac...|
+|29.5|        4|       97.00|     71.00| 1825.|        12.2|       76|     2|volkswa...|
+|32.0|        4|       85.00|     70.00| 1990.|        17.0|       76|     3|datsun ...|
+|28.0|        4|       97.00|     75.00| 2155.|        16.4|       76|     3|toyota ...|
+|26.5|        4|       140.0|     72.00| 2565.|        13.6|       76|     1|ford pinto|
+|20.0|        4|       130.0|     102.0| 3150.|        15.7|       76|     2| volvo 245|
+|13.0|        8|       318.0|     150.0| 3940.|        13.2|       76|     1|plymout...|
++----+---------+------------+----------+------+------------+---------+------+----------+
+only showing top 10 rows
+```
 
 Subtract DataFrames
 -------------------
@@ -1185,7 +2088,24 @@ from pyspark.sql.functions import col
 
 reduced = df.subtract(df.where(col("mpg") < "25"))
 ```
-
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+----------+------+------------+---------+------+----------+
+|33.5|        4|       85.00|     70.00| 1945.|        16.8|       77|     3|datsun ...|
+|37.0|        4|       91.00|     68.00| 2025.|        18.2|       82|     3|mazda g...|
+|26.0|        4|       116.0|     75.00| 2246.|        14.0|       74|     2|fiat 12...|
+|31.0|        4|       112.0|     85.00| 2575.|        16.2|       82|     1|pontiac...|
+|29.0|        4|       90.00|     70.00| 1937.|        14.0|       75|     2|volkswa...|
+|37.2|        4|       86.00|     65.00| 2019.|        16.4|       80|     3|datsun 310|
+|26.0|        4|       98.00|     90.00| 2265.|        15.5|       73|     2|fiat 12...|
+|40.9|        4|       85.00|      null| 1835.|        17.3|       80|     2|renault...|
+|35.1|        4|       81.00|     60.00| 1760.|        16.1|       81|     3|honda c...|
+|32.8|        4|       78.00|     52.00| 1985.|        19.4|       78|     3|mazda g...|
++----+---------+------------+----------+------+------------+---------+------+----------+
+only showing top 10 rows
+```
 
 File Processing
 ===============
@@ -1203,6 +2123,7 @@ from pyspark.sql.types import (
     TimestampType,
 )
 import datetime
+import glob
 import os
 
 # Simple: Use glob and only file names.
@@ -1238,7 +2159,24 @@ schema = StructType(
 )
 df = spark.createDataFrame(entries, schema)
 ```
-
+```
+# Code snippet result:
++----------+----------+------+----------+
+|      file|      path|  size|     mtime|
++----------+----------+------+----------+
+|  odbc.ini|/etc/od...|     0|2019-10...|
+|  manpaths|/etc/ma...|    36|2019-02...|
+|service...|/etc/se...|677972|2017-02...|
+|dnsextd...|/etc/dn...|  2378|2019-04...|
+| rc.common|/etc/rc...|  1560|2019-04...|
+|csh.log...|/etc/cs...|    39|2019-02...|
+|auto_ma...|/etc/au...|   194|2017-04...|
+| csh.login|/etc/cs...|   121|2016-10...|
+|syslog....|/etc/sy...|   133|2019-12...|
+|rtadvd....|/etc/rt...|   891|2017-04...|
++----------+----------+------+----------+
+only showing top 10 rows
+```
 
 Load Files from Oracle Cloud Infrastructure into a DataFrame
 ------------------------------------------------------------
@@ -1278,14 +2216,30 @@ schema = StructType(
 )
 df = spark.createDataFrame(files, schema)
 ```
-
+```
+# Code snippet result:
++----------+----+--------+
+|      name|size|modified|
++----------+----+--------+
+|IMG_037...|null|    null|
+|IMG_037...|null|    null|
+|IMG_037...|null|    null|
+|IMG_041...|null|    null|
+|IMG_041...|null|    null|
+|IMG_043...|null|    null|
+|IMG_043...|null|    null|
+|IMG_044...|null|    null|
+|IMG_046...|null|    null|
+|IMG_047...|null|    null|
++----------+----+--------+
+only showing top 10 rows
+```
 
 Transform Many Images using Pillow
 ----------------------------------
 
 ```python
 from PIL import Image
-from pyspark.sql.types import StructField, StructType, StringType
 import glob
 
 def resize_an_image(row):
@@ -1296,7 +2250,7 @@ def resize_an_image(row):
     img = img.resize((width, height), Image.ANTIALIAS)
     img.save(new_name)
 
-files = [[x] for x in glob.glob("data/*.png")]
+files = [[x] for x in glob.glob("data/resize_image?.png")]
 df = spark.createDataFrame(files)
 df.foreach(resize_an_image)
 ```
@@ -1315,7 +2269,24 @@ from pyspark.sql.functions import col
 filtered = df.where(col("horsepower").isNull())
 filtered = df.where(col("horsepower").isNotNull())
 ```
-
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+----------+------+------------+---------+------+----------+
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|
+|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|
+|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|
+|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|
+|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|
+|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|
+|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|
+|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|
+|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|
+|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|
++----+---------+------------+----------+------+------------+---------+------+----------+
+only showing top 10 rows
+```
 
 Drop rows with Null values
 --------------------------
@@ -1338,7 +2309,14 @@ result = df.select(
     [count(when(col(c).isNull(), c)).alias(c) for c in df.columns]
 )
 ```
-
+```
+# Code snippet result:
++---+---------+------------+----------+------+------------+---------+------+-------+
+|mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|carname|
++---+---------+------------+----------+------+------------+---------+------+-------+
+|  0|        0|           0|         6|     0|           0|        0|     0|      0|
++---+---------+------------+----------+------+------------+---------+------+-------+
+```
 
 Pandas
 ======
@@ -1350,7 +2328,73 @@ Convert Spark DataFrame to Pandas DataFrame
 ```python
 pdf = df.toPandas()
 ```
+```
+# Code snippet result:
+      mpg cylinders displacement horsepower weight acceleration modelyear origin                            carname
+0    18.0         8        307.0      130.0  3504.         12.0        70      1          chevrolet chevelle malibu
+1    15.0         8        350.0      165.0  3693.         11.5        70      1                  buick skylark 320
+2    18.0         8        318.0      150.0  3436.         11.0        70      1                 plymouth satellite
+3    16.0         8        304.0      150.0  3433.         12.0        70      1                      amc rebel sst
+4    17.0         8        302.0      140.0  3449.         10.5        70      1                        ford torino
+5    15.0         8        429.0      198.0  4341.         10.0        70      1                   ford galaxie 500
+6    14.0         8        454.0      220.0  4354.          9.0        70      1                   chevrolet impala
+7    14.0         8        440.0      215.0  4312.          8.5        70      1                  plymouth fury iii
+8    14.0         8        455.0      225.0  4425.         10.0        70      1                   pontiac catalina
+9    15.0         8        390.0      190.0  3850.          8.5        70      1                 amc ambassador dpl
+10   15.0         8        383.0      170.0  3563.         10.0        70      1                dodge challenger se
+11   14.0         8        340.0      160.0  3609.          8.0        70      1                 plymouth 'cuda 340
+12   15.0         8        400.0      150.0  3761.          9.5        70      1              chevrolet monte carlo
+13   14.0         8        455.0      225.0  3086.         10.0        70      1            buick estate wagon (sw)
+14   24.0         4        113.0      95.00  2372.         15.0        70      3              toyota corona mark ii
+15   22.0         6        198.0      95.00  2833.         15.5        70      1                    plymouth duster
+16   18.0         6        199.0      97.00  2774.         15.5        70      1                         amc hornet
+17   21.0         6        200.0      85.00  2587.         16.0        70      1                      ford maverick
+18   27.0         4        97.00      88.00  2130.         14.5        70      3                       datsun pl510
+19   26.0         4        97.00      46.00  1835.         20.5        70      2       volkswagen 1131 deluxe sedan
+20   25.0         4        110.0      87.00  2672.         17.5        70      2                        peugeot 504
+21   24.0         4        107.0      90.00  2430.         14.5        70      2                        audi 100 ls
+22   25.0         4        104.0      95.00  2375.         17.5        70      2                           saab 99e
+23   26.0         4        121.0      113.0  2234.         12.5        70      2                           bmw 2002
+24   21.0         6        199.0      90.00  2648.         15.0        70      1                        amc gremlin
+25   10.0         8        360.0      215.0  4615.         14.0        70      1                          ford f250
+26   10.0         8        307.0      200.0  4376.         15.0        70      1                          chevy c20
+27   11.0         8        318.0      210.0  4382.         13.5        70      1                         dodge d200
+28    9.0         8        304.0      193.0  4732.         18.5        70      1                           hi 1200d
+29   27.0         4        97.00      88.00  2130.         14.5        71      3                       datsun pl510
+..    ...       ...          ...        ...    ...          ...       ...    ...                                ...
+368  27.0         4        112.0      88.00  2640.         18.6        82      1           chevrolet cavalier wagon
+369  34.0         4        112.0      88.00  2395.         18.0        82      1          chevrolet cavalier 2-door
+370  31.0         4        112.0      85.00  2575.         16.2        82      1         pontiac j2000 se hatchback
+371  29.0         4        135.0      84.00  2525.         16.0        82      1                     dodge aries se
+372  27.0         4        151.0      90.00  2735.         18.0        82      1                    pontiac phoenix
+373  24.0         4        140.0      92.00  2865.         16.4        82      1               ford fairmont futura
+374  23.0         4        151.0       None  3035.         20.5        82      1                     amc concord dl
+375  36.0         4        105.0      74.00  1980.         15.3        82      2                volkswagen rabbit l
+376  37.0         4        91.00      68.00  2025.         18.2        82      3                 mazda glc custom l
+377  31.0         4        91.00      68.00  1970.         17.6        82      3                   mazda glc custom
+378  38.0         4        105.0      63.00  2125.         14.7        82      1             plymouth horizon miser
+379  36.0         4        98.00      70.00  2125.         17.3        82      1                     mercury lynx l
+380  36.0         4        120.0      88.00  2160.         14.5        82      3                   nissan stanza xe
+381  36.0         4        107.0      75.00  2205.         14.5        82      3                       honda accord
+382  34.0         4        108.0      70.00   2245         16.9        82      3                     toyota corolla
+383  38.0         4        91.00      67.00  1965.         15.0        82      3                        honda civic
+384  32.0         4        91.00      67.00  1965.         15.7        82      3                 honda civic (auto)
+385  38.0         4        91.00      67.00  1995.         16.2        82      3                      datsun 310 gx
+386  25.0         6        181.0      110.0  2945.         16.4        82      1              buick century limited
+387  38.0         6        262.0      85.00  3015.         17.0        82      1  oldsmobile cutlass ciera (diesel)
+388  26.0         4        156.0      92.00  2585.         14.5        82      1         chrysler lebaron medallion
+389  22.0         6        232.0      112.0   2835         14.7        82      1                     ford granada l
+390  32.0         4        144.0      96.00  2665.         13.9        82      3                   toyota celica gt
+391  36.0         4        135.0      84.00  2370.         13.0        82      1                  dodge charger 2.2
+392  27.0         4        151.0      90.00  2950.         17.3        82      1                   chevrolet camaro
+393  27.0         4        140.0      86.00  2790.         15.6        82      1                    ford mustang gl
+394  44.0         4        97.00      52.00  2130.         24.6        82      2                          vw pickup
+395  32.0         4        135.0      84.00  2295.         11.6        82      1                      dodge rampage
+396  28.0         4        120.0      79.00  2625.         18.6        82      1                        ford ranger
+397  31.0         4        119.0      82.00  2720.         19.4        82      1                         chevy s-10
 
+[398 rows x 9 columns]
+```
 
 Convert N rows from a DataFrame to a Pandas DataFrame
 -----------------------------------------------------
@@ -1359,7 +2403,20 @@ Convert N rows from a DataFrame to a Pandas DataFrame
 N = 10
 pdf = df.limit(N).toPandas()
 ```
-
+```
+# Code snippet result:
+    mpg cylinders displacement horsepower weight acceleration modelyear origin                    carname
+0  18.0         8        307.0      130.0  3504.         12.0        70      1  chevrolet chevelle malibu
+1  15.0         8        350.0      165.0  3693.         11.5        70      1          buick skylark 320
+2  18.0         8        318.0      150.0  3436.         11.0        70      1         plymouth satellite
+3  16.0         8        304.0      150.0  3433.         12.0        70      1              amc rebel sst
+4  17.0         8        302.0      140.0  3449.         10.5        70      1                ford torino
+5  15.0         8        429.0      198.0  4341.         10.0        70      1           ford galaxie 500
+6  14.0         8        454.0      220.0  4354.          9.0        70      1           chevrolet impala
+7  14.0         8        440.0      215.0  4312.          8.5        70      1          plymouth fury iii
+8  14.0         8        455.0      225.0  4425.         10.0        70      1           pontiac catalina
+9  15.0         8        390.0      190.0  3850.          8.5        70      1         amc ambassador dpl
+```
 
 Define a UDAF with Pandas
 -------------------------
@@ -1375,7 +2432,18 @@ def mean_udaf(pdf):
 df = df.withColumn("mpg", col("mpg").cast("double"))
 df = df.groupby("cylinders").agg(mean_udaf(df["mpg"]))
 ```
-
+```
+# Code snippet result:
++---------+--------------+
+|cylinders|mean_udaf(mpg)|
++---------+--------------+
+|        3|         20.55|
+|        8|    14.9631...|
+|        5|    27.3666...|
+|        6|    19.9857...|
+|        4|    29.2867...|
++---------+--------------+
+```
 
 Define a Pandas Grouped Map Function
 ------------------------------------
@@ -1394,7 +2462,24 @@ def rescale(pdf):
 
 df = df.groupby("cylinders").apply(rescale)
 ```
-
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+----------+------+------------+---------+------+----------+
+|19.0|        3|       70.00|      35.0| 2330.|        13.5|       72|     3|mazda r...|
+|18.0|        3|       70.00|       0.0| 2124.|        13.5|       73|     3| maxda rx3|
+|21.5|        3|       80.00|     100.0| 2720.|        13.5|       77|     3|mazda rx-4|
+|23.7|        3|       70.00|      50.0| 2420.|        12.5|       80|     3|mazda r...|
+|18.0|        8|       307.0|28.5714...| 3504.|        12.0|       70|     1|chevrol...|
+|15.0|        8|       350.0|53.5714...| 3693.|        11.5|       70|     1|buick s...|
+|18.0|        8|       318.0|42.8571...| 3436.|        11.0|       70|     1|plymout...|
+|16.0|        8|       304.0|42.8571...| 3433.|        12.0|       70|     1|amc reb...|
+|17.0|        8|       302.0|35.7142...| 3449.|        10.5|       70|     1|ford to...|
+|15.0|        8|       429.0|77.1428...| 4341.|        10.0|       70|     1|ford ga...|
++----+---------+------------+----------+------+------------+---------+------+----------+
+only showing top 10 rows
+```
 
 Data Profiling
 ==============
@@ -1410,7 +2495,14 @@ result = df.select(
     [count(when(col(c).isNull(), c)).alias(c) for c in df.columns]
 )
 ```
-
+```
+# Code snippet result:
++---+---------+------------+----------+------+------------+---------+------+-------+
+|mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|carname|
++---+---------+------------+----------+------+------------+---------+------+-------+
+|  0|        0|           0|         6|     0|           0|        0|     0|      0|
++---+---------+------------+----------+------+------------+---------+------+-------+
+```
 
 Compute average values of all numeric columns
 ---------------------------------------------
@@ -1420,7 +2512,14 @@ numerics = set(["decimal", "double", "float", "integer", "long", "short"])
 exprs = {x[0]: "avg" for x in df.dtypes if x[1] in numerics}
 result = df.agg(exprs)
 ```
-
+```
+# Code snippet result:
++-----------+-----------------+--------------+----------+---------------+-----------------+
+|avg(weight)|avg(acceleration)|avg(cylinders)|  avg(mpg)|avg(horsepower)|avg(displacement)|
++-----------+-----------------+--------------+----------+---------------+-----------------+
+| 2970.42...|       15.5680...|    5.45477...|23.5145...|     104.469...|       193.425...|
++-----------+-----------------+--------------+----------+---------------+-----------------+
+```
 
 Compute minimum values of all numeric columns
 ---------------------------------------------
@@ -1430,7 +2529,14 @@ numerics = set(["decimal", "double", "float", "integer", "long", "short"])
 exprs = {x[0]: "min" for x in df.dtypes if x[1] in numerics}
 result = df.agg(exprs)
 ```
-
+```
+# Code snippet result:
++-----------+-----------------+--------------+--------+---------------+-----------------+
+|min(weight)|min(acceleration)|min(cylinders)|min(mpg)|min(horsepower)|min(displacement)|
++-----------+-----------------+--------------+--------+---------------+-----------------+
+|     1613.0|              8.0|           3.0|     9.0|           46.0|             68.0|
++-----------+-----------------+--------------+--------+---------------+-----------------+
+```
 
 Compute maximum values of all numeric columns
 ---------------------------------------------
@@ -1440,7 +2546,14 @@ numerics = set(["decimal", "double", "float", "integer", "long", "short"])
 exprs = {x[0]: "max" for x in df.dtypes if x[1] in numerics}
 result = df.agg(exprs)
 ```
-
+```
+# Code snippet result:
++-----------+-----------------+--------------+--------+---------------+-----------------+
+|max(weight)|max(acceleration)|max(cylinders)|max(mpg)|max(horsepower)|max(displacement)|
++-----------+-----------------+--------------+--------+---------------+-----------------+
+|     5140.0|             24.8|           8.0|    46.6|          230.0|            455.0|
++-----------+-----------------+--------------+--------+---------------+-----------------+
+```
 
 Time Series
 ===========
@@ -1460,7 +2573,24 @@ filled = df.join(
     "right",
 ).select("date", "customer_id", coalesce("spend_dollars", lit(0)))
 ```
-
+```
+# Code snippet result:
++----------+-----------+--------------------------+
+|      date|customer_id|coalesce(spend_dollars, 0)|
++----------+-----------+--------------------------+
+|2022-07-31|         31|                   16.4400|
+|2020-04-30|         31|                    0.0000|
+|2022-01-31|         31|                   25.1100|
+|2021-09-30|         31|                    2.1400|
+|2021-05-31|         31|                   34.3900|
+|2022-02-28|         31|                   59.7800|
+|2021-07-31|         31|                    8.2700|
+|2020-07-31|         31|                    0.0000|
+|2021-04-30|         31|                   20.7000|
+|2021-10-31|         31|                   62.1500|
++----------+-----------+--------------------------+
+only showing top 10 rows
+```
 
 First Time an ID is Seen
 ------------------------
@@ -1472,7 +2602,24 @@ from pyspark.sql.window import Window
 w = Window().partitionBy("customer_id").orderBy("date")
 df = df.withColumn("first_seen", first("date").over(w))
 ```
-
+```
+# Code snippet result:
++----------+-----------+-------------+----------+
+|      date|customer_id|spend_dollars|first_seen|
++----------+-----------+-------------+----------+
+|2020-09-30|         31|      33.4400|2020-09-30|
+|2020-10-31|         31|      24.8000|2020-09-30|
+|2020-11-30|         31|     111.1600|2020-09-30|
+|2020-12-31|         31|      22.3800|2020-09-30|
+|2021-01-31|         31|      31.0600|2020-09-30|
+|2021-02-28|         31|      22.4300|2020-09-30|
+|2021-04-30|         31|      20.7000|2020-09-30|
+|2021-05-31|         31|      34.3900|2020-09-30|
+|2021-06-30|         31|      11.0800|2020-09-30|
+|2021-07-31|         31|       8.2700|2020-09-30|
++----------+-----------+-------------+----------+
+only showing top 10 rows
+```
 
 Cumulative Sum
 --------------
@@ -1489,7 +2636,24 @@ w = (
 )
 df = df.withColumn("running_sum", sum("spend_dollars").over(w))
 ```
-
+```
+# Code snippet result:
++----------+-----------+-------------+-----------+
+|      date|customer_id|spend_dollars|running_sum|
++----------+-----------+-------------+-----------+
+|2020-09-30|         31|      33.4400|    33.4400|
+|2020-10-31|         31|      24.8000|    58.2400|
+|2020-11-30|         31|     111.1600|   169.4000|
+|2020-12-31|         31|      22.3800|   191.7800|
+|2021-01-31|         31|      31.0600|   222.8400|
+|2021-02-28|         31|      22.4300|   245.2700|
+|2021-04-30|         31|      20.7000|   265.9700|
+|2021-05-31|         31|      34.3900|   300.3600|
+|2021-06-30|         31|      11.0800|   311.4400|
+|2021-07-31|         31|       8.2700|   319.7100|
++----------+-----------+-------------+-----------+
+only showing top 10 rows
+```
 
 Cumulative Sum in a Period
 --------------------------
@@ -1507,7 +2671,24 @@ w = (
 )
 df = df.withColumn("running_sum", sum("spend_dollars").over(w))
 ```
-
+```
+# Code snippet result:
++----------+-----------+-------------+-----------+
+|      date|customer_id|spend_dollars|running_sum|
++----------+-----------+-------------+-----------+
+|2021-01-31|         26|      13.1900|    13.1900|
+|2021-02-28|         26|      41.0800|    54.2700|
+|2021-03-31|         26|     152.3100|   206.5800|
+|2021-05-31|         26|      16.1600|   222.7400|
+|2021-07-31|         26|      44.8800|   267.6200|
+|2021-09-30|         26|      44.0800|   311.7000|
+|2021-10-31|         26|      69.2700|   380.9700|
+|2021-11-30|         26|      53.1100|   434.0800|
+|2021-12-31|         26|       7.2300|   441.3100|
+|2021-01-31|         31|      31.0600|    31.0600|
++----------+-----------+-------------+-----------+
+only showing top 10 rows
+```
 
 Cumulative Average
 ------------------
@@ -1524,7 +2705,24 @@ w = (
 )
 df = df.withColumn("running_avg", avg("spend_dollars").over(w))
 ```
-
+```
+# Code snippet result:
++----------+-----------+-------------+-----------+
+|      date|customer_id|spend_dollars|running_avg|
++----------+-----------+-------------+-----------+
+|2020-09-30|         31|      33.4400| 33.4400...|
+|2020-10-31|         31|      24.8000| 29.1200...|
+|2020-11-30|         31|     111.1600| 56.4666...|
+|2020-12-31|         31|      22.3800| 47.9450...|
+|2021-01-31|         31|      31.0600| 44.5680...|
+|2021-02-28|         31|      22.4300| 40.8783...|
+|2021-04-30|         31|      20.7000| 37.9957...|
+|2021-05-31|         31|      34.3900| 37.5450...|
+|2021-06-30|         31|      11.0800| 34.6044...|
+|2021-07-31|         31|       8.2700| 31.9710...|
++----------+-----------+-------------+-----------+
+only showing top 10 rows
+```
 
 Cumulative Average in a Period
 ------------------------------
@@ -1542,7 +2740,24 @@ w = (
 )
 df = df.withColumn("running_avg", avg("spend_dollars").over(w))
 ```
-
+```
+# Code snippet result:
++----------+-----------+-------------+-----------+
+|      date|customer_id|spend_dollars|running_avg|
++----------+-----------+-------------+-----------+
+|2021-01-31|         26|      13.1900| 13.1900...|
+|2021-02-28|         26|      41.0800| 27.1350...|
+|2021-03-31|         26|     152.3100| 68.8600...|
+|2021-05-31|         26|      16.1600| 55.6850...|
+|2021-07-31|         26|      44.8800| 53.5240...|
+|2021-09-30|         26|      44.0800| 51.9500...|
+|2021-10-31|         26|      69.2700| 54.4242...|
+|2021-11-30|         26|      53.1100| 54.2600...|
+|2021-12-31|         26|       7.2300| 49.0344...|
+|2021-01-31|         31|      31.0600| 31.0600...|
++----------+-----------+-------------+-----------+
+only showing top 10 rows
+```
 
 Performance
 ===========
@@ -1557,7 +2772,24 @@ import math
 target_partitions = math.ceil(df.rdd.getNumPartitions() / 2)
 df = df.coalesce(target_partitions)
 ```
-
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+----------+------+------------+---------+------+----------+
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|
+|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|
+|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|
+|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|
+|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|
+|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|
+|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|
+|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|
+|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|
+|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|
++----+---------+------------+----------+------+------------+---------+------+----------+
+only showing top 10 rows
+```
 
 Change DataFrame partitioning
 -----------------------------
@@ -1569,7 +2801,24 @@ df = df.repartition(col("modelyear"))
 number_of_partitions = 5
 df = df.repartitionByRange(number_of_partitions, col("mpg"))
 ```
-
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+----------+------+------------+---------+------+----------+
+|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|
+|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|
+|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|
+|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|
+|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|
+|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|
+|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|
+|15.0|        8|       383.0|     170.0| 3563.|        10.0|       70|     1|dodge c...|
+|14.0|        8|       340.0|     160.0| 3609.|         8.0|       70|     1|plymout...|
+|15.0|        8|       400.0|     150.0| 3761.|         9.5|       70|     1|chevrol...|
++----+---------+------------+----------+------+------------+---------+------+----------+
+only showing top 10 rows
+```
 
 Increase Spark driver/executor heap space
 -----------------------------------------
@@ -1582,4 +2831,6 @@ Increase Spark driver/executor heap space
 # For other environments see the Spark "Cluster Mode Overview" to get started.
 # https://spark.apache.org/docs/latest/cluster-overview.html
 # And good luck!
+# EXCLUDE
+pass
 ```

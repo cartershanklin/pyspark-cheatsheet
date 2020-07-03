@@ -1,17 +1,39 @@
+#!/usr/bin/env python3
+
 import argparse
 import datetime
 import hashlib
 import inspect
 import os
+import pandas
+import pyspark
 import re
+import shutil
 import sys
 import yaml
-from pyspark import SparkConf, SparkContext
 from pyspark.sql import SparkSession, SQLContext
 from slugify import slugify
 
 spark = SparkSession.builder.appName("cheatsheet").getOrCreate()
 sqlContext = SQLContext(spark)
+
+
+def getShowString(df, n=10, truncate=True, vertical=False):
+    if isinstance(truncate, bool) and truncate:
+        return df._jdf.showString(n, 10, vertical)
+    else:
+        return df._jdf.showString(n, int(truncate), vertical)
+
+
+def get_result_text(result):
+    if type(result) == pyspark.sql.dataframe.DataFrame:
+        return getShowString(result)
+    elif type(result) == pandas.core.frame.DataFrame:
+        return str(result)
+    elif type(result) == list:
+        return "\n".join(result)
+    else:
+        return result
 
 
 class snippet:
@@ -20,6 +42,7 @@ class snippet:
         self.name = None
         self.hash = hashlib.md5(str(self.__class__).encode()).hexdigest()
         self.preconvert = False
+        self.skip_run = False
 
     def load_data(self):
         assert self.dataset is not None, "Dataset not set"
@@ -60,14 +83,20 @@ class snippet:
     def snippet(self, df):
         assert False, "Snippet not overridden"
 
-    def run(self):
+    def run(self, show=True):
         assert self.dataset is not None, "Dataset not set"
         assert self.name is not None, "Name not set"
         print("--- {} ---".format(self.name))
+        if self.skip_run:
+            return None
         self.df = self.load_data()
         retval = self.snippet(self.df)
-        if retval is not None:
-            retval.show()
+        if show:
+            if retval is not None:
+                result_text = get_result_text(retval)
+                print(result_text)
+        else:
+            return retval
 
 
 class dfo_modify_column(snippet):
@@ -203,7 +232,7 @@ class dfo_dataframe_from_rdd(snippet):
         self.priority = 1500
 
     def load_data(self):
-        return spark.sparkContext.textFile(self.dataset)
+        return spark.sparkContext.textFile(os.path.join("data", self.dataset))
 
     def snippet(self, rdd):
         from pyspark.sql import Row
@@ -259,10 +288,11 @@ class dfo_print_contents_rdd(snippet):
         self.priority = 1600
 
     def load_data(self):
-        return spark.sparkContext.textFile(self.dataset)
+        return spark.sparkContext.textFile(os.path.join("data", self.dataset))
 
     def snippet(self, rdd):
         print(rdd.take(10))
+        return str(rdd.take(10))
 
 
 class dfo_print_contents_dataframe(snippet):
@@ -275,6 +305,7 @@ class dfo_print_contents_dataframe(snippet):
 
     def snippet(self, df):
         df.show(10)
+        return df
 
 
 class dfo_column_conditional(snippet):
@@ -432,6 +463,12 @@ class dfo_size(snippet):
     def snippet(self, df):
         print("{} rows".format(df.count()))
         print("{} columns".format(len(df.columns)))
+        # EXCLUDE
+        return [
+            "{} rows".format(df.count()),
+            "{} columns".format(len(df.columns)),
+        ]
+        # INCLUDE
 
 
 class dfo_get_number_partitions(snippet):
@@ -444,6 +481,7 @@ class dfo_get_number_partitions(snippet):
 
     def snippet(self, df):
         print("{} partition(s)".format(df.rdd.getNumPartitions()))
+        return "{} partition(s)".format(df.rdd.getNumPartitions())
 
 
 class dfo_get_dtypes(snippet):
@@ -456,6 +494,7 @@ class dfo_get_dtypes(snippet):
 
     def snippet(self, df):
         print(df.dtypes)
+        return str(df.dtypes)
 
 
 class group_max_value(snippet):
@@ -573,6 +612,8 @@ class group_histogram(snippet):
         # N is the number of bins.
         N = 11
         histogram = df.select("horsepower").rdd.flatMap(lambda x: x).histogram(N)
+        print(histogram)
+        return(str(histogram))
 
 
 class group_key_value_to_key_list(snippet):
@@ -639,8 +680,6 @@ class group_agg_multiple_columns(snippet):
         self.priority = 300
 
     def snippet(self, df):
-        from pyspark.sql.functions import asc, desc_nulls_last
-
         expressions = dict(horsepower="avg", weight="max", displacement="max")
         grouped = df.groupBy("modelyear").agg(expressions)
         return grouped
@@ -920,10 +959,11 @@ class loadsave_overwrite_specific_partitions(snippet):
         self.category = "Loading and Saving Data"
         self.dataset = "auto-mpg.csv"
         self.priority = 900
+        self.skip_run = True
 
     def snippet(self, df):
         spark.conf.set("spark.sql.sources.partitionOverwriteMode", "dynamic")
-        data.write.mode("overwrite").insertInto("my_table")
+        your_dataframe.write.mode("overwrite").insertInto("your_table")
 
 
 class loadsave_read_oracle(snippet):
@@ -1027,7 +1067,7 @@ class transform_fillna_group_avg(snippet):
         self.priority = 300
 
     def snippet(self, df):
-        from pyspark.sql.functions import avg, coalesce
+        from pyspark.sql.functions import coalesce
 
         unmodified_columns = df.columns
         unmodified_columns.remove("horsepower")
@@ -1048,7 +1088,7 @@ class transform_json_to_key_value(snippet):
         self.priority = 700
 
     def snippet(self, df):
-        from pyspark.sql.functions import col, explode, from_json, json_tuple
+        from pyspark.sql.functions import col, json_tuple
 
         source = spark.sparkContext.parallelize(
             [["1", '{ "a" : 10, "b" : 11 }'], ["2", '{ "a" : 20, "b" : 21 }']]
@@ -1066,7 +1106,7 @@ class transform_query_json_column(snippet):
         self.priority = 800
 
     def snippet(self, df):
-        from pyspark.sql.functions import col, explode, from_json, json_tuple
+        from pyspark.sql.functions import col, json_tuple
 
         source = spark.sparkContext.parallelize(
             [["1", '{ "a" : 10, "b" : 11 }'], ["2", '{ "a" : 20, "b" : 21 }']]
@@ -1304,7 +1344,7 @@ class loadsave_money(snippet):
         self.priority = 120
 
     def snippet(self, df):
-        from pyspark.sql.functions import col, udf
+        from pyspark.sql.functions import udf
         from pyspark.sql.types import DecimalType
         from decimal import Decimal
 
@@ -1469,11 +1509,13 @@ class loadsave_read_from_oci(snippet):
         self.category = "Loading and Saving Data"
         self.dataset = "auto-mpg.csv"
         self.priority = 300
+        self.skip_run = True
 
     def snippet(self, df):
         import oci
 
         oci_config = oci.config.from_file()
+        conf = spark.sparkContext.getConf()
         conf.set("fs.oci.client.auth.tenantId", oci_config["tenancy"])
         conf.set("fs.oci.client.auth.userId", oci_config["user"])
         conf.set("fs.oci.client.auth.fingerprint", oci_config["fingerprint"])
@@ -1484,6 +1526,7 @@ class loadsave_read_from_oci(snippet):
         )
         PATH = "oci://<your_bucket>@<your_namespace/<your_path>"
         df = spark.read.format("csv").option("header", True).load(PATH)
+        return df
 
 
 class missing_filter_none_value(snippet):
@@ -1583,7 +1626,9 @@ class performance_increase_heap_space(snippet):
         # For other environments see the Spark "Cluster Mode Overview" to get started.
         # https://spark.apache.org/docs/latest/cluster-overview.html
         # And good luck!
-        return df
+        # EXCLUDE
+        pass
+        # INCLUDE
 
 
 class pandas_spark_dataframe_to_pandas_dataframe(snippet):
@@ -1596,7 +1641,7 @@ class pandas_spark_dataframe_to_pandas_dataframe(snippet):
 
     def snippet(self, df):
         pdf = df.toPandas()
-        return df
+        return pdf
 
 
 class pandas_udaf(snippet):
@@ -1655,7 +1700,7 @@ class pandas_n_rows_from_dataframe_to_pandas(snippet):
     def snippet(self, df):
         N = 10
         pdf = df.limit(N).toPandas()
-        return df
+        return pdf
 
 
 class profile_number_nulls(snippet):
@@ -1874,6 +1919,7 @@ class fileprocessing_load_files(snippet):
             TimestampType,
         )
         import datetime
+        import glob
         import os
 
         # Simple: Use glob and only file names.
@@ -1978,7 +2024,6 @@ class fileprocessing_transform_images(snippet):
 
     def snippet(self, df):
         from PIL import Image
-        from pyspark.sql.types import StructField, StructType, StringType
         import glob
 
         def resize_an_image(row):
@@ -1989,7 +2034,7 @@ class fileprocessing_transform_images(snippet):
             img = img.resize((width, height), Image.ANTIALIAS)
             img.save(new_name)
 
-        files = [[x] for x in glob.glob("data/*.png")]
+        files = [[x] for x in glob.glob("data/resize_image?.png")]
         df = spark.createDataFrame(files)
         df.foreach(resize_an_image)
 
@@ -2110,9 +2155,7 @@ def generate_cheatsheet():
         lines = [x[8:] for x in lines]
         lines = [x for x in lines if not x.startswith("return")]
         source = "\n".join(lines[:-1])
-        snippets[cheat.category].append(
-            (cheat.name, cheat.priority, source, cheat.hash)
-        )
+        snippets[cheat.category].append((cheat.name, cheat.priority, source, cheat))
 
     # Sort by priority.
     for category, list in snippets.items():
@@ -2155,7 +2198,7 @@ Table of contents
         list = snippets[category]
         category_slug = slugify(category)
         toc_content_list.append("   * [{}](#{})".format(category, category_slug))
-        for name, priority, source, hash in list:
+        for name, priority, source, cheat in list:
             name_slug = slugify(name)
             toc_content_list.append("      * [{}](#{})".format(name, name_slug))
     toc_contents = "\n".join(toc_content_list)
@@ -2173,11 +2216,19 @@ Table of contents
             fd.write(header_text)
             fd.write(category_spec[category]["description"])
             toc_content_list.append("   * [{}](#{})".format(category, category_slug))
-            for name, priority, source, hash in list:
+            for name, priority, source, cheat in list:
                 source = re.sub(r"# EXCLUDE.*# INCLUDE\n", "", source, flags=re.S)
                 header_text = header.format(name, "-" * len(name))
                 fd.write(header_text)
                 fd.write(snippet_template.format(code=source))
+                result = cheat.run(show=False)
+                if result is not None:
+                    fd.write("```\n# Code snippet result:\n")
+                    result_text = get_result_text(result)
+                    fd.write(result_text)
+                    if not result_text.endswith("\n"):
+                        fd.write("\n")
+                    fd.write("```")
 
 
 def all_tests(category=None):
@@ -2197,7 +2248,10 @@ def test(test_name):
         if cheat.name == test_name:
             cheat.run()
             sys.exit(0)
-    assert False, "No test named " + test_name
+    print("No test named " + test_name)
+    for cheat in cheat_sheet:
+        print("{},{}".format(cheat.category, cheat.name))
+    sys.exit(1)
 
 
 def main():
@@ -2207,6 +2261,20 @@ def main():
     parser.add_argument("--dump-priorities", action="store_true")
     parser.add_argument("--test")
     args = parser.parse_args()
+
+    # Remove any left over data.
+    directories = [
+        "header.csv",
+        "output.csv",
+        "output.parquet",
+        "single.csv",
+        "spark-warehouse",
+    ]
+    for directory in directories:
+        try:
+            shutil.rmtree(directory)
+        except:
+            pass
 
     if args.all_tests or args.category:
         all_tests(args.category)
