@@ -6,11 +6,12 @@ These snippets are licensed under the CC0 1.0 Universal License. That means you 
 
 The snippets below refer to DataFrames loaded from the "Auto MPG Data Set" available from the [UCI Machine Learning Repository](https://archive.ics.uci.edu/ml/datasets/auto+mpg). You can download that dataset or clone this repository to test the code yourself.
 
-These snippets were tested against the Spark 2.4.4 API. This page was last updated 2020-07-03 08:02:08.
+These snippets were tested against the Spark 2.4.4 API. This page was last updated 2020-07-15 20:40:24.
 
 Make note of these helpful links:
 - [Built-in Spark SQL Functions](https://spark.apache.org/docs/latest/api/sql/index.html)
 - [PySpark SQL Functions Source](https://spark.apache.org/docs/latest/api/python/_modules/pyspark/sql/functions.html)
+- [PySpark DataFrame Operations](http://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.DataFrame)
 
 If you find this guide helpful and want an easy way to run Spark, check out [Oracle Cloud Infrastructure Data Flow](https://www.oracle.com/big-data/data-flow/), a fully-managed Spark service that lets you run Spark jobs at any scale with no administrative overhead. You can try Data Flow free.
 
@@ -73,6 +74,7 @@ Table of contents
       * [Filter based on a specific column value](#filter-based-on-a-specific-column-value)
       * [Filter based on an IN list](#filter-based-on-an-in-list)
       * [Filter based on a NOT IN list](#filter-based-on-a-not-in-list)
+      * [Filter values based on keys in another DataFrame](#filter-values-based-on-keys-in-another-dataframe)
       * [Filter a Dataframe based on substring search](#filter-a-dataframe-based-on-substring-search)
       * [Filter based on a column's length](#filter-based-on-a-column-s-length)
       * [Multiple filter conditions](#multiple-filter-conditions)
@@ -1356,6 +1358,39 @@ filtered = df.where(~col("cylinders").isin(["4", "6"]))
 only showing top 10 rows
 ```
 
+Filter values based on keys in another DataFrame
+------------------------------------------------
+
+```python
+from pyspark.sql.functions import col
+
+# The anti join returns only keys with no matches.
+exclude_keys = df.select(
+    (col("modelyear") + 1).alias("adjusted_year")
+).distinct()
+filtered = df.join(
+    exclude_keys, how="left_anti", on=df.modelyear == exclude_keys.adjusted_year
+)
+```
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+----------+------+------------+---------+------+----------+
+|18.0|      8.0|       307.0|     130.0|3504.0|        12.0|       70|     1|chevrol...|
+|15.0|      8.0|       350.0|     165.0|3693.0|        11.5|       70|     1|buick s...|
+|18.0|      8.0|       318.0|     150.0|3436.0|        11.0|       70|     1|plymout...|
+|16.0|      8.0|       304.0|     150.0|3433.0|        12.0|       70|     1|amc reb...|
+|17.0|      8.0|       302.0|     140.0|3449.0|        10.5|       70|     1|ford to...|
+|15.0|      8.0|       429.0|     198.0|4341.0|        10.0|       70|     1|ford ga...|
+|14.0|      8.0|       454.0|     220.0|4354.0|         9.0|       70|     1|chevrol...|
+|14.0|      8.0|       440.0|     215.0|4312.0|         8.5|       70|     1|plymout...|
+|14.0|      8.0|       455.0|     225.0|4425.0|        10.0|       70|     1|pontiac...|
+|15.0|      8.0|       390.0|     190.0|3850.0|         8.5|       70|     1|amc amb...|
++----+---------+------------+----------+------+------------+---------+------+----------+
+only showing top 10 rows
+```
+
 Filter a Dataframe based on substring search
 --------------------------------------------
 
@@ -2193,46 +2228,38 @@ import datetime
 
 # Requires an object_store_client object.
 # See https://oracle-cloud-infrastructure-python-sdk.readthedocs.io/en/latest/api/object_storage/client/oci.object_storage.ObjectStorageClient.html
-input_bucket = "input"
+input_bucket = "oow_2019_dataflow_lab"
 raw_inputs = object_store_client.list_objects(
-    object_store_client.get_namespace().data, input_bucket
+    object_store_client.get_namespace().data,
+    input_bucket,
+    fields="size,md5,timeModified",
 )
 files = [
-    [
-        x.name,
-        x.size,
-        datetime.datetime.fromtimestamp(x.time_modified)
-        if x.time_modified is not None
-        else None,
-    ]
-    for x in raw_inputs.data.objects
+    [x.name, x.size, x.time_modified, x.md5] for x in raw_inputs.data.objects
 ]
 schema = StructType(
     [
         StructField("name", StringType(), False),
         StructField("size", LongType(), True),
         StructField("modified", TimestampType(), True),
+        StructField("md5", StringType(), True),
     ]
 )
 df = spark.createDataFrame(files, schema)
 ```
 ```
 # Code snippet result:
-+----------+----+--------+
-|      name|size|modified|
-+----------+----+--------+
-|IMG_037...|null|    null|
-|IMG_037...|null|    null|
-|IMG_037...|null|    null|
-|IMG_041...|null|    null|
-|IMG_041...|null|    null|
-|IMG_043...|null|    null|
-|IMG_043...|null|    null|
-|IMG_044...|null|    null|
-|IMG_046...|null|    null|
-|IMG_047...|null|    null|
-+----------+----+--------+
-only showing top 10 rows
++----------+--------+----------+----------+
+|      name|    size|  modified|       md5|
++----------+--------+----------+----------+
+|sharedc...|      58|2020-01...|TY0HU7h...|
+|usercon...|32006919|2020-04...|igX2QgX...|
+|usercon...|71183217|2020-01...|HlBkZ/l...|
+|usercon...|    4774|2020-01...|cXnXiq3...|
+|usercon...|     277|2020-01...|HpAHVA7...|
+|usercon...|    1360|2020-01...|PzEvAAk...|
+|usercon...|    2611|2020-01...|B8XLwDe...|
++----------+--------+----------+----------+
 ```
 
 Transform Many Images using Pillow

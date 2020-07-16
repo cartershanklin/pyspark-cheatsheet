@@ -63,6 +63,7 @@ class snippet:
                     "mpg cylinders displacement horsepower weight acceleration".split()
                 ):
                     df = df.withColumn(column_name, col(column_name).cast("double"))
+                df = df.withColumn("modelyear", col("modelyear").cast("int"))
             elif self.dataset == "customer_spend.csv":
                 from pyspark.sql.functions import col, to_date, udf
                 from pyspark.sql.types import DecimalType
@@ -613,7 +614,7 @@ class group_histogram(snippet):
         N = 11
         histogram = df.select("horsepower").rdd.flatMap(lambda x: x).histogram(N)
         print(histogram)
-        return(str(histogram))
+        return str(histogram)
 
 
 class group_key_value_to_key_list(snippet):
@@ -791,6 +792,28 @@ class sortsearch_not_in_list(snippet):
         from pyspark.sql.functions import col
 
         filtered = df.where(~col("cylinders").isin(["4", "6"]))
+        return filtered
+
+
+class sortsearch_in_list_from_df(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Filter values based on keys in another DataFrame"
+        self.category = "Sorting and Searching"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 410
+        self.preconvert = True
+
+    def snippet(self, df):
+        from pyspark.sql.functions import col
+
+        # The anti join returns only keys with no matches.
+        exclude_keys = df.select(
+            (col("modelyear") + 1).alias("adjusted_year")
+        ).distinct()
+        filtered = df.join(
+            exclude_keys, how="left_anti", on=df.modelyear == exclude_keys.adjusted_year
+        )
         return filtered
 
 
@@ -1989,25 +2012,21 @@ class fileprocessing_load_files_oci(snippet):
 
         # Requires an object_store_client object.
         # See https://oracle-cloud-infrastructure-python-sdk.readthedocs.io/en/latest/api/object_storage/client/oci.object_storage.ObjectStorageClient.html
-        input_bucket = "input"
+        input_bucket = "oow_2019_dataflow_lab"
         raw_inputs = object_store_client.list_objects(
-            object_store_client.get_namespace().data, input_bucket
+            object_store_client.get_namespace().data,
+            input_bucket,
+            fields="size,md5,timeModified",
         )
         files = [
-            [
-                x.name,
-                x.size,
-                datetime.datetime.fromtimestamp(x.time_modified)
-                if x.time_modified is not None
-                else None,
-            ]
-            for x in raw_inputs.data.objects
+            [x.name, x.size, x.time_modified, x.md5] for x in raw_inputs.data.objects
         ]
         schema = StructType(
             [
                 StructField("name", StringType(), False),
                 StructField("size", LongType(), True),
                 StructField("modified", TimestampType(), True),
+                StructField("md5", StringType(), True),
             ]
         )
         df = spark.createDataFrame(files, schema)
@@ -2083,6 +2102,7 @@ cheat_sheet = [
     sortsearch_distinct_values(),
     sortsearch_string_contents(),
     sortsearch_in_list(),
+    sortsearch_in_list_from_df(),
     sortsearch_not_in_list(),
     sortsearch_column_length(),
     sortsearch_equality(),
