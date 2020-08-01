@@ -4,9 +4,12 @@ This cheat sheet will help you learn PySpark and write PySpark apps faster. Ever
 
 These snippets are licensed under the CC0 1.0 Universal License. That means you can freely copy and adapt these code snippets and you don't need to give attribution or include any notices.
 
-The snippets below refer to DataFrames loaded from the "Auto MPG Data Set" available from the [UCI Machine Learning Repository](https://archive.ics.uci.edu/ml/datasets/auto+mpg). You can download that dataset or clone this repository to test the code yourself.
+These snippets use DataFrames loaded from various data sources:
+- "Auto MPG Data Set" available from the [UCI Machine Learning Repository](https://archive.ics.uci.edu/ml/datasets/auto+mpg).
+- customer_spend.csv, a generated time series dataset.
+- date_examples.csv, a generated dataset with various date and time formats.
 
-These snippets were tested against the Spark 2.4.4 API. This page was last updated 2020-07-15 20:40:24.
+These snippets were tested against the Spark 2.4.4 API. This page was last updated 2020-08-01 09:39:01.
 
 Make note of these helpful links:
 - [Built-in Spark SQL Functions](https://spark.apache.org/docs/latest/api/sql/index.html)
@@ -1745,11 +1748,11 @@ summed = df.agg(exprs)
 ```
 ```
 # Code snippet result:
-++
-||
-++
-||
-++
++-----------+-----------------+--------------+----------+---------------+-----------------+
+|sum(weight)|sum(acceleration)|sum(cylinders)|  sum(mpg)|sum(horsepower)|sum(displacement)|
++-----------+-----------------+--------------+----------+---------------+-----------------+
+|  1182229.0|       6196.09...|        2171.0|9358.80...|        40952.0|          76983.5|
++-----------+-----------------+--------------+----------+---------------+-----------------+
 ```
 
 Count unique after grouping

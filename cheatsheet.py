@@ -728,6 +728,7 @@ class group_aggregate_all_numerics(snippet):
         self.name = "Aggregate all numeric columns"
         self.category = "Grouping"
         self.dataset = "auto-mpg.csv"
+        self.preconvert = True
         self.priority = 800
 
     def snippet(self, df):
