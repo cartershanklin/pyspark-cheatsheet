@@ -67,7 +67,7 @@ Preamble:
         - date_examples.csv, a generated dataset with various date and time formats.
 
 
-        These snippets were tested against the Spark 2.4.4 API. This page was last updated {last_updated}.
+        These snippets were tested against the Spark {version} API. This page was last updated {last_updated}.
 
 
         Make note of these helpful links:

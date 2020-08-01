@@ -9,7 +9,7 @@ These snippets use DataFrames loaded from various data sources:
 - customer_spend.csv, a generated time series dataset.
 - date_examples.csv, a generated dataset with various date and time formats.
 
-These snippets were tested against the Spark 2.4.4 API. This page was last updated 2020-08-01 09:39:01.
+These snippets were tested against the Spark 2.4.5 API. This page was last updated 2020-08-01 09:46:38.
 
 Make note of these helpful links:
 - [Built-in Spark SQL Functions](https://spark.apache.org/docs/latest/api/sql/index.html)
@@ -134,6 +134,7 @@ Table of contents
       * [Cumulative Average](#cumulative-average)
       * [Cumulative Average in a Period](#cumulative-average-in-a-period)
    * [Performance](#performance)
+      * [Get the Spark version](#get-the-spark-version)
       * [Coalesce DataFrame partitions](#coalesce-dataframe-partitions)
       * [Change DataFrame partitioning](#change-dataframe-partitioning)
       * [Increase Spark driver/executor heap space](#increase-spark-driver-executor-heap-space)
@@ -2792,6 +2793,17 @@ only showing top 10 rows
 Performance
 ===========
 A few performance tips and tricks.
+
+Get the Spark version
+---------------------
+
+```python
+print(spark.sparkContext.version)
+```
+```
+# Code snippet result:
+2.4.5
+```
 
 Coalesce DataFrame partitions
 -----------------------------

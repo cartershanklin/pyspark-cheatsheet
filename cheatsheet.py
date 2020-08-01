@@ -1618,13 +1618,25 @@ class performance_partitioning(snippet):
         return df
 
 
+class performance_get_spark_version(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Get the Spark version"
+        self.category = "Performance"
+        self.dataset = "UNUSED"
+        self.priority = 100
+
+    def snippet(self, df):
+        print(spark.sparkContext.version)
+        return spark.sparkContext.version
+
 class performance_reduce_dataframe_partitions(snippet):
     def __init__(self):
         super().__init__()
         self.name = "Coalesce DataFrame partitions"
         self.category = "Performance"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 110
 
     def snippet(self, df):
         import math
@@ -2064,6 +2076,7 @@ cheat_sheet = [
     pandas_n_rows_from_dataframe_to_pandas(),
     pandas_udaf(),
     pandas_rescale_column(),
+    performance_get_spark_version(),
     performance_partitioning(),
     performance_reduce_dataframe_partitions(),
     performance_increase_heap_space(),
@@ -2226,8 +2239,9 @@ Table of contents
 
     with open("README.md", "w") as fd:
         last_updated = str(datetime.datetime.now())[:-7]
+        version = spark.sparkContext.version
         fd.write(
-            category_spec["Preamble"]["description"].format(last_updated=last_updated)
+            category_spec["Preamble"]["description"].format(version=version, last_updated=last_updated)
         )
         fd.write("\n")
         fd.write(toc_template.format(toc_contents=toc_contents))
