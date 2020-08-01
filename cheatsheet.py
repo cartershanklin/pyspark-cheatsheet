@@ -2185,11 +2185,8 @@ def generate_cheatsheet():
         if cheat.category not in snippets:
             snippets[cheat.category] = []
         source = inspect.getsource(cheat.snippet)
-        lines = source.split("\n")[1:]
-        lines = [x[8:] for x in lines]
-        lines = [x for x in lines if not x.startswith("return")]
-        source = "\n".join(lines[:-1])
-        snippets[cheat.category].append((cheat.name, cheat.priority, source, cheat))
+        cleaned_source = get_code_snippet(source)
+        snippets[cheat.category].append((cheat.name, cheat.priority, cleaned_source, cheat))
 
     # Sort by priority.
     for category, list in snippets.items():
@@ -2252,7 +2249,6 @@ Table of contents
             fd.write(category_spec[category]["description"])
             toc_content_list.append("   * [{}](#{})".format(category, category_slug))
             for name, priority, source, cheat in list:
-                source = re.sub(r"# EXCLUDE.*# INCLUDE\n", "", source, flags=re.S)
                 header_text = header.format(name, "-" * len(name))
                 fd.write(header_text)
                 fd.write(snippet_template.format(code=source))
@@ -2282,12 +2278,23 @@ def test(test_name):
     for cheat in cheat_sheet:
         if cheat.name == test_name:
             cheat.run()
+            source = inspect.getsource(cheat.snippet)
+            snippet = get_code_snippet(source)
+            print("-- SNIPPET --")
+            print(snippet)
             sys.exit(0)
     print("No test named " + test_name)
     for cheat in cheat_sheet:
         print("{},{}".format(cheat.category, cheat.name))
     sys.exit(1)
 
+def get_code_snippet(source):
+    lines = source.split("\n")[1:]
+    lines = [x[8:] for x in lines]
+    lines = [x for x in lines if not x.startswith("return")]
+    cleaned = "\n".join(lines[:-1])
+    cleaned = re.sub(r"# EXCLUDE.*(# INCLUDE\n)?", "", cleaned, flags=re.S)
+    return cleaned
 
 def main():
     parser = argparse.ArgumentParser()

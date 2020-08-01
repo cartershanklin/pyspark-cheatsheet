@@ -9,7 +9,7 @@ These snippets use DataFrames loaded from various data sources:
 - customer_spend.csv, a generated time series dataset.
 - date_examples.csv, a generated dataset with various date and time formats.
 
-These snippets were tested against the Spark 2.4.5 API. This page was last updated 2020-08-01 09:46:38.
+These snippets were tested against the Spark 2.4.5 API. This page was last updated 2020-08-01 10:15:39.
 
 Make note of these helpful links:
 - [Built-in Spark SQL Functions](https://spark.apache.org/docs/latest/api/sql/index.html)
@@ -429,23 +429,7 @@ Read an Oracle DB table into a DataFrame using a Wallet
 -------------------------------------------------------
 
 ```python
-# Key variables you need.
-# Get the tnsname from tnsnames.ora.
-# Wallet path should point to an extracted wallet file.
-password = "my_password"
-table = "source_table"
-tnsname = "my_tns_name"
-user = "ADMIN"
-wallet_path = "/path/to/your/wallet"
 
-properties = {
-    "driver": "oracle.jdbc.driver.OracleDriver",
-    "oracle.net.tns_admin": tnsname,
-    "password": password,
-    "user": user,
-}
-url = f"jdbc:oracle:thin:@{tnsname}?TNS_ADMIN={wallet_path}"
-df = spark.read.jdbc(url=url, table=table, properties=properties)
 ```
 
 
@@ -453,25 +437,7 @@ Write a DataFrame to an Oracle DB table using a Wallet
 ------------------------------------------------------
 
 ```python
-# Key variables you need.
-# Get the tnsname from tnsnames.ora.
-# Wallet path should point to an extracted wallet file.
-password = "my_password"
-table = "target_table"
-tnsname = "my_tns_name"
-user = "ADMIN"
-wallet_path = "/path/to/your/wallet"
 
-properties = {
-    "driver": "oracle.jdbc.driver.OracleDriver",
-    "oracle.net.tns_admin": tnsname,
-    "password": password,
-    "user": user,
-}
-url = f"jdbc:oracle:thin:@{tnsname}?TNS_ADMIN={wallet_path}"
-
-# Possible modes are "Append", "Overwrite", "Ignore", "Error"
-df.write.jdbc(url=url, table=table, mode="Append", properties=properties)
 ```
 
 
@@ -846,10 +812,7 @@ Get the size of a DataFrame
 ```python
 print("{} rows".format(df.count()))
 print("{} columns".format(len(df.columns)))
-# EXCLUDE
-    "{} rows".format(df.count()),
-    "{} columns".format(len(df.columns)),
-]
+
 ```
 ```
 # Code snippet result:
@@ -2221,35 +2184,7 @@ Load Files from Oracle Cloud Infrastructure into a DataFrame
 ------------------------------------------------------------
 
 ```python
-from pyspark.sql.types import (
-    StructField,
-    StructType,
-    LongType,
-    StringType,
-    TimestampType,
-)
-import datetime
 
-# Requires an object_store_client object.
-# See https://oracle-cloud-infrastructure-python-sdk.readthedocs.io/en/latest/api/object_storage/client/oci.object_storage.ObjectStorageClient.html
-input_bucket = "oow_2019_dataflow_lab"
-raw_inputs = object_store_client.list_objects(
-    object_store_client.get_namespace().data,
-    input_bucket,
-    fields="size,md5,timeModified",
-)
-files = [
-    [x.name, x.size, x.time_modified, x.md5] for x in raw_inputs.data.objects
-]
-schema = StructType(
-    [
-        StructField("name", StringType(), False),
-        StructField("size", LongType(), True),
-        StructField("modified", TimestampType(), True),
-        StructField("md5", StringType(), True),
-    ]
-)
-df = spark.createDataFrame(files, schema)
 ```
 ```
 # Code snippet result:
@@ -2873,6 +2808,5 @@ Increase Spark driver/executor heap space
 # For other environments see the Spark "Cluster Mode Overview" to get started.
 # https://spark.apache.org/docs/latest/cluster-overview.html
 # And good luck!
-# EXCLUDE
-pass
+
 ```
