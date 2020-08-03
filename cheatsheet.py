@@ -997,11 +997,9 @@ class loadsave_read_oracle(snippet):
         self.category = "Loading and Saving Data"
         self.dataset = "UNUSED"
         self.priority = 1000
+        self.skip_run = True
 
     def snippet(self, df):
-        # EXCLUDE
-        return
-        # INCLUDE
         # Key variables you need.
         # Get the tnsname from tnsnames.ora.
         # Wallet path should point to an extracted wallet file.
@@ -1028,11 +1026,9 @@ class loadsave_write_oracle(snippet):
         self.category = "Loading and Saving Data"
         self.dataset = "UNUSED"
         self.priority = 1100
+        self.skip_run = True
 
     def snippet(self, df):
-        # EXCLUDE
-        return
-        # INCLUDE
         # Key variables you need.
         # Get the tnsname from tnsnames.ora.
         # Wallet path should point to an extracted wallet file.

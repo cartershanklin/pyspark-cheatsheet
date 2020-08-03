@@ -9,7 +9,7 @@ These snippets use DataFrames loaded from various data sources:
 - customer_spend.csv, a generated time series dataset.
 - date_examples.csv, a generated dataset with various date and time formats.
 
-These snippets were tested against the Spark 2.4.5 API. This page was last updated 2020-08-01 10:15:39.
+These snippets were tested against the Spark 2.4.5 API. This page was last updated 2020-08-03 07:53:12.
 
 Make note of these helpful links:
 - [Built-in Spark SQL Functions](https://spark.apache.org/docs/latest/api/sql/index.html)
@@ -429,7 +429,23 @@ Read an Oracle DB table into a DataFrame using a Wallet
 -------------------------------------------------------
 
 ```python
+# Key variables you need.
+# Get the tnsname from tnsnames.ora.
+# Wallet path should point to an extracted wallet file.
+password = "my_password"
+table = "source_table"
+tnsname = "my_tns_name"
+user = "ADMIN"
+wallet_path = "/path/to/your/wallet"
 
+properties = {
+    "driver": "oracle.jdbc.driver.OracleDriver",
+    "oracle.net.tns_admin": tnsname,
+    "password": password,
+    "user": user,
+}
+url = f"jdbc:oracle:thin:@{tnsname}?TNS_ADMIN={wallet_path}"
+df = spark.read.jdbc(url=url, table=table, properties=properties)
 ```
 
 
@@ -437,7 +453,25 @@ Write a DataFrame to an Oracle DB table using a Wallet
 ------------------------------------------------------
 
 ```python
+# Key variables you need.
+# Get the tnsname from tnsnames.ora.
+# Wallet path should point to an extracted wallet file.
+password = "my_password"
+table = "target_table"
+tnsname = "my_tns_name"
+user = "ADMIN"
+wallet_path = "/path/to/your/wallet"
 
+properties = {
+    "driver": "oracle.jdbc.driver.OracleDriver",
+    "oracle.net.tns_admin": tnsname,
+    "password": password,
+    "user": user,
+}
+url = f"jdbc:oracle:thin:@{tnsname}?TNS_ADMIN={wallet_path}"
+
+# Possible modes are "Append", "Overwrite", "Ignore", "Error"
+df.write.jdbc(url=url, table=table, mode="Append", properties=properties)
 ```
 
 
