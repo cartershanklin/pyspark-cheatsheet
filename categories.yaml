@@ -30,20 +30,24 @@ Handling Missing Data:
     priority: 8
     description: Dealing with NULLs and NaNs in DataFrames.
 
-Pandas:
+Dealing with Dates:
     priority: 9
+    description: Parsing and processing dates and times.
+
+Pandas:
+    priority: 10
     description: Using Python's Pandas library to augment Spark. Some operations require the pyarrow library.
 
 Data Profiling:
-    priority: 10
+    priority: 11
     description: Extracting key statistics out of a body of data.
 
 Time Series:
-    priority: 11
+    priority: 12
     description: Techniques for dealing with time series data.
 
 Performance:
-    priority: 12
+    priority: 13
     description: A few performance tips and tricks.
 
 Preamble:

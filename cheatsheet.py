@@ -25,9 +25,9 @@ def getShowString(df, n=10, truncate=True, vertical=False):
         return df._jdf.showString(n, int(truncate), vertical)
 
 
-def get_result_text(result):
+def get_result_text(result, truncate=True):
     if type(result) == pyspark.sql.dataframe.DataFrame:
-        return getShowString(result)
+        return getShowString(result, truncate=truncate)
     elif type(result) == pandas.core.frame.DataFrame:
         return str(result)
     elif type(result) == list:
@@ -43,6 +43,7 @@ class snippet:
         self.hash = hashlib.md5(str(self.__class__).encode()).hexdigest()
         self.preconvert = False
         self.skip_run = False
+        self.truncate = True
 
     def load_data(self):
         assert self.dataset is not None, "Dataset not set"
@@ -94,7 +95,7 @@ class snippet:
         retval = self.snippet(self.df)
         if show:
             if retval is not None:
-                result_text = get_result_text(retval)
+                result_text = get_result_text(retval, self.truncate)
                 print(result_text)
         else:
             return retval
@@ -751,13 +752,28 @@ class sortsearch_distinct_values(snippet):
         return distinct
 
 
-class sortsearch_string_contents(snippet):
+class sortsearch_string_match(snippet):
     def __init__(self):
         super().__init__()
-        self.name = "Filter a Dataframe based on substring search"
+        self.name = "Get Dataframe rows that match a substring"
         self.category = "Sorting and Searching"
         self.dataset = "auto-mpg.csv"
         self.priority = 500
+
+    def snippet(self, df):
+        from pyspark.sql.functions import col
+
+        filtered = df.where(df.carname.contains("custom"))
+        return filtered
+
+
+class sortsearch_string_contents(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Filter a Dataframe based on a custom substring search"
+        self.category = "Sorting and Searching"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 510
 
     def snippet(self, df):
         from pyspark.sql.functions import col
@@ -922,60 +938,6 @@ class sortsearch_filtering_basic(snippet):
         return filtered
 
 
-class transform_string_to_date(snippet):
-    def __init__(self):
-        super().__init__()
-        self.name = "Convert string to date"
-        self.category = "Transforming Data"
-        self.dataset = "auto-mpg.csv"
-        self.priority = 400
-
-    def snippet(self, df):
-        from pyspark.sql.functions import col
-
-        df = spark.sparkContext.parallelize([["2021-01-01"], ["2022-01-01"]]).toDF(
-            ["date_col"]
-        )
-        df = df.withColumn("date_col", col("date_col").cast("date"))
-        return df
-
-
-class transform_string_to_date_custom(snippet):
-    def __init__(self):
-        super().__init__()
-        self.name = "Convert string to date with custom format"
-        self.category = "Transforming Data"
-        self.dataset = "auto-mpg.csv"
-        self.priority = 500
-
-    def snippet(self, df):
-        from pyspark.sql.functions import col, to_date
-
-        df = spark.sparkContext.parallelize([["20210101"], ["20220101"]]).toDF(
-            ["date_col"]
-        )
-        df = df.withColumn("date_col", to_date(col("date_col"), "yyyyddMM"))
-        return df
-
-
-class transform_unix_timestamp_to_date(snippet):
-    def __init__(self):
-        super().__init__()
-        self.name = "Convert UNIX (seconds since epoch) timestamp to date"
-        self.category = "Transforming Data"
-        self.dataset = "auto-mpg.csv"
-        self.priority = 600
-
-    def snippet(self, df):
-        from pyspark.sql.functions import col, from_unixtime
-
-        df = spark.sparkContext.parallelize([["1590183026"], ["2000000000"]]).toDF(
-            ["ts_col"]
-        )
-        df = df.withColumn("date_col", from_unixtime(col("ts_col")))
-        return df
-
-
 class loadsave_overwrite_specific_partitions(snippet):
     def __init__(self):
         super().__init__()
@@ -1050,13 +1012,40 @@ class loadsave_write_oracle(snippet):
         df.write.jdbc(url=url, table=table, mode="Append", properties=properties)
 
 
+class transform_regexp_extract(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Extract data from a string using a regular expression"
+        self.category = "Transforming Data"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 100
+        self.truncate = False
+
+    def snippet(self, df):
+        from pyspark.sql.functions import col, regexp_extract
+
+        group = 0
+        df = (
+            df.withColumn("identifier", regexp_extract(col("carname"), "(\S?\d+)", group))
+            .drop("acceleration")
+            .drop("cylinders")
+            .drop("displacement")
+            .drop("modelyear")
+            .drop("mpg")
+            .drop("origin")
+            .drop("horsepower")
+            .drop("weight")
+        )
+        return df
+
+
 class transform_fillna_specific_columns(snippet):
     def __init__(self):
         super().__init__()
         self.name = "Fill NULL values in specific columns"
         self.category = "Transforming Data"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 120
 
     def snippet(self, df):
         df.fillna({"horsepower": 0})
@@ -1308,6 +1297,106 @@ class join_different_types(snippet):
         return joined
 
 
+class dates_string_to_date(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Convert an ISO 8601 formatted date string to date type"
+        self.category = "Dealing with Dates"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 100
+
+    def snippet(self, df):
+        from pyspark.sql.functions import col
+
+        df = spark.sparkContext.parallelize([["2021-01-01"], ["2022-01-01"]]).toDF(
+            ["date_col"]
+        )
+        df = df.withColumn("date_col", col("date_col").cast("date"))
+        return df
+
+
+class dates_string_to_date_custom(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Convert a custom formatted date string to date type"
+        self.category = "Dealing with Dates"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 200
+
+    def snippet(self, df):
+        from pyspark.sql.functions import col, to_date
+
+        df = spark.sparkContext.parallelize([["20210101"], ["20220101"]]).toDF(
+            ["date_col"]
+        )
+        df = df.withColumn("date_col", to_date(col("date_col"), "yyyyddMM"))
+        return df
+
+
+class dates_last_day_of_month(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Get the last day of the current month"
+        self.category = "Dealing with Dates"
+        self.dataset = "UNUSED"
+        self.priority = 300
+
+    def snippet(self, df):
+        from pyspark.sql.functions import col, last_day
+
+        df = spark.sparkContext.parallelize([["2020-01-01"], ["1712-02-10"]]).toDF(
+            ["date_col"]
+        )
+        df = df.withColumn("date_col", col("date_col").cast("date")).withColumn(
+            "last_day", last_day(col("date_col"))
+        )
+        return df
+
+
+class dates_unix_timestamp_to_date(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Convert UNIX (seconds since epoch) timestamp to date"
+        self.category = "Dealing with Dates"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 1000
+
+    def snippet(self, df):
+        from pyspark.sql.functions import col, from_unixtime
+
+        df = spark.sparkContext.parallelize([["1590183026"], ["2000000000"]]).toDF(
+            ["ts_col"]
+        )
+        df = df.withColumn("date_col", from_unixtime(col("ts_col")))
+        return df
+
+
+class dates_complexdate(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Load a CSV file with complex dates into a DataFrame"
+        self.category = "Dealing with Dates"
+        self.dataset = "UNUSED"
+        self.priority = 1100
+
+    def snippet(self, df):
+        from pyspark.sql.functions import udf
+        from pyspark.sql.types import TimestampType
+        import dateparser
+
+        # Use the dateparser module to convert many formats into timestamps.
+        date_convert = udf(
+            lambda x: dateparser.parse(x) if x is not None else None, TimestampType()
+        )
+        df = (
+            spark.read.format("csv")
+            .option("header", True)
+            .load("data/date_examples.csv")
+        )
+        df = df.withColumn("parsed", date_convert(df.date))
+        return df
+
+
 class loadsave_to_parquet(snippet):
     def __init__(self):
         super().__init__()
@@ -1388,32 +1477,6 @@ class loadsave_money(snippet):
         )
         money2 = df.withColumn("spend_dollars", money_convert(df.spend_dollars))
         return money2
-
-
-class loadsave_date(snippet):
-    def __init__(self):
-        super().__init__()
-        self.name = "Load a CSV file with complex dates into a DataFrame"
-        self.category = "Loading and Saving Data"
-        self.dataset = "UNUSED"
-        self.priority = 130
-
-    def snippet(self, df):
-        from pyspark.sql.functions import udf
-        from pyspark.sql.types import TimestampType
-        import dateparser
-
-        # Use the dateparser module to convert many formats into timestamps.
-        date_convert = udf(
-            lambda x: dateparser.parse(x) if x is not None else None, TimestampType()
-        )
-        df = (
-            spark.read.format("csv")
-            .option("header", True)
-            .load("data/date_examples.csv")
-        )
-        df = df.withColumn("parsed", date_convert(df.date))
-        return df
 
 
 class loadsave_export_to_csv(snippet):
@@ -1625,6 +1688,7 @@ class performance_get_spark_version(snippet):
     def snippet(self, df):
         print(spark.sparkContext.version)
         return spark.sparkContext.version
+
 
 class performance_reduce_dataframe_partitions(snippet):
     def __init__(self):
@@ -2086,7 +2150,6 @@ cheat_sheet = [
     loadsave_csv_with_header(),
     loadsave_single_output_file(),
     loadsave_money(),
-    loadsave_date(),
     loadsave_overwrite_output_directory(),
     loadsave_dataframe_from_csv_provide_schema(),
     loadsave_dynamic_partitioning(),
@@ -2101,15 +2164,19 @@ cheat_sheet = [
     join_multiple_conditions(),
     join_subtract_dataframes(),
     join_different_types(),
-    transform_string_to_date(),
-    transform_string_to_date_custom(),
-    transform_unix_timestamp_to_date(),
+    dates_string_to_date(),
+    dates_string_to_date_custom(),
+    dates_unix_timestamp_to_date(),
+    dates_last_day_of_month(),
+    dates_complexdate(),
+    transform_regexp_extract(),
     transform_fillna_specific_columns(),
     transform_fillna_col_avg(),
     transform_fillna_group_avg(),
     transform_json_to_key_value(),
     transform_query_json_column(),
     sortsearch_distinct_values(),
+    sortsearch_string_match(),
     sortsearch_string_contents(),
     sortsearch_in_list(),
     sortsearch_in_list_from_df(),
@@ -2182,7 +2249,9 @@ def generate_cheatsheet():
             snippets[cheat.category] = []
         source = inspect.getsource(cheat.snippet)
         cleaned_source = get_code_snippet(source)
-        snippets[cheat.category].append((cheat.name, cheat.priority, cleaned_source, cheat))
+        snippets[cheat.category].append(
+            (cheat.name, cheat.priority, cleaned_source, cheat)
+        )
 
     # Sort by priority.
     for category, list in snippets.items():
@@ -2234,7 +2303,9 @@ Table of contents
         last_updated = str(datetime.datetime.now())[:-7]
         version = spark.sparkContext.version
         fd.write(
-            category_spec["Preamble"]["description"].format(version=version, last_updated=last_updated)
+            category_spec["Preamble"]["description"].format(
+                version=version, last_updated=last_updated
+            )
         )
         fd.write("\n")
         fd.write(toc_template.format(toc_contents=toc_contents))
@@ -2284,6 +2355,7 @@ def test(test_name):
         print("{},{}".format(cheat.category, cheat.name))
     sys.exit(1)
 
+
 def get_code_snippet(source):
     lines = source.split("\n")[1:]
     lines = [x[8:] for x in lines]
@@ -2291,6 +2363,7 @@ def get_code_snippet(source):
     cleaned = "\n".join(lines[:-1])
     cleaned = re.sub(r"# EXCLUDE.*(# INCLUDE\n)?", "", cleaned, flags=re.S)
     return cleaned
+
 
 def main():
     parser = argparse.ArgumentParser()

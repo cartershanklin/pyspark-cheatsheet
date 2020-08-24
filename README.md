@@ -9,7 +9,7 @@ These snippets use DataFrames loaded from various data sources:
 - customer_spend.csv, a generated time series dataset.
 - date_examples.csv, a generated dataset with various date and time formats.
 
-These snippets were tested against the Spark 2.4.5 API. This page was last updated 2020-08-03 07:53:12.
+These snippets were tested against the Spark 2.4.5 API. This page was last updated 2020-08-23 16:58:51.
 
 Make note of these helpful links:
 - [Built-in Spark SQL Functions](https://spark.apache.org/docs/latest/api/sql/index.html)
@@ -27,7 +27,6 @@ Table of contents
       * [Load a DataFrame from CSV](#load-a-dataframe-from-csv)
       * [Load a DataFrame from a Tab Separated Value (TSV) file](#load-a-dataframe-from-a-tab-separated-value-tsv-file)
       * [Load a CSV file with a money column into a DataFrame](#load-a-csv-file-with-a-money-column-into-a-dataframe)
-      * [Load a CSV file with complex dates into a DataFrame](#load-a-csv-file-with-complex-dates-into-a-dataframe)
       * [Provide the schema when loading a DataFrame from CSV](#provide-the-schema-when-loading-a-dataframe-from-csv)
       * [Configure security to read a CSV file from Oracle Cloud Infrastructure Object Storage](#configure-security-to-read-a-csv-file-from-oracle-cloud-infrastructure-object-storage)
       * [Save a DataFrame in Parquet format](#save-a-dataframe-in-parquet-format)
@@ -64,12 +63,10 @@ Table of contents
       * [DataFrame Flatmap example](#dataframe-flatmap-example)
       * [Create a custom UDF](#create-a-custom-udf)
    * [Transforming Data](#transforming-data)
+      * [Extract data from a string using a regular expression](#extract-data-from-a-string-using-a-regular-expression)
       * [Fill NULL values in specific columns](#fill-null-values-in-specific-columns)
       * [Fill NULL values with column average](#fill-null-values-with-column-average)
       * [Fill NULL values with group average](#fill-null-values-with-group-average)
-      * [Convert string to date](#convert-string-to-date)
-      * [Convert string to date with custom format](#convert-string-to-date-with-custom-format)
-      * [Convert UNIX (seconds since epoch) timestamp to date](#convert-unix-seconds-since-epoch-timestamp-to-date)
       * [Unpack a DataFrame's JSON column to a new DataFrame](#unpack-a-dataframe-s-json-column-to-a-new-dataframe)
       * [Query a JSON column](#query-a-json-column)
    * [Sorting and Searching](#sorting-and-searching)
@@ -78,7 +75,8 @@ Table of contents
       * [Filter based on an IN list](#filter-based-on-an-in-list)
       * [Filter based on a NOT IN list](#filter-based-on-a-not-in-list)
       * [Filter values based on keys in another DataFrame](#filter-values-based-on-keys-in-another-dataframe)
-      * [Filter a Dataframe based on substring search](#filter-a-dataframe-based-on-substring-search)
+      * [Get Dataframe rows that match a substring](#get-dataframe-rows-that-match-a-substring)
+      * [Filter a Dataframe based on a custom substring search](#filter-a-dataframe-based-on-a-custom-substring-search)
       * [Filter based on a column's length](#filter-based-on-a-column-s-length)
       * [Multiple filter conditions](#multiple-filter-conditions)
       * [Sort DataFrame by a column](#sort-dataframe-by-a-column)
@@ -116,6 +114,12 @@ Table of contents
       * [Filter rows with None or Null values](#filter-rows-with-none-or-null-values)
       * [Drop rows with Null values](#drop-rows-with-null-values)
       * [Count all Null or NaN values in a DataFrame](#count-all-null-or-nan-values-in-a-dataframe)
+   * [Dealing with Dates](#dealing-with-dates)
+      * [Convert an ISO 8601 formatted date string to date type](#convert-an-iso-8601-formatted-date-string-to-date-type)
+      * [Convert a custom formatted date string to date type](#convert-a-custom-formatted-date-string-to-date-type)
+      * [Get the last day of the current month](#get-the-last-day-of-the-current-month)
+      * [Convert UNIX (seconds since epoch) timestamp to date](#convert-unix-seconds-since-epoch-timestamp-to-date)
+      * [Load a CSV file with complex dates into a DataFrame](#load-a-csv-file-with-complex-dates-into-a-dataframe)
    * [Pandas](#pandas)
       * [Convert Spark DataFrame to Pandas DataFrame](#convert-spark-dataframe-to-pandas-dataframe)
       * [Convert N rows from a DataFrame to a Pandas DataFrame](#convert-n-rows-from-a-dataframe-to-a-pandas-dataframe)
@@ -248,44 +252,6 @@ money2 = df.withColumn("spend_dollars", money_convert(df.spend_dollars))
 |2020-02-29|          4|       2.1300|
 |2020-02-29|          5|       0.8200|
 +----------+-----------+-------------+
-only showing top 10 rows
-```
-
-Load a CSV file with complex dates into a DataFrame
----------------------------------------------------
-
-```python
-from pyspark.sql.functions import udf
-from pyspark.sql.types import TimestampType
-import dateparser
-
-# Use the dateparser module to convert many formats into timestamps.
-date_convert = udf(
-    lambda x: dateparser.parse(x) if x is not None else None, TimestampType()
-)
-df = (
-    spark.read.format("csv")
-    .option("header", True)
-    .load("data/date_examples.csv")
-)
-df = df.withColumn("parsed", date_convert(df.date))
-```
-```
-# Code snippet result:
-+----------+----------+
-|      date|    parsed|
-+----------+----------+
-|2012-01...|2012-01...|
-|2012-01...|2011-12...|
-|2012-01...|2012-01...|
-|2012-01...|2012-01...|
-|2012-01...|2011-12...|
-|2012-01...|2012-01...|
-|01-01-2...|2012-01...|
-|01-01-2...|2011-12...|
-|01-01-2...|2012-01...|
-|01-01-2...|2012-01...|
-+----------+----------+
 only showing top 10 rows
 ```
 
@@ -1053,6 +1019,44 @@ Transforming Data
 =================
 Data conversions and other modifications.
 
+Extract data from a string using a regular expression
+-----------------------------------------------------
+
+```python
+from pyspark.sql.functions import col, regexp_extract
+
+group = 0
+df = (
+    df.withColumn("identifier", regexp_extract(col("carname"), "(\S?\d+)", group))
+    .drop("acceleration")
+    .drop("cylinders")
+    .drop("displacement")
+    .drop("modelyear")
+    .drop("mpg")
+    .drop("origin")
+    .drop("horsepower")
+    .drop("weight")
+)
+```
+```
+# Code snippet result:
++----------+----------+
+|   carname|identifier|
++----------+----------+
+|chevrol...|          |
+|buick s...|       320|
+|plymout...|          |
+|amc reb...|          |
+|ford to...|          |
+|ford ga...|       500|
+|chevrol...|          |
+|plymout...|          |
+|pontiac...|          |
+|amc amb...|          |
++----------+----------+
+only showing top 10 rows
+```
+
 Fill NULL values in specific columns
 ------------------------------------
 
@@ -1136,69 +1140,6 @@ df = df.join(manufacturer_avg, "cylinders").select(
 |15.0|        8|       390.0| 3850.|         8.5|       70|     1|amc amb...|     190.0|
 +----+---------+------------+------+------------+---------+------+----------+----------+
 only showing top 10 rows
-```
-
-Convert string to date
-----------------------
-
-```python
-from pyspark.sql.functions import col
-
-df = spark.sparkContext.parallelize([["2021-01-01"], ["2022-01-01"]]).toDF(
-    ["date_col"]
-)
-df = df.withColumn("date_col", col("date_col").cast("date"))
-```
-```
-# Code snippet result:
-+----------+
-|  date_col|
-+----------+
-|2021-01-01|
-|2022-01-01|
-+----------+
-```
-
-Convert string to date with custom format
------------------------------------------
-
-```python
-from pyspark.sql.functions import col, to_date
-
-df = spark.sparkContext.parallelize([["20210101"], ["20220101"]]).toDF(
-    ["date_col"]
-)
-df = df.withColumn("date_col", to_date(col("date_col"), "yyyyddMM"))
-```
-```
-# Code snippet result:
-+----------+
-|  date_col|
-+----------+
-|2021-01-01|
-|2022-01-01|
-+----------+
-```
-
-Convert UNIX (seconds since epoch) timestamp to date
-----------------------------------------------------
-
-```python
-from pyspark.sql.functions import col, from_unixtime
-
-df = spark.sparkContext.parallelize([["1590183026"], ["2000000000"]]).toDF(
-    ["ts_col"]
-)
-df = df.withColumn("date_col", from_unixtime(col("ts_col")))
-```
-```
-# Code snippet result:
-+----------+----------+
-|    ts_col|  date_col|
-+----------+----------+
-|1590183026|2020-05...|
-|2000000000|2033-05...|
-+----------+----------+
 ```
 
 Unpack a DataFrame's JSON column to a new DataFrame
@@ -1392,8 +1333,35 @@ filtered = df.join(
 only showing top 10 rows
 ```
 
-Filter a Dataframe based on substring search
---------------------------------------------
+Get Dataframe rows that match a substring
+-----------------------------------------
+
+```python
+from pyspark.sql.functions import col
+
+filtered = df.where(df.carname.contains("custom"))
+```
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+----------+------+------------+---------+------+----------+
+|16.0|        6|       225.0|     105.0| 3439.|        15.5|       71|     1|plymout...|
+|13.0|        8|       350.0|     155.0| 4502.|        13.5|       72|     1|buick l...|
+|14.0|        8|       318.0|     150.0| 4077.|        14.0|       72|     1|plymout...|
+|15.0|        8|       318.0|     150.0| 3777.|        12.5|       73|     1|dodge c...|
+|12.0|        8|       455.0|     225.0| 4951.|        11.0|       73|     1|buick e...|
+|16.0|        6|       250.0|     100.0| 3278.|        18.0|       73|     1|chevrol...|
+|13.0|        8|       360.0|     170.0| 4654.|        13.0|       73|     1|plymout...|
+|15.0|        8|       318.0|     150.0| 3399.|        11.0|       73|     1|dodge d...|
+|14.0|        8|       318.0|     150.0| 4457.|        13.5|       74|     1|dodge c...|
+|19.0|        6|       225.0|     95.00| 3264.|        16.0|       75|     1|plymout...|
++----+---------+------------+----------+------+------------+---------+------+----------+
+only showing top 10 rows
+```
+
+Filter a Dataframe based on a custom substring search
+-----------------------------------------------------
 
 ```python
 from pyspark.sql.functions import col
@@ -2225,13 +2193,15 @@ Load Files from Oracle Cloud Infrastructure into a DataFrame
 +----------+--------+----------+----------+
 |      name|    size|  modified|       md5|
 +----------+--------+----------+----------+
-|sharedc...|      58|2020-01...|TY0HU7h...|
-|usercon...|32006919|2020-04...|igX2QgX...|
-|usercon...|71183217|2020-01...|HlBkZ/l...|
-|usercon...|    4774|2020-01...|cXnXiq3...|
-|usercon...|     277|2020-01...|HpAHVA7...|
-|usercon...|    1360|2020-01...|PzEvAAk...|
-|usercon...|    2611|2020-01...|B8XLwDe...|
+|sharedc...|      58|2020-08...|TY0HU7h...|
+|usercon...|32006919|2020-08...|igX2QgX...|
+|usercon...|71183217|2020-08...|HlBkZ/l...|
+|usercon...|    4774|2020-08...|cXnXiq3...|
+|usercon...|     277|2020-08...|HpAHVA7...|
+|usercon...|    1360|2020-08...|PzEvAAk...|
+|usercon...|    2611|2020-08...|B8XLwDe...|
+|usercon...| 2017366|2020-08...|XyKoSOA...|
+|usercon...|     120|2020-08...|cDkE3G9...|
 +----------+--------+----------+----------+
 ```
 
@@ -2316,6 +2286,134 @@ result = df.select(
 +---+---------+------------+----------+------+------------+---------+------+-------+
 |  0|        0|           0|         6|     0|           0|        0|     0|      0|
 +---+---------+------------+----------+------+------------+---------+------+-------+
+```
+
+Dealing with Dates
+==================
+Parsing and processing dates and times.
+
+Convert an ISO 8601 formatted date string to date type
+------------------------------------------------------
+
+```python
+from pyspark.sql.functions import col
+
+df = spark.sparkContext.parallelize([["2021-01-01"], ["2022-01-01"]]).toDF(
+    ["date_col"]
+)
+df = df.withColumn("date_col", col("date_col").cast("date"))
+```
+```
+# Code snippet result:
++----------+
+|  date_col|
++----------+
+|2021-01-01|
+|2022-01-01|
++----------+
+```
+
+Convert a custom formatted date string to date type
+---------------------------------------------------
+
+```python
+from pyspark.sql.functions import col, to_date
+
+df = spark.sparkContext.parallelize([["20210101"], ["20220101"]]).toDF(
+    ["date_col"]
+)
+df = df.withColumn("date_col", to_date(col("date_col"), "yyyyddMM"))
+```
+```
+# Code snippet result:
++----------+
+|  date_col|
++----------+
+|2021-01-01|
+|2022-01-01|
++----------+
+```
+
+Get the last day of the current month
+-------------------------------------
+
+```python
+from pyspark.sql.functions import col, last_day
+
+df = spark.sparkContext.parallelize([["2020-01-01"], ["1712-02-10"]]).toDF(
+    ["date_col"]
+)
+df = df.withColumn("date_col", col("date_col").cast("date")).withColumn(
+    "last_day", last_day(col("date_col"))
+)
+```
+```
+# Code snippet result:
++----------+----------+
+|  date_col|  last_day|
++----------+----------+
+|2020-01-01|2020-01-31|
+|1712-02-10|1712-02-29|
++----------+----------+
+```
+
+Convert UNIX (seconds since epoch) timestamp to date
+----------------------------------------------------
+
+```python
+from pyspark.sql.functions import col, from_unixtime
+
+df = spark.sparkContext.parallelize([["1590183026"], ["2000000000"]]).toDF(
+    ["ts_col"]
+)
+df = df.withColumn("date_col", from_unixtime(col("ts_col")))
+```
+```
+# Code snippet result:
++----------+----------+
+|    ts_col|  date_col|
++----------+----------+
+|1590183026|2020-05...|
+|2000000000|2033-05...|
++----------+----------+
+```
+
+Load a CSV file with complex dates into a DataFrame
+---------------------------------------------------
+
+```python
+from pyspark.sql.functions import udf
+from pyspark.sql.types import TimestampType
+import dateparser
+
+# Use the dateparser module to convert many formats into timestamps.
+date_convert = udf(
+    lambda x: dateparser.parse(x) if x is not None else None, TimestampType()
+)
+df = (
+    spark.read.format("csv")
+    .option("header", True)
+    .load("data/date_examples.csv")
+)
+df = df.withColumn("parsed", date_convert(df.date))
+```
+```
+# Code snippet result:
++----------+----------+
+|      date|    parsed|
++----------+----------+
+|2012-01...|2012-01...|
+|2012-01...|2011-12...|
+|2012-01...|2012-01...|
+|2012-01...|2012-01...|
+|2012-01...|2011-12...|
+|2012-01...|2012-01...|
+|01-01-2...|2012-01...|
+|01-01-2...|2011-12...|
+|01-01-2...|2012-01...|
+|01-01-2...|2012-01...|
++----------+----------+
+only showing top 10 rows
 ```
 
 Pandas
