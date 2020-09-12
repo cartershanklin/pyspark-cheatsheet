@@ -9,7 +9,7 @@ These snippets use DataFrames loaded from various data sources:
 - customer_spend.csv, a generated time series dataset.
 - date_examples.csv, a generated dataset with various date and time formats.
 
-These snippets were tested against the Spark 2.4.5 API. This page was last updated 2020-08-23 16:58:51.
+These snippets were tested against the Spark 2.4.5 API. This page was last updated 2020-09-11 20:32:57.
 
 Make note of these helpful links:
 - [Built-in Spark SQL Functions](https://spark.apache.org/docs/latest/api/sql/index.html)
@@ -122,6 +122,7 @@ Table of contents
       * [Load a CSV file with complex dates into a DataFrame](#load-a-csv-file-with-complex-dates-into-a-dataframe)
    * [Pandas](#pandas)
       * [Convert Spark DataFrame to Pandas DataFrame](#convert-spark-dataframe-to-pandas-dataframe)
+      * [Convert Pandas DataFrame to Spark DataFrame](#convert-pandas-dataframe-to-spark-dataframe)
       * [Convert N rows from a DataFrame to a Pandas DataFrame](#convert-n-rows-from-a-dataframe-to-a-pandas-dataframe)
       * [Define a UDAF with Pandas](#define-a-udaf-with-pandas)
       * [Define a Pandas Grouped Map Function](#define-a-pandas-grouped-map-function)
@@ -2193,16 +2194,18 @@ Load Files from Oracle Cloud Infrastructure into a DataFrame
 +----------+--------+----------+----------+
 |      name|    size|  modified|       md5|
 +----------+--------+----------+----------+
-|sharedc...|      58|2020-08...|TY0HU7h...|
-|usercon...|32006919|2020-08...|igX2QgX...|
-|usercon...|71183217|2020-08...|HlBkZ/l...|
-|usercon...|    4774|2020-08...|cXnXiq3...|
-|usercon...|     277|2020-08...|HpAHVA7...|
-|usercon...|    1360|2020-08...|PzEvAAk...|
-|usercon...|    2611|2020-08...|B8XLwDe...|
-|usercon...| 2017366|2020-08...|XyKoSOA...|
-|usercon...|     120|2020-08...|cDkE3G9...|
+|sharedc...|      58|2020-09...|TY0HU7h...|
+|usercon...|32006919|2020-09...|igX2QgX...|
+|usercon...|    4247|2020-09...|si5ixYe...|
+|usercon...|71183217|2020-09...|HlBkZ/l...|
+|usercon...|16906538|2020-09...|K8qMDXT...|
+|usercon...|    4774|2020-09...|cXnXiq3...|
+|usercon...|     303|2020-09...|5wgh5PJ...|
+|usercon...|    1634|2020-09...|3Nqbf6K...|
+|usercon...|    2611|2020-09...|B8XLwDe...|
+|usercon...| 2017366|2020-09...|XyKoSOA...|
 +----------+--------+----------+----------+
+only showing top 10 rows
 ```
 
 Transform Many Images using Pillow
@@ -2424,7 +2427,7 @@ Convert Spark DataFrame to Pandas DataFrame
 -------------------------------------------
 
 ```python
-pdf = df.toPandas()
+pandas_df = df.toPandas()
 ```
 ```
 # Code snippet result:
@@ -2492,6 +2495,31 @@ pdf = df.toPandas()
 397  31.0         4        119.0      82.00  2720.         19.4        82      1                         chevy s-10
 
 [398 rows x 9 columns]
+```
+
+Convert Pandas DataFrame to Spark DataFrame
+-------------------------------------------
+
+```python
+
+```
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+----------+------+------------+---------+------+----------+
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|
+|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|
+|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|
+|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|
+|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|
+|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|
+|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|
+|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|
+|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|
+|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|
++----+---------+------------+----------+------+------------+---------+------+----------+
+only showing top 10 rows
 ```
 
 Convert N rows from a DataFrame to a Pandas DataFrame

@@ -1736,8 +1736,28 @@ class pandas_spark_dataframe_to_pandas_dataframe(snippet):
         self.priority = 100
 
     def snippet(self, df):
-        pdf = df.toPandas()
-        return pdf
+        pandas_df = df.toPandas()
+        return pandas_df
+
+
+class pandas_pandas_dataframe_to_spark_dataframe(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Convert Pandas DataFrame to Spark DataFrame"
+        self.category = "Pandas"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 101
+
+    def snippet(self, df):
+        # EXCLUDE
+        pandas_df = df.toPandas()
+        # INCLUDE
+        # This code converts everything to strings.
+        # If you want to preserve types, see https://gist.github.com/tonyfraser/79a255aa8a9d765bd5cf8bd13597171e
+        from pyspark.sql.types import StructField, StructType, StringType
+        schema = StructType([ StructField(name, StringType(), True) for name in pandas_df.columns ])
+        df = spark.createDataFrame(pandas_df, schema)
+        return df
 
 
 class pandas_udaf(snippet):
@@ -2133,6 +2153,7 @@ class fileprocessing_transform_images(snippet):
 
 cheat_sheet = [
     pandas_spark_dataframe_to_pandas_dataframe(),
+    pandas_pandas_dataframe_to_spark_dataframe(),
     pandas_n_rows_from_dataframe_to_pandas(),
     pandas_udaf(),
     pandas_rescale_column(),
