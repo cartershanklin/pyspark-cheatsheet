@@ -9,7 +9,7 @@ These snippets use DataFrames loaded from various data sources:
 - customer_spend.csv, a generated time series dataset.
 - date_examples.csv, a generated dataset with various date and time formats.
 
-These snippets were tested against the Spark 2.4.5 API. This page was last updated 2020-09-11 20:32:57.
+These snippets were tested against the Spark 2.4.5 API. This page was last updated 2020-09-12 05:51:04.
 
 Make note of these helpful links:
 - [Built-in Spark SQL Functions](https://spark.apache.org/docs/latest/api/sql/index.html)
@@ -813,7 +813,6 @@ Get the size of a DataFrame
 ```python
 print("{} rows".format(df.count()))
 print("{} columns".format(len(df.columns)))
-
 ```
 ```
 # Code snippet result:
@@ -2187,7 +2186,35 @@ Load Files from Oracle Cloud Infrastructure into a DataFrame
 ------------------------------------------------------------
 
 ```python
+from pyspark.sql.types import (
+    StructField,
+    StructType,
+    LongType,
+    StringType,
+    TimestampType,
+)
+import datetime
 
+# Requires an object_store_client object.
+# See https://oracle-cloud-infrastructure-python-sdk.readthedocs.io/en/latest/api/object_storage/client/oci.object_storage.ObjectStorageClient.html
+input_bucket = "oow_2019_dataflow_lab"
+raw_inputs = object_store_client.list_objects(
+    object_store_client.get_namespace().data,
+    input_bucket,
+    fields="size,md5,timeModified",
+)
+files = [
+    [x.name, x.size, x.time_modified, x.md5] for x in raw_inputs.data.objects
+]
+schema = StructType(
+    [
+        StructField("name", StringType(), False),
+        StructField("size", LongType(), True),
+        StructField("modified", TimestampType(), True),
+        StructField("md5", StringType(), True),
+    ]
+)
+df = spark.createDataFrame(files, schema)
 ```
 ```
 # Code snippet result:
@@ -2501,7 +2528,11 @@ Convert Pandas DataFrame to Spark DataFrame
 -------------------------------------------
 
 ```python
-
+# This code converts everything to strings.
+# If you want to preserve types, see https://gist.github.com/tonyfraser/79a255aa8a9d765bd5cf8bd13597171e
+from pyspark.sql.types import StructField, StructType, StringType
+schema = StructType([ StructField(name, StringType(), True) for name in pandas_df.columns ])
+df = spark.createDataFrame(pandas_df, schema)
 ```
 ```
 # Code snippet result:
@@ -2968,5 +2999,4 @@ Increase Spark driver/executor heap space
 # For other environments see the Spark "Cluster Mode Overview" to get started.
 # https://spark.apache.org/docs/latest/cluster-overview.html
 # And good luck!
-
 ```

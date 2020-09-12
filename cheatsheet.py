@@ -4,10 +4,10 @@ import argparse
 import datetime
 import hashlib
 import inspect
+import logging
 import os
 import pandas
 import pyspark
-import re
 import shutil
 import sys
 import yaml
@@ -88,7 +88,7 @@ class snippet:
     def run(self, show=True):
         assert self.dataset is not None, "Dataset not set"
         assert self.name is not None, "Name not set"
-        print("--- {} ---".format(self.name))
+        logging.info("--- {} ---".format(self.name))
         if self.skip_run:
             return None
         self.df = self.load_data()
@@ -96,7 +96,7 @@ class snippet:
         if show:
             if retval is not None:
                 result_text = get_result_text(retval, self.truncate)
-                print(result_text)
+                logging.info(result_text)
         else:
             return retval
 
@@ -2378,11 +2378,27 @@ def test(test_name):
 
 
 def get_code_snippet(source):
-    lines = source.split("\n")[1:]
-    lines = [x[8:] for x in lines]
-    lines = [x for x in lines if not x.startswith("return")]
-    cleaned = "\n".join(lines[:-1])
-    cleaned = re.sub(r"# EXCLUDE.*(# INCLUDE\n)?", "", cleaned, flags=re.S)
+    before_lines = source.split("\n")[1:]
+    before_lines = [x[8:] for x in before_lines]
+    before_lines = [x for x in before_lines if not x.startswith("return")][:-1]
+    logging.debug("-- Snippet before cleaning. --")
+    logging.debug("\n".join(before_lines))
+
+    include = True
+    after_lines = []
+    for line in before_lines:
+        if line.startswith("# EXCLUDE"):
+            include = False
+        if include:
+            after_lines.append(line)
+        if line.startswith("# INCLUDE"):
+            include = True
+
+    cleaned = "\n".join(after_lines)
+    logging.debug("-- Snippet after cleaning. --")
+    logging.debug(cleaned)
+    if len(cleaned) < 3:
+        raise Exception("Empty snippet")
     return cleaned
 
 
@@ -2390,9 +2406,17 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--all-tests", action="store_true")
     parser.add_argument("--category")
+    parser.add_argument("--debug", action="store_true")
     parser.add_argument("--dump-priorities", action="store_true")
     parser.add_argument("--test")
     args = parser.parse_args()
+
+    # Set up logging.
+    format = "%(asctime)s %(levelname)-8s %(message)s"
+    if args.debug:
+        logging.basicConfig(format=format, level=logging.DEBUG)
+    else:
+        logging.basicConfig(format=format, level=logging.INFO)
 
     # Remove any left over data.
     directories = [
