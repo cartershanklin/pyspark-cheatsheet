@@ -9,7 +9,7 @@ These snippets use DataFrames loaded from various data sources:
 - customer_spend.csv, a generated time series dataset.
 - date_examples.csv, a generated dataset with various date and time formats.
 
-These snippets were tested against the Spark 2.4.5 API. This page was last updated 2020-09-12 05:51:04.
+These snippets were tested against the Spark 2.4.5 API. This page was last updated 2020-09-19 07:15:27.
 
 Make note of these helpful links:
 - [Built-in Spark SQL Functions](https://spark.apache.org/docs/latest/api/sql/index.html)
@@ -28,6 +28,7 @@ Table of contents
       * [Load a DataFrame from a Tab Separated Value (TSV) file](#load-a-dataframe-from-a-tab-separated-value-tsv-file)
       * [Load a CSV file with a money column into a DataFrame](#load-a-csv-file-with-a-money-column-into-a-dataframe)
       * [Provide the schema when loading a DataFrame from CSV](#provide-the-schema-when-loading-a-dataframe-from-csv)
+      * [Load a DataFrame from JSON Lines (jsonl) Formatted Data](#load-a-dataframe-from-json-lines-jsonl-formatted-data)
       * [Configure security to read a CSV file from Oracle Cloud Infrastructure Object Storage](#configure-security-to-read-a-csv-file-from-oracle-cloud-infrastructure-object-storage)
       * [Save a DataFrame in Parquet format](#save-a-dataframe-in-parquet-format)
       * [Save a DataFrame in CSV format](#save-a-dataframe-in-csv-format)
@@ -306,6 +307,34 @@ df = (
 |14.0|        8|       455.0|     225.0|4425.0|        10.0|       70|     1|pontiac...|
 |15.0|        8|       390.0|     190.0|3850.0|         8.5|       70|     1|amc amb...|
 +----+---------+------------+----------+------+------------+---------+------+----------+
+only showing top 10 rows
+```
+
+Load a DataFrame from JSON Lines (jsonl) Formatted Data
+-------------------------------------------------------
+
+```python
+# JSON Lines / jsonl format uses one JSON document per line.
+# If you have data with mostly regular structure this is better than nesting it in an array.
+# See https://jsonlines.org/
+df = spark.read.json("data/weblog.jsonl")
+```
+```
+# Code snippet result:
++----------+----------+--------+----------+----------+------+
+|    client|   country| session| timestamp|       uri|  user|
++----------+----------+--------+----------+----------+------+
+|[false,...|Bangladesh|55fa8213| 869196249|http://...|dde312|
+|[true, ...|      Niue|2fcd4a83|1031238717|http://...|9d00b9|
+|[true, ...|    Rwanda|013b996e| 628683372|http://...|1339d4|
+|[false,...|   Austria|07e8a71a|1043628668|https:/...|966312|
+|[false,...|    Belize|b23d05d8| 192738669|http://...|2af1e1|
+|[false,...|Lao Peo...|d83dfbae|1066490444|http://...|844395|
+|[false,...|French ...|e77dfaa2|1350920869|https:/...|  null|
+|[false,...|Turks a...|56664269| 280986223|http://...|  null|
+|[false,...|  Ethiopia|628d6059| 881914195|https:/...|8ab45a|
+|[false,...|Saint K...|85f9120c|1065114708|https:/...|  null|
++----------+----------+--------+----------+----------+------+
 only showing top 10 rows
 ```
 

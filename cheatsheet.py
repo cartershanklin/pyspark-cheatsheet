@@ -1572,6 +1572,22 @@ class loadsave_dataframe_from_csv_provide_schema(snippet):
         return df
 
 
+class loadsave_read_jsonl(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Load a DataFrame from JSON Lines (jsonl) Formatted Data"
+        self.category = "Loading and Saving Data"
+        self.dataset = "UNUSED"
+        self.priority = 210
+
+    def snippet(self, df):
+        # JSON Lines / jsonl format uses one JSON document per line.
+        # If you have data with mostly regular structure this is better than nesting it in an array.
+        # See https://jsonlines.org/
+        df = spark.read.json("data/weblog.jsonl")
+        return df
+
+
 class loadsave_dynamic_partitioning(snippet):
     def __init__(self):
         super().__init__()
@@ -2178,6 +2194,7 @@ cheat_sheet = [
     loadsave_overwrite_specific_partitions(),
     loadsave_read_oracle(),
     loadsave_write_oracle(),
+    loadsave_read_jsonl(),
     join_concatenate(),
     join_basic(),
     join_basic2(),
