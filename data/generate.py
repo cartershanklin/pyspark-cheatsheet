@@ -5,6 +5,8 @@ import csv
 import dateparser
 import datetime
 import itertools
+import json
+import random
 import scipy.stats
 
 import numpy as np
@@ -52,5 +54,24 @@ def customer_spend():
                     writer.writerow(record)
             current_date += datetime.timedelta(days=1)
 
+def json_example():
+    from faker import Faker
+    f = Faker()
+    records = []
+    for i in range(1000):
+        records.append(dict(
+            timestamp=f.unix_time(),
+            uri=f.uri(),
+            session=f.uuid4()[:8],
+            user=f.uuid4()[:6] if random.random() > 0.4 else None,
+            client=dict(browser=f.chrome(), adblock=(True if random.random() > 0.7 else False)),
+            country=f.country(),
+        ))
+    with open("weblog.jsonl", "w") as fd:
+        for record in records:
+            fd.write(json.dumps(record))
+            fd.write("\n")
+
 customer_spend()
 date_examples()
+json_example()
