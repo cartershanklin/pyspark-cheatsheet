@@ -42,12 +42,16 @@ Data Profiling:
     priority: 11
     description: Extracting key statistics out of a body of data.
 
-Time Series:
+Spark Streaming:
     priority: 12
+    description: Spark Streaming (Focuses on Structured Streaming).
+
+Time Series:
+    priority: 13
     description: Techniques for dealing with time series data.
 
 Performance:
-    priority: 13
+    priority: 14
     description: A few performance tips and tricks.
 
 Preamble:

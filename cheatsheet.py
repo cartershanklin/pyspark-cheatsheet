@@ -1026,7 +1026,9 @@ class transform_regexp_extract(snippet):
 
         group = 0
         df = (
-            df.withColumn("identifier", regexp_extract(col("carname"), "(\S?\d+)", group))
+            df.withColumn(
+                "identifier", regexp_extract(col("carname"), "(\S?\d+)", group)
+            )
             .drop("acceleration")
             .drop("cylinders")
             .drop("displacement")
@@ -1771,7 +1773,10 @@ class pandas_pandas_dataframe_to_spark_dataframe(snippet):
         # This code converts everything to strings.
         # If you want to preserve types, see https://gist.github.com/tonyfraser/79a255aa8a9d765bd5cf8bd13597171e
         from pyspark.sql.types import StructField, StructType, StringType
-        schema = StructType([ StructField(name, StringType(), True) for name in pandas_df.columns ])
+
+        schema = StructType(
+            [StructField(name, StringType(), True) for name in pandas_df.columns]
+        )
         df = spark.createDataFrame(pandas_df, schema)
         return df
 
@@ -2167,116 +2172,37 @@ class fileprocessing_transform_images(snippet):
         df.foreach(resize_an_image)
 
 
-cheat_sheet = [
-    pandas_spark_dataframe_to_pandas_dataframe(),
-    pandas_pandas_dataframe_to_spark_dataframe(),
-    pandas_n_rows_from_dataframe_to_pandas(),
-    pandas_udaf(),
-    pandas_rescale_column(),
-    performance_get_spark_version(),
-    performance_partitioning(),
-    performance_reduce_dataframe_partitions(),
-    performance_increase_heap_space(),
-    missing_filter_none_value(),
-    missing_filter_null_value(),
-    missing_count_of_null_nan(),
-    loadsave_to_parquet(),
-    loadsave_dataframe_from_csv(),
-    loadsave_dataframe_from_csv_delimiter(),
-    loadsave_export_to_csv(),
-    loadsave_csv_with_header(),
-    loadsave_single_output_file(),
-    loadsave_money(),
-    loadsave_overwrite_output_directory(),
-    loadsave_dataframe_from_csv_provide_schema(),
-    loadsave_dynamic_partitioning(),
-    loadsave_read_from_oci(),
-    loadsave_overwrite_specific_partitions(),
-    loadsave_read_oracle(),
-    loadsave_write_oracle(),
-    loadsave_read_jsonl(),
-    join_concatenate(),
-    join_basic(),
-    join_basic2(),
-    join_multiple_files_single_dataframe(),
-    join_multiple_conditions(),
-    join_subtract_dataframes(),
-    join_different_types(),
-    dates_string_to_date(),
-    dates_string_to_date_custom(),
-    dates_unix_timestamp_to_date(),
-    dates_last_day_of_month(),
-    dates_complexdate(),
-    transform_regexp_extract(),
-    transform_fillna_specific_columns(),
-    transform_fillna_col_avg(),
-    transform_fillna_group_avg(),
-    transform_json_to_key_value(),
-    transform_query_json_column(),
-    sortsearch_distinct_values(),
-    sortsearch_string_match(),
-    sortsearch_string_contents(),
-    sortsearch_in_list(),
-    sortsearch_in_list_from_df(),
-    sortsearch_not_in_list(),
-    sortsearch_column_length(),
-    sortsearch_equality(),
-    sortsearch_sort_descending(),
-    sortsearch_first_1k_rows(),
-    sortsearch_multi_filter(),
-    sortsearch_remove_duplicates(),
-    sortsearch_filtering_basic(),
-    group_max_value(),
-    group_filter_on_count(),
-    group_topn_per_group(),
-    group_count_unique_after_group(),
-    group_sum_columns_no_group(),
-    group_aggregate_all_numerics(),
-    group_sum_column(),
-    group_histogram(),
-    group_key_value_to_key_list(),
-    group_group_and_sort(),
-    group_multiple_columns(),
-    group_agg_multiple_columns(),
-    group_order_multiple_columns(),
-    group_distinct_all_columns(),
-    dfo_modify_column(),
-    dfo_add_column_builtin(),
-    dfo_add_column_custom_udf(),
-    dfo_concat_columns(),
-    dfo_string_to_double(),
-    dfo_string_to_integer(),
-    dfo_change_column_name_single(),
-    dfo_change_column_name_multi(),
-    dfo_dataframe_from_rdd(),
-    dfo_empty_dataframe(),
-    dfo_drop_column(),
-    dfo_print_contents_rdd(),
-    dfo_print_contents_dataframe(),
-    dfo_column_conditional(),
-    dfo_constant_column(),
-    dfo_foreach(),
-    dfo_map(),
-    dfo_flatmap(),
-    dfo_constant_dataframe(),
-    dfo_select_particular(),
-    dfo_size(),
-    dfo_get_number_partitions(),
-    dfo_get_dtypes(),
-    profile_number_nulls(),
-    profile_numeric_averages(),
-    profile_numeric_min(),
-    profile_numeric_max(),
-    timeseries_zero_fill(),
-    timeseries_first_seen(),
-    timeseries_running_sum(),
-    timeseries_running_sum_period(),
-    timeseries_running_average(),
-    timeseries_running_average_period(),
-    fileprocessing_load_files(),
-    fileprocessing_load_files_oci(),
-    fileprocessing_transform_images(),
-]
+# Dynamically build a list of all cheats.
+cheat_sheet = []
+clsmembers = inspect.getmembers(sys.modules[__name__], inspect.isclass)
+for name, clazz in clsmembers:
+    classes = [str(x) for x in inspect.getmro(clazz)[1:]]
+    if "<class '__main__.snippet'>" in classes:
+        cheat_sheet.append(clazz())
+
+
+class streaming_add_timestamp(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Add the current timestamp to a DataFrame"
+        self.category = "Spark Streaming"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 300
+
+    def snippet(self, df):
+        from pyspark.sql.functions import current_timestamp
+
+        df = df.withColumn("timestamp", current_timestamp())
+        return df
+
+
+# Dynamically build a list of all cheats.
+cheat_sheet = []
+clsmembers = inspect.getmembers(sys.modules[__name__], inspect.isclass)
+for name, clazz in clsmembers:
+    classes = [str(x) for x in inspect.getmro(clazz)[1:]]
+    if "<class '__main__.snippet'>" in classes:
+        cheat_sheet.append(clazz())
 
 
 def generate_cheatsheet():

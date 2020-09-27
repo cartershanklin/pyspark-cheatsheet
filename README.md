@@ -9,7 +9,7 @@ These snippets use DataFrames loaded from various data sources:
 - customer_spend.csv, a generated time series dataset.
 - date_examples.csv, a generated dataset with various date and time formats.
 
-These snippets were tested against the Spark 2.4.5 API. This page was last updated 2020-09-19 07:15:27.
+These snippets were tested against the Spark 2.4.5 API. This page was last updated 2020-09-26 20:59:56.
 
 Make note of these helpful links:
 - [Built-in Spark SQL Functions](https://spark.apache.org/docs/latest/api/sql/index.html)
@@ -64,6 +64,7 @@ Table of contents
       * [DataFrame Flatmap example](#dataframe-flatmap-example)
       * [Create a custom UDF](#create-a-custom-udf)
    * [Transforming Data](#transforming-data)
+      * [Extract data from a string using a regular expression](#extract-data-from-a-string-using-a-regular-expression)
       * [Extract data from a string using a regular expression](#extract-data-from-a-string-using-a-regular-expression)
       * [Fill NULL values in specific columns](#fill-null-values-in-specific-columns)
       * [Fill NULL values with column average](#fill-null-values-with-column-average)
@@ -132,6 +133,8 @@ Table of contents
       * [Compute average values of all numeric columns](#compute-average-values-of-all-numeric-columns)
       * [Compute minimum values of all numeric columns](#compute-minimum-values-of-all-numeric-columns)
       * [Compute maximum values of all numeric columns](#compute-maximum-values-of-all-numeric-columns)
+   * [Spark Streaming](#spark-streaming)
+      * [Add the current timestamp to a DataFrame](#add-the-current-timestamp-to-a-dataframe)
    * [Time Series](#time-series)
       * [Zero fill missing values in a timeseries](#zero-fill-missing-values-in-a-timeseries)
       * [First Time an ID is Seen](#first-time-an-id-is-seen)
@@ -1047,6 +1050,44 @@ only showing top 10 rows
 Transforming Data
 =================
 Data conversions and other modifications.
+
+Extract data from a string using a regular expression
+-----------------------------------------------------
+
+```python
+from pyspark.sql.functions import col, regexp_extract
+
+group = 0
+df = (
+    df.withColumn("identifier", regexp_extract(col("carname"), "(\S?\d+)", group))
+    .drop("acceleration")
+    .drop("cylinders")
+    .drop("displacement")
+    .drop("modelyear")
+    .drop("mpg")
+    .drop("origin")
+    .drop("horsepower")
+    .drop("weight")
+)
+```
+```
+# Code snippet result:
++----------+----------+
+|   carname|identifier|
++----------+----------+
+|chevrol...|          |
+|buick s...|       320|
+|plymout...|          |
+|amc reb...|          |
+|ford to...|          |
+|ford ga...|       500|
+|chevrol...|          |
+|plymout...|          |
+|pontiac...|          |
+|amc amb...|          |
++----------+----------+
+only showing top 10 rows
+```
 
 Extract data from a string using a regular expression
 -----------------------------------------------------
@@ -2739,6 +2780,36 @@ result = df.agg(exprs)
 +-----------+-----------------+--------------+--------+---------------+-----------------+
 |     5140.0|             24.8|           8.0|    46.6|          230.0|            455.0|
 +-----------+-----------------+--------------+--------+---------------+-----------------+
+```
+
+Spark Streaming
+===============
+Spark Streaming (Focuses on Structured Streaming).
+
+Add the current timestamp to a DataFrame
+----------------------------------------
+
+```python
+from pyspark.sql.functions import current_timestamp
+df = df.withColumn("timestamp", current_timestamp())
+```
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname| timestamp|
++----+---------+------------+----------+------+------------+---------+------+----------+----------+
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|2020-09...|
+|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|2020-09...|
+|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|2020-09...|
+|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|2020-09...|
+|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|2020-09...|
+|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|2020-09...|
+|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|2020-09...|
+|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|2020-09...|
+|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|2020-09...|
+|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|2020-09...|
++----+---------+------------+----------+------+------------+---------+------+----------+----------+
+only showing top 10 rows
 ```
 
 Time Series
