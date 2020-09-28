@@ -9,7 +9,7 @@ These snippets use DataFrames loaded from various data sources:
 - customer_spend.csv, a generated time series dataset.
 - date_examples.csv, a generated dataset with various date and time formats.
 
-These snippets were tested against the Spark 2.4.5 API. This page was last updated 2020-09-26 20:59:56.
+These snippets were tested against the Spark 2.4.5 API. This page was last updated 2020-09-28 06:51:52.
 
 Make note of these helpful links:
 - [Built-in Spark SQL Functions](https://spark.apache.org/docs/latest/api/sql/index.html)
@@ -134,6 +134,7 @@ Table of contents
       * [Compute minimum values of all numeric columns](#compute-minimum-values-of-all-numeric-columns)
       * [Compute maximum values of all numeric columns](#compute-maximum-values-of-all-numeric-columns)
    * [Spark Streaming](#spark-streaming)
+      * [Connect to Kafka using SASL PLAIN authentication](#connect-to-kafka-using-sasl-plain-authentication)
       * [Add the current timestamp to a DataFrame](#add-the-current-timestamp-to-a-dataframe)
    * [Time Series](#time-series)
       * [Zero fill missing values in a timeseries](#zero-fill-missing-values-in-a-timeseries)
@@ -1059,7 +1060,9 @@ from pyspark.sql.functions import col, regexp_extract
 
 group = 0
 df = (
-    df.withColumn("identifier", regexp_extract(col("carname"), "(\S?\d+)", group))
+    df.withColumn(
+        "identifier", regexp_extract(col("carname"), "(\S?\d+)", group)
+    )
     .drop("acceleration")
     .drop("cylinders")
     .drop("displacement")
@@ -1097,7 +1100,9 @@ from pyspark.sql.functions import col, regexp_extract
 
 group = 0
 df = (
-    df.withColumn("identifier", regexp_extract(col("carname"), "(\S?\d+)", group))
+    df.withColumn(
+        "identifier", regexp_extract(col("carname"), "(\S?\d+)", group)
+    )
     .drop("acceleration")
     .drop("cylinders")
     .drop("displacement")
@@ -2601,7 +2606,10 @@ Convert Pandas DataFrame to Spark DataFrame
 # This code converts everything to strings.
 # If you want to preserve types, see https://gist.github.com/tonyfraser/79a255aa8a9d765bd5cf8bd13597171e
 from pyspark.sql.types import StructField, StructType, StringType
-schema = StructType([ StructField(name, StringType(), True) for name in pandas_df.columns ])
+
+schema = StructType(
+    [StructField(name, StringType(), True) for name in pandas_df.columns]
+)
 df = spark.createDataFrame(pandas_df, schema)
 ```
 ```
@@ -2786,11 +2794,28 @@ Spark Streaming
 ===============
 Spark Streaming (Focuses on Structured Streaming).
 
+Connect to Kafka using SASL PLAIN authentication
+------------------------------------------------
+
+```python
+options = {
+    "kafka.sasl.jaas.config": 'org.apache.kafka.common.security.plain.PlainLoginModule required username="USERNAME" password="PASSWORD";',
+    "kafka.sasl.mechanism": "PLAIN",
+    "kafka.security.protocol" : "SASL_SSL",
+    "kafka.bootstrap.servers": "server:9092",
+    "group.id": "my_group",
+    "subscribe": "my_topic",
+}
+df = spark.readStream.format("kafka").options(**options).load()
+```
+
+
 Add the current timestamp to a DataFrame
 ----------------------------------------
 
 ```python
 from pyspark.sql.functions import current_timestamp
+
 df = df.withColumn("timestamp", current_timestamp())
 ```
 ```

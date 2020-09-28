@@ -2181,6 +2181,27 @@ for name, clazz in clsmembers:
         cheat_sheet.append(clazz())
 
 
+class streaming_connect_kafka_sasl_plain(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Connect to Kafka using SASL PLAIN authentication"
+        self.category = "Spark Streaming"
+        self.dataset = "UNUSED"
+        self.priority = 100
+        self.skip_run = True
+
+    def snippet(self, df):
+        options = {
+            "kafka.sasl.jaas.config": 'org.apache.kafka.common.security.plain.PlainLoginModule required username="USERNAME" password="PASSWORD";',
+            "kafka.sasl.mechanism": "PLAIN",
+            "kafka.security.protocol" : "SASL_SSL",
+            "kafka.bootstrap.servers": "server:9092",
+            "group.id": "my_group",
+            "subscribe": "my_topic",
+        }
+        df = spark.readStream.format("kafka").options(**options).load()
+        return df
+
 class streaming_add_timestamp(snippet):
     def __init__(self):
         super().__init__()
@@ -2194,7 +2215,6 @@ class streaming_add_timestamp(snippet):
 
         df = df.withColumn("timestamp", current_timestamp())
         return df
-
 
 # Dynamically build a list of all cheats.
 cheat_sheet = []
