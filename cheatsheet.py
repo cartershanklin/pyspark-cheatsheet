@@ -1678,6 +1678,51 @@ class missing_count_of_null_nan(snippet):
         return result
 
 
+class performance_cache(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Cache a DataFrame"
+        self.category = "Performance"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 150 
+
+    def snippet(self, df):
+        from pyspark import StorageLevel
+        from pyspark.sql.functions import lit
+
+        # Make some copies of the DataFrame.
+        df1 = df.where(lit(1) > lit(0))
+        df2 = df.where(lit(2) > lit(0))
+        df3 = df.where(lit(3) > lit(0))
+
+        print("Show the default storage level (NONE).")
+        print(df.storageLevel)
+
+        print("\nChange storage level to Memory/Disk via the cache shortcut.")
+        df1.cache()
+        print(df1.storageLevel)
+
+        print("\nChange storage level to the equivalent of cache using an explicit StorageLevel.")
+        df2.persist(storageLevel=StorageLevel(True, True, False, True, 1))
+        print(df2.storageLevel)
+
+        print("\nSet storage level to NONE using an explicit StorageLevel.")
+        df3.persist(storageLevel=StorageLevel(False, False, False, False, 1))
+        print(df3.storageLevel)
+        # EXCLUDE
+        return [
+            "Show the default storage level (NONE).",
+            str(df.storageLevel),
+            "\nChange storage level to Memory/Disk via the cache shortcut.",
+            str(df1.storageLevel),
+            "\nChange storage level to the equivalent of cache using an explicit StorageLevel.",
+            str(df2.storageLevel),
+            "\nSet storage level to NONE using an explicit StorageLevel.",
+            str(df3.storageLevel),
+        ]
+        # INCLUDE
+
+
 class performance_partitioning(snippet):
     def __init__(self):
         super().__init__()

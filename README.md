@@ -9,7 +9,7 @@ These snippets use DataFrames loaded from various data sources:
 - customer_spend.csv, a generated time series dataset.
 - date_examples.csv, a generated dataset with various date and time formats.
 
-These snippets were tested against the Spark 2.4.5 API. This page was last updated 2020-09-28 06:51:52.
+These snippets were tested against the Spark 2.4.5 API. This page was last updated 2020-10-28 22:58:28.
 
 Make note of these helpful links:
 - [Built-in Spark SQL Functions](https://spark.apache.org/docs/latest/api/sql/index.html)
@@ -146,6 +146,7 @@ Table of contents
    * [Performance](#performance)
       * [Get the Spark version](#get-the-spark-version)
       * [Coalesce DataFrame partitions](#coalesce-dataframe-partitions)
+      * [Cache a DataFrame](#cache-a-dataframe)
       * [Change DataFrame partitioning](#change-dataframe-partitioning)
       * [Increase Spark driver/executor heap space](#increase-spark-driver-executor-heap-space)
 <!--te-->
@@ -1608,7 +1609,7 @@ only showing top 10 rows
 
 Grouping
 ========
-Group DataFrame data by key to perform aggregats like sums, averages, etc.
+Group DataFrame data by key to perform aggregates like sums, averages, etc.
 
 Group and sort
 --------------
@@ -2244,15 +2245,15 @@ df = spark.createDataFrame(entries, schema)
 |      file|      path|  size|     mtime|
 +----------+----------+------+----------+
 |  odbc.ini|/etc/od...|     0|2019-10...|
-|  manpaths|/etc/ma...|    36|2019-02...|
+|  manpaths|/etc/ma...|    36|2020-06...|
 |service...|/etc/se...|677972|2017-02...|
-|dnsextd...|/etc/dn...|  2378|2019-04...|
-| rc.common|/etc/rc...|  1560|2019-04...|
+| rc.common|/etc/rc...|  1560|2020-06...|
 |csh.log...|/etc/cs...|    39|2019-02...|
-|auto_ma...|/etc/au...|   194|2017-04...|
-| csh.login|/etc/cs...|   121|2016-10...|
-|syslog....|/etc/sy...|   133|2019-12...|
+|auto_ma...|/etc/au...|   195|2020-06...|
+| csh.login|/etc/cs...|   121|2020-06...|
+|syslog....|/etc/sy...|   133|2020-10...|
 |rtadvd....|/etc/rt...|   891|2017-04...|
+|syslog....|/etc/sy...|   133|2018-01...|
 +----------+----------+------+----------+
 only showing top 10 rows
 ```
@@ -2298,7 +2299,7 @@ df = spark.createDataFrame(files, schema)
 +----------+--------+----------+----------+
 |sharedc...|      58|2020-09...|TY0HU7h...|
 |usercon...|32006919|2020-09...|igX2QgX...|
-|usercon...|    4247|2020-09...|si5ixYe...|
+|usercon...|    4307|2020-10...|NYXxVUc...|
 |usercon...|71183217|2020-09...|HlBkZ/l...|
 |usercon...|16906538|2020-09...|K8qMDXT...|
 |usercon...|    4774|2020-09...|cXnXiq3...|
@@ -2823,16 +2824,16 @@ df = df.withColumn("timestamp", current_timestamp())
 +----+---------+------------+----------+------+------------+---------+------+----------+----------+
 | mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname| timestamp|
 +----+---------+------------+----------+------+------------+---------+------+----------+----------+
-|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|2020-09...|
-|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|2020-09...|
-|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|2020-09...|
-|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|2020-09...|
-|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|2020-09...|
-|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|2020-09...|
-|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|2020-09...|
-|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|2020-09...|
-|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|2020-09...|
-|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|2020-09...|
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|2020-10...|
+|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|2020-10...|
+|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|2020-10...|
+|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|2020-10...|
+|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|2020-10...|
+|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|2020-10...|
+|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|2020-10...|
+|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|2020-10...|
+|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|2020-10...|
+|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|2020-10...|
 +----+---------+------------+----------+------+------------+---------+------+----------+----------+
 only showing top 10 rows
 ```
@@ -3082,6 +3083,48 @@ df = df.coalesce(target_partitions)
 |15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|
 +----+---------+------------+----------+------+------------+---------+------+----------+
 only showing top 10 rows
+```
+
+Cache a DataFrame
+-----------------
+
+```python
+from pyspark import StorageLevel
+from pyspark.sql.functions import lit
+
+# Make some copies of the DataFrame.
+df1 = df.where(lit(1) > lit(0))
+df2 = df.where(lit(2) > lit(0))
+df3 = df.where(lit(3) > lit(0))
+
+print("Show the default storage level (NONE).")
+print(df.storageLevel)
+
+print("\nChange storage level to Memory/Disk via the cache shortcut.")
+df1.cache()
+print(df1.storageLevel)
+
+print("\nChange storage level to the equivalent of cache using an explicit StorageLevel.")
+df2.persist(storageLevel=StorageLevel(True, True, False, True, 1))
+print(df2.storageLevel)
+
+print("\nSet storage level to NONE using an explicit StorageLevel.")
+df3.persist(storageLevel=StorageLevel(False, False, False, False, 1))
+print(df3.storageLevel)
+```
+```
+# Code snippet result:
+Show the default storage level (NONE).
+Serialized 1x Replicated
+
+Change storage level to Memory/Disk via the cache shortcut.
+Disk Memory Deserialized 1x Replicated
+
+Change storage level to the equivalent of cache using an explicit StorageLevel.
+Disk Memory Deserialized 1x Replicated
+
+Set storage level to NONE using an explicit StorageLevel.
+Serialized 1x Replicated
 ```
 
 Change DataFrame partitioning
