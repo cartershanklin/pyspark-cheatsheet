@@ -9,7 +9,7 @@ These snippets use DataFrames loaded from various data sources:
 - customer_spend.csv, a generated time series dataset.
 - date_examples.csv, a generated dataset with various date and time formats.
 
-These snippets were tested against the Spark 2.4.5 API. This page was last updated 2020-10-28 22:58:28.
+These snippets were tested against the Spark 3.0.0 API. This page was last updated 2020-11-13 06:19:15.
 
 Make note of these helpful links:
 - [Built-in Spark SQL Functions](https://spark.apache.org/docs/latest/api/sql/index.html)
@@ -54,8 +54,8 @@ Table of contents
       * [Convert String to Double](#convert-string-to-double)
       * [Convert String to Integer](#convert-string-to-integer)
       * [Get the size of a DataFrame](#get-the-size-of-a-dataframe)
-      * [Get a DataFrame's number of partitions](#get-a-dataframe-s-number-of-partitions)
-      * [Get data types of a DataFrame's columns](#get-data-types-of-a-dataframe-s-columns)
+      * [Get a DataFrame's number of partitions](#get-a-dataframes-number-of-partitions)
+      * [Get data types of a DataFrame's columns](#get-data-types-of-a-dataframes-columns)
       * [Convert an RDD to Data Frame](#convert-an-rdd-to-data-frame)
       * [Print the contents of an RDD](#print-the-contents-of-an-rdd)
       * [Print the contents of a DataFrame](#print-the-contents-of-a-dataframe)
@@ -69,7 +69,7 @@ Table of contents
       * [Fill NULL values in specific columns](#fill-null-values-in-specific-columns)
       * [Fill NULL values with column average](#fill-null-values-with-column-average)
       * [Fill NULL values with group average](#fill-null-values-with-group-average)
-      * [Unpack a DataFrame's JSON column to a new DataFrame](#unpack-a-dataframe-s-json-column-to-a-new-dataframe)
+      * [Unpack a DataFrame's JSON column to a new DataFrame](#unpack-a-dataframes-json-column-to-a-new-dataframe)
       * [Query a JSON column](#query-a-json-column)
    * [Sorting and Searching](#sorting-and-searching)
       * [Filter a column using a condition](#filter-a-column-using-a-condition)
@@ -79,7 +79,7 @@ Table of contents
       * [Filter values based on keys in another DataFrame](#filter-values-based-on-keys-in-another-dataframe)
       * [Get Dataframe rows that match a substring](#get-dataframe-rows-that-match-a-substring)
       * [Filter a Dataframe based on a custom substring search](#filter-a-dataframe-based-on-a-custom-substring-search)
-      * [Filter based on a column's length](#filter-based-on-a-column-s-length)
+      * [Filter based on a column's length](#filter-based-on-a-columns-length)
       * [Multiple filter conditions](#multiple-filter-conditions)
       * [Sort DataFrame by a column](#sort-dataframe-by-a-column)
       * [Take the first N rows of a DataFrame](#take-the-first-n-rows-of-a-dataframe)
@@ -97,8 +97,8 @@ Table of contents
       * [Count unique after grouping](#count-unique-after-grouping)
       * [Count distinct values on all columns](#count-distinct-values-on-all-columns)
       * [Group by then filter on the count](#group-by-then-filter-on-the-count)
-      * [Find the top N per row group (use N=1 for maximum)](#find-the-top-n-per-row-group-use-n-1-for-maximum)
-      * [Group key/values into a list](#group-key-values-into-a-list)
+      * [Find the top N per row group (use N=1 for maximum)](#find-the-top-n-per-row-group-use-n1-for-maximum)
+      * [Group key/values into a list](#group-keyvalues-into-a-list)
       * [Compute a histogram](#compute-a-histogram)
    * [Joining DataFrames](#joining-dataframes)
       * [Join two DataFrames by column name](#join-two-dataframes-by-column-name)
@@ -145,10 +145,12 @@ Table of contents
       * [Cumulative Average in a Period](#cumulative-average-in-a-period)
    * [Performance](#performance)
       * [Get the Spark version](#get-the-spark-version)
-      * [Coalesce DataFrame partitions](#coalesce-dataframe-partitions)
       * [Cache a DataFrame](#cache-a-dataframe)
-      * [Change DataFrame partitioning](#change-dataframe-partitioning)
-      * [Increase Spark driver/executor heap space](#increase-spark-driver-executor-heap-space)
+      * [Change Number of DataFrame Partitions](#change-number-of-dataframe-partitions)
+      * [Coalesce DataFrame partitions](#coalesce-dataframe-partitions)
+      * [Partition by a Column Value](#partition-by-a-column-value)
+      * [Range Partition a DataFrame](#range-partition-a-dataframe)
+      * [Increase Spark driver/executor heap space](#increase-spark-driverexecutor-heap-space)
 <!--te-->
     
 
@@ -1807,15 +1809,15 @@ grouped = df.groupBy("cylinders").agg(countDistinct("mpg"))
 ```
 ```
 # Code snippet result:
-+---------+-------------------+
-|cylinders|count(DISTINCT mpg)|
-+---------+-------------------+
-|        3|                  4|
-|        8|                 27|
-|        5|                  3|
-|        6|                 38|
-|        4|                 87|
-+---------+-------------------+
++---------+----------+
+|cylinders|count(mpg)|
++---------+----------+
+|        3|         4|
+|        8|        27|
+|        5|         3|
+|        6|        38|
+|        4|        87|
++---------+----------+
 ```
 
 Count distinct values on all columns
@@ -1828,11 +1830,11 @@ grouped = df.agg(*(countDistinct(c) for c in df.columns))
 ```
 ```
 # Code snippet result:
-+-------------------+-------------------------+----------------------------+--------------------------+----------------------+----------------------------+-------------------------+----------------------+-----------------------+
-|count(DISTINCT mpg)|count(DISTINCT cylinders)|count(DISTINCT displacement)|count(DISTINCT horsepower)|count(DISTINCT weight)|count(DISTINCT acceleration)|count(DISTINCT modelyear)|count(DISTINCT origin)|count(DISTINCT carname)|
-+-------------------+-------------------------+----------------------------+--------------------------+----------------------+----------------------------+-------------------------+----------------------+-----------------------+
-|                129|                        5|                          82|                        93|                   351|                          96|                       13|                     3|                    305|
-+-------------------+-------------------------+----------------------------+--------------------------+----------------------+----------------------------+-------------------------+----------------------+-----------------------+
++----------+----------------+-------------------+-----------------+-------------+-------------------+----------------+-------------+--------------+
+|count(mpg)|count(cylinders)|count(displacement)|count(horsepower)|count(weight)|count(acceleration)|count(modelyear)|count(origin)|count(carname)|
++----------+----------------+-------------------+-----------------+-------------+-------------------+----------------+-------------+--------------+
+|       129|               5|                 82|               93|          351|                 96|              13|            3|           305|
++----------+----------------+-------------------+-----------------+-------------+-------------------+----------------+-------------+--------------+
 ```
 
 Group by then filter on the count
@@ -2241,20 +2243,20 @@ df = spark.createDataFrame(entries, schema)
 ```
 ```
 # Code snippet result:
-+----------+----------+------+----------+
-|      file|      path|  size|     mtime|
-+----------+----------+------+----------+
-|  odbc.ini|/etc/od...|     0|2019-10...|
-|  manpaths|/etc/ma...|    36|2020-06...|
-|service...|/etc/se...|677972|2017-02...|
-| rc.common|/etc/rc...|  1560|2020-06...|
-|csh.log...|/etc/cs...|    39|2019-02...|
-|auto_ma...|/etc/au...|   195|2020-06...|
-| csh.login|/etc/cs...|   121|2020-06...|
-|syslog....|/etc/sy...|   133|2020-10...|
-|rtadvd....|/etc/rt...|   891|2017-04...|
-|syslog....|/etc/sy...|   133|2018-01...|
-+----------+----------+------+----------+
++----------+----------+-----+----------+
+|      file|      path| size|     mtime|
++----------+----------+-----+----------+
+| issue.net|/etc/is...|   23|2019-10...|
+|anacrontab|/etc/an...|  401|2017-05...|
+|   modules|/etc/mo...|  195|2019-12...|
+|brltty....|/etc/br...|25341|2018-08...|
+|     group|/etc/group| 1054|2020-11...|
+|ltrace....|/etc/lt...|14867|2016-10...|
+| papersize|/etc/pa...|    7|2020-05...|
+|login.defs|/etc/lo...|10550|2018-01...|
+|kernel-...|/etc/ke...|  110|2020-05...|
+|  pam.conf|/etc/pa...|  552|2018-04...|
++----------+----------+-----+----------+
 only showing top 10 rows
 ```
 
@@ -2534,68 +2536,18 @@ pandas_df = df.toPandas()
 ```
 ```
 # Code snippet result:
-      mpg cylinders displacement horsepower weight acceleration modelyear origin                            carname
-0    18.0         8        307.0      130.0  3504.         12.0        70      1          chevrolet chevelle malibu
-1    15.0         8        350.0      165.0  3693.         11.5        70      1                  buick skylark 320
-2    18.0         8        318.0      150.0  3436.         11.0        70      1                 plymouth satellite
-3    16.0         8        304.0      150.0  3433.         12.0        70      1                      amc rebel sst
-4    17.0         8        302.0      140.0  3449.         10.5        70      1                        ford torino
-5    15.0         8        429.0      198.0  4341.         10.0        70      1                   ford galaxie 500
-6    14.0         8        454.0      220.0  4354.          9.0        70      1                   chevrolet impala
-7    14.0         8        440.0      215.0  4312.          8.5        70      1                  plymouth fury iii
-8    14.0         8        455.0      225.0  4425.         10.0        70      1                   pontiac catalina
-9    15.0         8        390.0      190.0  3850.          8.5        70      1                 amc ambassador dpl
-10   15.0         8        383.0      170.0  3563.         10.0        70      1                dodge challenger se
-11   14.0         8        340.0      160.0  3609.          8.0        70      1                 plymouth 'cuda 340
-12   15.0         8        400.0      150.0  3761.          9.5        70      1              chevrolet monte carlo
-13   14.0         8        455.0      225.0  3086.         10.0        70      1            buick estate wagon (sw)
-14   24.0         4        113.0      95.00  2372.         15.0        70      3              toyota corona mark ii
-15   22.0         6        198.0      95.00  2833.         15.5        70      1                    plymouth duster
-16   18.0         6        199.0      97.00  2774.         15.5        70      1                         amc hornet
-17   21.0         6        200.0      85.00  2587.         16.0        70      1                      ford maverick
-18   27.0         4        97.00      88.00  2130.         14.5        70      3                       datsun pl510
-19   26.0         4        97.00      46.00  1835.         20.5        70      2       volkswagen 1131 deluxe sedan
-20   25.0         4        110.0      87.00  2672.         17.5        70      2                        peugeot 504
-21   24.0         4        107.0      90.00  2430.         14.5        70      2                        audi 100 ls
-22   25.0         4        104.0      95.00  2375.         17.5        70      2                           saab 99e
-23   26.0         4        121.0      113.0  2234.         12.5        70      2                           bmw 2002
-24   21.0         6        199.0      90.00  2648.         15.0        70      1                        amc gremlin
-25   10.0         8        360.0      215.0  4615.         14.0        70      1                          ford f250
-26   10.0         8        307.0      200.0  4376.         15.0        70      1                          chevy c20
-27   11.0         8        318.0      210.0  4382.         13.5        70      1                         dodge d200
-28    9.0         8        304.0      193.0  4732.         18.5        70      1                           hi 1200d
-29   27.0         4        97.00      88.00  2130.         14.5        71      3                       datsun pl510
-..    ...       ...          ...        ...    ...          ...       ...    ...                                ...
-368  27.0         4        112.0      88.00  2640.         18.6        82      1           chevrolet cavalier wagon
-369  34.0         4        112.0      88.00  2395.         18.0        82      1          chevrolet cavalier 2-door
-370  31.0         4        112.0      85.00  2575.         16.2        82      1         pontiac j2000 se hatchback
-371  29.0         4        135.0      84.00  2525.         16.0        82      1                     dodge aries se
-372  27.0         4        151.0      90.00  2735.         18.0        82      1                    pontiac phoenix
-373  24.0         4        140.0      92.00  2865.         16.4        82      1               ford fairmont futura
-374  23.0         4        151.0       None  3035.         20.5        82      1                     amc concord dl
-375  36.0         4        105.0      74.00  1980.         15.3        82      2                volkswagen rabbit l
-376  37.0         4        91.00      68.00  2025.         18.2        82      3                 mazda glc custom l
-377  31.0         4        91.00      68.00  1970.         17.6        82      3                   mazda glc custom
-378  38.0         4        105.0      63.00  2125.         14.7        82      1             plymouth horizon miser
-379  36.0         4        98.00      70.00  2125.         17.3        82      1                     mercury lynx l
-380  36.0         4        120.0      88.00  2160.         14.5        82      3                   nissan stanza xe
-381  36.0         4        107.0      75.00  2205.         14.5        82      3                       honda accord
-382  34.0         4        108.0      70.00   2245         16.9        82      3                     toyota corolla
-383  38.0         4        91.00      67.00  1965.         15.0        82      3                        honda civic
-384  32.0         4        91.00      67.00  1965.         15.7        82      3                 honda civic (auto)
-385  38.0         4        91.00      67.00  1995.         16.2        82      3                      datsun 310 gx
-386  25.0         6        181.0      110.0  2945.         16.4        82      1              buick century limited
-387  38.0         6        262.0      85.00  3015.         17.0        82      1  oldsmobile cutlass ciera (diesel)
-388  26.0         4        156.0      92.00  2585.         14.5        82      1         chrysler lebaron medallion
-389  22.0         6        232.0      112.0   2835         14.7        82      1                     ford granada l
-390  32.0         4        144.0      96.00  2665.         13.9        82      3                   toyota celica gt
-391  36.0         4        135.0      84.00  2370.         13.0        82      1                  dodge charger 2.2
-392  27.0         4        151.0      90.00  2950.         17.3        82      1                   chevrolet camaro
-393  27.0         4        140.0      86.00  2790.         15.6        82      1                    ford mustang gl
-394  44.0         4        97.00      52.00  2130.         24.6        82      2                          vw pickup
-395  32.0         4        135.0      84.00  2295.         11.6        82      1                      dodge rampage
-396  28.0         4        120.0      79.00  2625.         18.6        82      1                        ford ranger
-397  31.0         4        119.0      82.00  2720.         19.4        82      1                         chevy s-10
+      mpg cylinders displacement horsepower weight acceleration modelyear origin                    carname
+0    18.0         8        307.0      130.0  3504.         12.0        70      1  chevrolet chevelle malibu
+1    15.0         8        350.0      165.0  3693.         11.5        70      1          buick skylark 320
+2    18.0         8        318.0      150.0  3436.         11.0        70      1         plymouth satellite
+3    16.0         8        304.0      150.0  3433.         12.0        70      1              amc rebel sst
+4    17.0         8        302.0      140.0  3449.         10.5        70      1                ford torino
+..    ...       ...          ...        ...    ...          ...       ...    ...                        ...
+393  27.0         4        140.0      86.00  2790.         15.6        82      1            ford mustang gl
+394  44.0         4        97.00      52.00  2130.         24.6        82      2                  vw pickup
+395  32.0         4        135.0      84.00  2295.         11.6        82      1              dodge rampage
+396  28.0         4        120.0      79.00  2625.         18.6        82      1                ford ranger
+397  31.0         4        119.0      82.00  2720.         19.4        82      1                 chevy s-10
 
 [398 rows x 9 columns]
 ```
@@ -2802,7 +2754,7 @@ Connect to Kafka using SASL PLAIN authentication
 options = {
     "kafka.sasl.jaas.config": 'org.apache.kafka.common.security.plain.PlainLoginModule required username="USERNAME" password="PASSWORD";',
     "kafka.sasl.mechanism": "PLAIN",
-    "kafka.security.protocol" : "SASL_SSL",
+    "kafka.security.protocol": "SASL_SSL",
     "kafka.bootstrap.servers": "server:9092",
     "group.id": "my_group",
     "subscribe": "my_topic",
@@ -2824,16 +2776,16 @@ df = df.withColumn("timestamp", current_timestamp())
 +----+---------+------------+----------+------+------------+---------+------+----------+----------+
 | mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname| timestamp|
 +----+---------+------------+----------+------+------------+---------+------+----------+----------+
-|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|2020-10...|
-|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|2020-10...|
-|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|2020-10...|
-|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|2020-10...|
-|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|2020-10...|
-|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|2020-10...|
-|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|2020-10...|
-|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|2020-10...|
-|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|2020-10...|
-|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|2020-10...|
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|2020-11...|
+|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|2020-11...|
+|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|2020-11...|
+|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|2020-11...|
+|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|2020-11...|
+|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|2020-11...|
+|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|2020-11...|
+|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|2020-11...|
+|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|2020-11...|
+|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|2020-11...|
 +----+---------+------------+----------+------+------------+---------+------+----------+----------+
 only showing top 10 rows
 ```
@@ -3054,7 +3006,80 @@ print(spark.sparkContext.version)
 ```
 ```
 # Code snippet result:
-2.4.5
+3.0.0
+```
+
+Cache a DataFrame
+-----------------
+
+```python
+from pyspark import StorageLevel
+from pyspark.sql.functions import lit
+
+# Make some copies of the DataFrame.
+df1 = df.where(lit(1) > lit(0))
+df2 = df.where(lit(2) > lit(0))
+df3 = df.where(lit(3) > lit(0))
+
+print("Show the default storage level (NONE).")
+print(df.storageLevel)
+
+print("\nChange storage level to Memory/Disk via the cache shortcut.")
+df1.cache()
+print(df1.storageLevel)
+
+print(
+    "\nChange storage level to the equivalent of cache using an explicit StorageLevel."
+)
+df2.persist(storageLevel=StorageLevel(True, True, False, True, 1))
+print(df2.storageLevel)
+
+print("\nSet storage level to NONE using an explicit StorageLevel.")
+df3.persist(storageLevel=StorageLevel(False, False, False, False, 1))
+print(df3.storageLevel)
+```
+```
+# Code snippet result:
+Show the default storage level (NONE).
+Serialized 1x Replicated
+
+Change storage level to Memory/Disk via the cache shortcut.
+Disk Memory Deserialized 1x Replicated
+
+Change storage level to the equivalent of cache using an explicit StorageLevel.
+Disk Memory Deserialized 1x Replicated
+
+Set storage level to NONE using an explicit StorageLevel.
+Serialized 1x Replicated
+```
+
+Change Number of DataFrame Partitions
+-------------------------------------
+
+```python
+from pyspark.sql.functions import col
+
+df = df.repartition(col("modelyear"))
+number_of_partitions = 5
+df = df.repartitionByRange(number_of_partitions, col("mpg"))
+```
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+----------+------+------------+---------+------+----------+
+|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|
+|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|
+|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|
+|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|
+|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|
+|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|
+|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|
+|15.0|        8|       383.0|     170.0| 3563.|        10.0|       70|     1|dodge c...|
+|14.0|        8|       340.0|     160.0| 3609.|         8.0|       70|     1|plymout...|
+|15.0|        8|       400.0|     150.0| 3761.|         9.5|       70|     1|chevrol...|
++----+---------+------------+----------+------+------------+---------+------+----------+
+only showing top 10 rows
 ```
 
 Coalesce DataFrame partitions
@@ -3085,75 +3110,81 @@ df = df.coalesce(target_partitions)
 only showing top 10 rows
 ```
 
-Cache a DataFrame
------------------
+Partition by a Column Value
+---------------------------
 
 ```python
-from pyspark import StorageLevel
-from pyspark.sql.functions import lit
+# rows is an iterable, e.g. itertools.chain
+def number_in_partition(rows):
+    try:
+        first_row = next(rows)
+        partition_size = sum(1 for x in rows) + 1
+        partition_value = first_row.modelyear
+        print(f"Partition {partition_value} has {partition_size} records")
+    except StopIteration:
+        print(f"Empty partition")
 
-# Make some copies of the DataFrame.
-df1 = df.where(lit(1) > lit(0))
-df2 = df.where(lit(2) > lit(0))
-df3 = df.where(lit(3) > lit(0))
-
-print("Show the default storage level (NONE).")
-print(df.storageLevel)
-
-print("\nChange storage level to Memory/Disk via the cache shortcut.")
-df1.cache()
-print(df1.storageLevel)
-
-print("\nChange storage level to the equivalent of cache using an explicit StorageLevel.")
-df2.persist(storageLevel=StorageLevel(True, True, False, True, 1))
-print(df2.storageLevel)
-
-print("\nSet storage level to NONE using an explicit StorageLevel.")
-df3.persist(storageLevel=StorageLevel(False, False, False, False, 1))
-print(df3.storageLevel)
+df = df.repartition(20, "modelyear")
+df.foreachPartition(number_in_partition)
 ```
 ```
 # Code snippet result:
-Show the default storage level (NONE).
-Serialized 1x Replicated
-
-Change storage level to Memory/Disk via the cache shortcut.
-Disk Memory Deserialized 1x Replicated
-
-Change storage level to the equivalent of cache using an explicit StorageLevel.
-Disk Memory Deserialized 1x Replicated
-
-Set storage level to NONE using an explicit StorageLevel.
-Serialized 1x Replicated
+Partition 82 has 31 records
+Partition 76 has 34 records
+Partition 77 has 28 records
+Partition 80 has 29 records
+Partition 81 has 29 records
+Partition 70 has 29 records
+Partition 72 has 55 records
+Partition 78 has 36 records
+Empty partition
+Empty partition
+Empty partition
+Partition 75 has 30 records
+Empty partition
+Partition 71 has 68 records
+Partition 79 has 29 records
+Empty partition
+Empty partition
+Empty partition
+Empty partition
+Empty partition
 ```
 
-Change DataFrame partitioning
------------------------------
+Range Partition a DataFrame
+---------------------------
 
 ```python
 from pyspark.sql.functions import col
 
-df = df.repartition(col("modelyear"))
+# rows is an iterable, e.g. itertools.chain
+def count_in_partition(rows):
+    my_years = set()
+    number_in_partition = 0
+    for row in rows:
+        my_years.add(row.modelyear)
+        number_in_partition += 1
+    seen_years = sorted(list(my_years))
+    if len(seen_years) > 0:
+        seen_values = ",".join(seen_years)
+        print(
+            f"This partition has {number_in_partition} records with years {seen_values}"
+        )
+    else:
+        print("Empty partition")
+
 number_of_partitions = 5
-df = df.repartitionByRange(number_of_partitions, col("mpg"))
+df = df.repartitionByRange(number_of_partitions, col("modelyear"))
+df.foreachPartition(count_in_partition)
 ```
 ```
 # Code snippet result:
-+----+---------+------------+----------+------+------------+---------+------+----------+
-| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
-+----+---------+------------+----------+------+------------+---------+------+----------+
-|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|
-|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|
-|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|
-|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|
-|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|
-|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|
-|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|
-|15.0|        8|       383.0|     170.0| 3563.|        10.0|       70|     1|dodge c...|
-|14.0|        8|       340.0|     160.0| 3609.|         8.0|       70|     1|plymout...|
-|15.0|        8|       400.0|     150.0| 3761.|         9.5|       70|     1|chevrol...|
-+----+---------+------------+----------+------+------------+---------+------+----------+
-only showing top 10 rows
+
+This partition has 60 records with years 81,82
+This partition has 62 records with years 76,77
+This partition has 85 records with years 70,71,72
+This partition has 97 records with years 73,74,75
+This partition has 94 records with years 78,79,80
 ```
 
 Increase Spark driver/executor heap space

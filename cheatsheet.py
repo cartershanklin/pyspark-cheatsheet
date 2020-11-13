@@ -1684,7 +1684,7 @@ class performance_cache(snippet):
         self.name = "Cache a DataFrame"
         self.category = "Performance"
         self.dataset = "auto-mpg.csv"
-        self.priority = 150 
+        self.priority = 150
 
     def snippet(self, df):
         from pyspark import StorageLevel
@@ -1702,7 +1702,9 @@ class performance_cache(snippet):
         df1.cache()
         print(df1.storageLevel)
 
-        print("\nChange storage level to the equivalent of cache using an explicit StorageLevel.")
+        print(
+            "\nChange storage level to the equivalent of cache using an explicit StorageLevel."
+        )
         df2.persist(storageLevel=StorageLevel(True, True, False, True, 1))
         print(df2.storageLevel)
 
@@ -1723,23 +1725,6 @@ class performance_cache(snippet):
         # INCLUDE
 
 
-class performance_partitioning(snippet):
-    def __init__(self):
-        super().__init__()
-        self.name = "Change DataFrame partitioning"
-        self.category = "Performance"
-        self.dataset = "auto-mpg.csv"
-        self.priority = 200
-
-    def snippet(self, df):
-        from pyspark.sql.functions import col
-
-        df = df.repartition(col("modelyear"))
-        number_of_partitions = 5
-        df = df.repartitionByRange(number_of_partitions, col("mpg"))
-        return df
-
-
 class performance_get_spark_version(snippet):
     def __init__(self):
         super().__init__()
@@ -1753,13 +1738,30 @@ class performance_get_spark_version(snippet):
         return spark.sparkContext.version
 
 
+class performance_partitioning(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Change Number of DataFrame Partitions"
+        self.category = "Performance"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 200
+
+    def snippet(self, df):
+        from pyspark.sql.functions import col
+
+        df = df.repartition(col("modelyear"))
+        number_of_partitions = 5
+        df = df.repartitionByRange(number_of_partitions, col("mpg"))
+        return df
+
+
 class performance_reduce_dataframe_partitions(snippet):
     def __init__(self):
         super().__init__()
         self.name = "Coalesce DataFrame partitions"
         self.category = "Performance"
         self.dataset = "auto-mpg.csv"
-        self.priority = 110
+        self.priority = 210
 
     def snippet(self, df):
         import math
@@ -1767,6 +1769,93 @@ class performance_reduce_dataframe_partitions(snippet):
         target_partitions = math.ceil(df.rdd.getNumPartitions() / 2)
         df = df.coalesce(target_partitions)
         return df
+
+
+class performance_partition_by_value(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Partition by a Column Value"
+        self.category = "Performance"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 220
+
+    def snippet(self, df):
+        # rows is an iterable, e.g. itertools.chain
+        def number_in_partition(rows):
+            try:
+                first_row = next(rows)
+                partition_size = sum(1 for x in rows) + 1
+                partition_value = first_row.modelyear
+                print(f"Partition {partition_value} has {partition_size} records")
+            except StopIteration:
+                print(f"Empty partition")
+
+        df = df.repartition(20, "modelyear")
+        df.foreachPartition(number_in_partition)
+        # EXCLUDE
+        return """Partition 82 has 31 records
+Partition 76 has 34 records
+Partition 77 has 28 records
+Partition 80 has 29 records
+Partition 81 has 29 records
+Partition 70 has 29 records
+Partition 72 has 55 records
+Partition 78 has 36 records
+Empty partition
+Empty partition
+Empty partition
+Partition 75 has 30 records
+Empty partition
+Partition 71 has 68 records
+Partition 79 has 29 records
+Empty partition
+Empty partition
+Empty partition
+Empty partition
+Empty partition
+"""
+        # INCLUDE
+
+
+# XXX: Should find some solution for hard-coded output.
+class performance_partition_by_range(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Range Partition a DataFrame"
+        self.category = "Performance"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 230
+
+    def snippet(self, df):
+        from pyspark.sql.functions import col
+
+        # rows is an iterable, e.g. itertools.chain
+        def count_in_partition(rows):
+            my_years = set()
+            number_in_partition = 0
+            for row in rows:
+                my_years.add(row.modelyear)
+                number_in_partition += 1
+            seen_years = sorted(list(my_years))
+            if len(seen_years) > 0:
+                seen_values = ",".join(seen_years)
+                print(
+                    f"This partition has {number_in_partition} records with years {seen_values}"
+                )
+            else:
+                print("Empty partition")
+
+        number_of_partitions = 5
+        df = df.repartitionByRange(number_of_partitions, col("modelyear"))
+        df.foreachPartition(count_in_partition)
+        # EXCLUDE
+        return """
+This partition has 60 records with years 81,82
+This partition has 62 records with years 76,77
+This partition has 85 records with years 70,71,72
+This partition has 97 records with years 73,74,75
+This partition has 94 records with years 78,79,80"""
+        # INCLUDE
 
 
 class performance_increase_heap_space(snippet):
@@ -2239,13 +2328,14 @@ class streaming_connect_kafka_sasl_plain(snippet):
         options = {
             "kafka.sasl.jaas.config": 'org.apache.kafka.common.security.plain.PlainLoginModule required username="USERNAME" password="PASSWORD";',
             "kafka.sasl.mechanism": "PLAIN",
-            "kafka.security.protocol" : "SASL_SSL",
+            "kafka.security.protocol": "SASL_SSL",
             "kafka.bootstrap.servers": "server:9092",
             "group.id": "my_group",
             "subscribe": "my_topic",
         }
         df = spark.readStream.format("kafka").options(**options).load()
         return df
+
 
 class streaming_add_timestamp(snippet):
     def __init__(self):
@@ -2260,6 +2350,7 @@ class streaming_add_timestamp(snippet):
 
         df = df.withColumn("timestamp", current_timestamp())
         return df
+
 
 # Dynamically build a list of all cheats.
 cheat_sheet = []
@@ -2395,11 +2486,11 @@ def get_code_snippet(source):
     include = True
     after_lines = []
     for line in before_lines:
-        if line.startswith("# EXCLUDE"):
+        if line.strip().startswith("# EXCLUDE"):
             include = False
         if include:
             after_lines.append(line)
-        if line.startswith("# INCLUDE"):
+        if line.strip().startswith("# INCLUDE"):
             include = True
 
     cleaned = "\n".join(after_lines)
