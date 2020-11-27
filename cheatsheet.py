@@ -225,6 +225,19 @@ class dfo_change_column_name_multi(snippet):
         return df
 
 
+class dfo_column_to_python_list(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Convert a DataFrame column as a Python list"
+        self.category = "DataFrame Operations"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 710
+
+    def snippet(self, df):
+        names = df.select("carname").rdd.flatMap(lambda x: x).collect()
+        return str(names[:10])
+
+
 class dfo_dataframe_from_rdd(snippet):
     def __init__(self):
         super().__init__()
@@ -761,8 +774,6 @@ class sortsearch_string_match(snippet):
         self.priority = 500
 
     def snippet(self, df):
-        from pyspark.sql.functions import col
-
         filtered = df.where(df.carname.contains("custom"))
         return filtered
 
@@ -979,6 +990,7 @@ class loadsave_read_oracle(snippet):
         }
         url = f"jdbc:oracle:thin:@{tnsname}?TNS_ADMIN={wallet_path}"
         df = spark.read.jdbc(url=url, table=table, properties=properties)
+        return df
 
 
 class loadsave_write_oracle(snippet):
@@ -1788,7 +1800,7 @@ class performance_partition_by_value(snippet):
                 partition_value = first_row.modelyear
                 print(f"Partition {partition_value} has {partition_size} records")
             except StopIteration:
-                print(f"Empty partition")
+                print("Empty partition")
 
         df = df.repartition(20, "modelyear")
         df.foreachPartition(number_in_partition)
@@ -2256,7 +2268,6 @@ class fileprocessing_load_files_oci(snippet):
             StringType,
             TimestampType,
         )
-        import datetime
 
         # Requires an object_store_client object.
         # See https://oracle-cloud-infrastructure-python-sdk.readthedocs.io/en/latest/api/object_storage/client/oci.object_storage.ObjectStorageClient.html

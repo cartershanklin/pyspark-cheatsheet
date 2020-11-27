@@ -9,7 +9,7 @@ These snippets use DataFrames loaded from various data sources:
 - customer_spend.csv, a generated time series dataset.
 - date_examples.csv, a generated dataset with various date and time formats.
 
-These snippets were tested against the Spark 3.0.0 API. This page was last updated 2020-11-13 06:19:15.
+These snippets were tested against the Spark 3.0.1 API. This page was last updated 2020-11-26 18:46:01.
 
 Make note of these helpful links:
 - [Built-in Spark SQL Functions](https://spark.apache.org/docs/latest/api/sql/index.html)
@@ -48,6 +48,7 @@ Table of contents
       * [Drop a column](#drop-a-column)
       * [Change a column name](#change-a-column-name)
       * [Change multiple column names](#change-multiple-column-names)
+      * [Convert a DataFrame column as a Python list](#convert-a-dataframe-column-as-a-python-list)
       * [Select particular columns from a DataFrame](#select-particular-columns-from-a-dataframe)
       * [Create an empty dataframe with a specified schema](#create-an-empty-dataframe-with-a-specified-schema)
       * [Create a constant dataframe](#create-a-constant-dataframe)
@@ -702,6 +703,17 @@ df = df.withColumnRenamed("horsepower", "horses").withColumnRenamed(
 |15.0|        8|       390.0| 190.0| 3850.|         8.5|  70|     1|amc amb...|
 +----+---------+------------+------+------+------------+----+------+----------+
 only showing top 10 rows
+```
+
+Convert a DataFrame column as a Python list
+-------------------------------------------
+
+```python
+names = df.select("carname").rdd.flatMap(lambda x: x).collect()
+```
+```
+# Code snippet result:
+['chevrolet chevelle malibu', 'buick skylark 320', 'plymouth satellite', 'amc rebel sst', 'ford torino', 'ford galaxie 500', 'chevrolet impala', 'plymouth fury iii', 'pontiac catalina', 'amc ambassador dpl']
 ```
 
 Select particular columns from a DataFrame
@@ -1415,8 +1427,6 @@ Get Dataframe rows that match a substring
 -----------------------------------------
 
 ```python
-from pyspark.sql.functions import col
-
 filtered = df.where(df.carname.contains("custom"))
 ```
 ```
@@ -2271,7 +2281,6 @@ from pyspark.sql.types import (
     StringType,
     TimestampType,
 )
-import datetime
 
 # Requires an object_store_client object.
 # See https://oracle-cloud-infrastructure-python-sdk.readthedocs.io/en/latest/api/object_storage/client/oci.object_storage.ObjectStorageClient.html
@@ -3006,7 +3015,7 @@ print(spark.sparkContext.version)
 ```
 ```
 # Code snippet result:
-3.0.0
+3.0.1
 ```
 
 Cache a DataFrame
@@ -3122,7 +3131,7 @@ def number_in_partition(rows):
         partition_value = first_row.modelyear
         print(f"Partition {partition_value} has {partition_size} records")
     except StopIteration:
-        print(f"Empty partition")
+        print("Empty partition")
 
 df = df.repartition(20, "modelyear")
 df.foreachPartition(number_in_partition)
