@@ -48,7 +48,7 @@ Table of contents
       * [Drop a column](#drop-a-column)
       * [Change a column name](#change-a-column-name)
       * [Change multiple column names](#change-multiple-column-names)
-      * [Convert a DataFrame column as a Python list](#convert-a-dataframe-column-as-a-python-list)
+      * [Convert a DataFrame column to a Python list](#convert-a-dataframe-column-as-a-python-list)
       * [Select particular columns from a DataFrame](#select-particular-columns-from-a-dataframe)
       * [Create an empty dataframe with a specified schema](#create-an-empty-dataframe-with-a-specified-schema)
       * [Create a constant dataframe](#create-a-constant-dataframe)
@@ -705,7 +705,7 @@ df = df.withColumnRenamed("horsepower", "horses").withColumnRenamed(
 only showing top 10 rows
 ```
 
-Convert a DataFrame column as a Python list
+Convert a DataFrame column to a Python list
 -------------------------------------------
 
 ```python

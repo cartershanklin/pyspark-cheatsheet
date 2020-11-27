@@ -228,7 +228,7 @@ class dfo_change_column_name_multi(snippet):
 class dfo_column_to_python_list(snippet):
     def __init__(self):
         super().__init__()
-        self.name = "Convert a DataFrame column as a Python list"
+        self.name = "Convert a DataFrame column to a Python list"
         self.category = "DataFrame Operations"
         self.dataset = "auto-mpg.csv"
         self.priority = 710
