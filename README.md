@@ -9,7 +9,7 @@ These snippets use DataFrames loaded from various data sources:
 - customer_spend.csv, a generated time series dataset.
 - date_examples.csv, a generated dataset with various date and time formats.
 
-These snippets were tested against the Spark 3.0.1 API. This page was last updated 2020-11-26 18:46:01.
+These snippets were tested against the Spark 3.0.1 API. This page was last updated 2020-11-28 20:51:09.
 
 Make note of these helpful links:
 - [Built-in Spark SQL Functions](https://spark.apache.org/docs/latest/api/sql/index.html)
@@ -48,7 +48,7 @@ Table of contents
       * [Drop a column](#drop-a-column)
       * [Change a column name](#change-a-column-name)
       * [Change multiple column names](#change-multiple-column-names)
-      * [Convert a DataFrame column to a Python list](#convert-a-dataframe-column-as-a-python-list)
+      * [Convert a DataFrame column to a Python list](#convert-a-dataframe-column-to-a-python-list)
       * [Select particular columns from a DataFrame](#select-particular-columns-from-a-dataframe)
       * [Create an empty dataframe with a specified schema](#create-an-empty-dataframe-with-a-specified-schema)
       * [Create a constant dataframe](#create-a-constant-dataframe)
@@ -134,6 +134,8 @@ Table of contents
       * [Compute average values of all numeric columns](#compute-average-values-of-all-numeric-columns)
       * [Compute minimum values of all numeric columns](#compute-minimum-values-of-all-numeric-columns)
       * [Compute maximum values of all numeric columns](#compute-maximum-values-of-all-numeric-columns)
+      * [Compute median values of all numeric columns](#compute-median-values-of-all-numeric-columns)
+      * [Identify Outliers in a DataFrame](#identify-outliers-in-a-dataframe)
    * [Spark Streaming](#spark-streaming)
       * [Connect to Kafka using SASL PLAIN authentication](#connect-to-kafka-using-sasl-plain-authentication)
       * [Add the current timestamp to a DataFrame](#add-the-current-timestamp-to-a-dataframe)
@@ -2750,6 +2752,95 @@ result = df.agg(exprs)
 +-----------+-----------------+--------------+--------+---------------+-----------------+
 |     5140.0|             24.8|           8.0|    46.6|          230.0|            455.0|
 +-----------+-----------------+--------------+--------+---------------+-----------------+
+```
+
+Compute median values of all numeric columns
+--------------------------------------------
+
+```python
+# Register as a table to access SQL median.
+df.registerTempTable("profile_median")
+
+numerics = set(["decimal", "double", "float", "integer", "long", "short"])
+names = []
+for name, dtype in df.dtypes:
+    if dtype not in numerics:
+        continue
+    names.append(name)
+
+generated = ",".join(
+    f"percentile({name}, 0.5) as median_{name}" for name in names
+)
+profiled = sqlContext.sql(f"select {generated} from profile_median")
+```
+```
+# Code snippet result:
++----------+----------------+-------------------+-----------------+-------------+-------------------+
+|median_mpg|median_cylinders|median_displacement|median_horsepower|median_weight|median_acceleration|
++----------+----------------+-------------------+-----------------+-------------+-------------------+
+|      23.0|             4.0|              148.5|             93.5|       2803.5|               15.5|
++----------+----------------+-------------------+-----------------+-------------+-------------------+
+```
+
+Identify Outliers in a DataFrame
+--------------------------------
+
+```python
+# This approach uses the Median Absolute Deviation.
+# Outliers are based on variances in a single numeric column.
+# Tune outlier sensitivity using z_score_threshold.
+from pyspark.sql.functions import col, sqrt
+
+target_column = "mpg"
+z_score_threshold = 2
+
+# Compute the median of the target column.
+target_df = df.select(target_column)
+target_df.registerTempTable("target_column")
+profiled = sqlContext.sql(
+    f"select percentile({target_column}, 0.5) as median from target_column"
+)
+
+# Compute deviations.
+deviations = target_df.crossJoin(profiled).withColumn(
+    "deviation", sqrt((target_df[target_column] - profiled["median"]) ** 2)
+)
+deviations.registerTempTable("deviations")
+
+# The Median Absolute Deviation
+mad = sqlContext.sql(
+    f"select percentile(deviation, 0.5) as mad from deviations"
+)
+
+# Add a modified z score to the original DataFrame.
+df = (
+    df.crossJoin(mad)
+    .crossJoin(profiled)
+    .withColumn(
+        "zscore",
+        0.6745
+        * sqrt((df[target_column] - profiled["median"]) ** 2)
+        / mad["mad"],
+    )
+)
+
+df_outliers = df.where(col("zscore") > z_score_threshold)
+```
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+---+------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|mad|median|    zscore|
++----+---------+------------+----------+------+------------+---------+------+----------+---+------+----------+
+|43.1|      4.0|        90.0|      48.0|1985.0|        21.5|       78|     2|volkswa...|6.0|  23.0|2.25957...|
+|41.5|      4.0|        98.0|      76.0|2144.0|        14.7|       80|     2| vw rabbit|6.0|  23.0|2.07970...|
+|46.6|      4.0|        86.0|      65.0|2110.0|        17.9|       80|     3| mazda glc|6.0|  23.0|2.65303...|
+|40.8|      4.0|        85.0|      65.0|2110.0|        19.2|       80|     3|datsun 210|6.0|  23.0|2.00101...|
+|44.3|      4.0|        90.0|      48.0|2085.0|        21.7|       80|     2|vw rabb...|6.0|  23.0|2.39447...|
+|43.4|      4.0|        90.0|      48.0|2335.0|        23.7|       80|     2|vw dash...|6.0|  23.0|    2.2933|
+|44.6|      4.0|        91.0|      67.0|1850.0|        13.8|       80|     3|honda c...|6.0|  23.0|    2.4282|
+|40.9|      4.0|        85.0|      null|1835.0|        17.3|       80|     2|renault...|6.0|  23.0|2.01225...|
+|44.0|      4.0|        97.0|      52.0|2130.0|        24.6|       82|     2| vw pickup|6.0|  23.0|   2.36075|
++----+---------+------------+----------+------+------------+---------+------+----------+---+------+----------+
 ```
 
 Spark Streaming

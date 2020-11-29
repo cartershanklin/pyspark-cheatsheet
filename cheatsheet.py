@@ -2051,6 +2051,85 @@ class profile_numeric_max(snippet):
         return result
 
 
+class profile_numeric_median(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Compute median values of all numeric columns"
+        self.category = "Data Profiling"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 500
+        self.preconvert = True
+
+    def snippet(self, df):
+        # Register as a table to access SQL median.
+        df.registerTempTable("profile_median")
+
+        numerics = set(["decimal", "double", "float", "integer", "long", "short"])
+        names = []
+        for name, dtype in df.dtypes:
+            if dtype not in numerics:
+                continue
+            names.append(name)
+
+        generated = ",".join(
+            f"percentile({name}, 0.5) as median_{name}" for name in names
+        )
+        profiled = sqlContext.sql(f"select {generated} from profile_median")
+        return profiled
+
+
+class profile_outliers(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Identify Outliers in a DataFrame"
+        self.category = "Data Profiling"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 600
+        self.preconvert = True
+
+    def snippet(self, df):
+        # This approach uses the Median Absolute Deviation.
+        # Outliers are based on variances in a single numeric column.
+        # Tune outlier sensitivity using z_score_threshold.
+        from pyspark.sql.functions import col, sqrt
+
+        target_column = "mpg"
+        z_score_threshold = 2
+
+        # Compute the median of the target column.
+        target_df = df.select(target_column)
+        target_df.registerTempTable("target_column")
+        profiled = sqlContext.sql(
+            f"select percentile({target_column}, 0.5) as median from target_column"
+        )
+
+        # Compute deviations.
+        deviations = target_df.crossJoin(profiled).withColumn(
+            "deviation", sqrt((target_df[target_column] - profiled["median"]) ** 2)
+        )
+        deviations.registerTempTable("deviations")
+
+        # The Median Absolute Deviation
+        mad = sqlContext.sql(
+            f"select percentile(deviation, 0.5) as mad from deviations"
+        )
+
+        # Add a modified z score to the original DataFrame.
+        df = (
+            df.crossJoin(mad)
+            .crossJoin(profiled)
+            .withColumn(
+                "zscore",
+                0.6745
+                * sqrt((df[target_column] - profiled["median"]) ** 2)
+                / mad["mad"],
+            )
+        )
+
+        df_outliers = df.where(col("zscore") > z_score_threshold)
+        return df_outliers
+
+
 class timeseries_zero_fill(snippet):
     def __init__(self):
         super().__init__()
