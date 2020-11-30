@@ -1690,6 +1690,112 @@ class missing_count_of_null_nan(snippet):
         return result
 
 
+class ml_linear_regression(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "A basic Linear Regression model"
+        self.category = "Machine Learning"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 100
+        self.preconvert = True
+
+    def snippet(self, df):
+        from pyspark.ml.feature import VectorAssembler
+        from pyspark.ml.regression import LinearRegression
+
+        vectorAssembler = VectorAssembler(
+            inputCols=[
+                "cylinders",
+                "displacement",
+                "horsepower",
+                "weight",
+                "acceleration",
+            ],
+            outputCol="features",
+            handleInvalid="skip",
+        )
+        assembled = vectorAssembler.transform(df)
+        assembled = assembled.select(["features", "mpg", "carname"])
+
+        # Random test/train split.
+        train_df, test_df = assembled.randomSplit([0.7, 0.3])
+
+        # Define the model.
+        lr = LinearRegression(
+            featuresCol="features",
+            labelCol="mpg",
+            maxIter=10,
+            regParam=0.3,
+            elasticNetParam=0.8,
+        )
+
+        # Train the model.
+        lr_model = lr.fit(train_df)
+
+        # Stats for training.
+        print(
+            "RMSE={} r2={}".format(
+                lr_model.summary.rootMeanSquaredError, lr_model.summary.r2
+            )
+        )
+
+        # Make predictions.
+        predictions = lr_model.transform(test_df)
+        return predictions
+
+
+class ml_random_forest_regression(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "A basic Random Forest Regression model"
+        self.category = "Machine Learning"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 200
+        self.preconvert = True
+
+    def snippet(self, df):
+        from pyspark.ml.feature import VectorAssembler
+        from pyspark.ml.regression import RandomForestRegressor
+        from pyspark.ml.evaluation import RegressionEvaluator
+
+        vectorAssembler = VectorAssembler(
+            inputCols=[
+                "cylinders",
+                "displacement",
+                "horsepower",
+                "weight",
+                "acceleration",
+            ],
+            outputCol="features",
+            handleInvalid="skip",
+        )
+        assembled = vectorAssembler.transform(df)
+        assembled = assembled.select(["features", "mpg", "carname"])
+
+        # Random test/train split.
+        train_df, test_df = assembled.randomSplit([0.7, 0.3])
+
+        # Define the model.
+        rf = RandomForestRegressor(
+            numTrees=20,
+            featuresCol="features",
+            labelCol="mpg",
+        )
+
+        # Train the model.
+        rf_model = rf.fit(train_df)
+
+        # Make predictions.
+        predictions = rf_model.transform(test_df)
+
+        # Evaluate the model.
+        r2 = RegressionEvaluator(labelCol="mpg", predictionCol="prediction", metricName="r2").evaluate(predictions)
+        rmse = RegressionEvaluator(labelCol="mpg", predictionCol="prediction", metricName="rmse").evaluate(predictions)
+        print("RMSE={} r2={}".format(rmse, r2))
+
+        return predictions
+
+
 class performance_cache(snippet):
     def __init__(self):
         super().__init__()

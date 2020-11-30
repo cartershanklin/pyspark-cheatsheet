@@ -9,7 +9,7 @@ These snippets use DataFrames loaded from various data sources:
 - customer_spend.csv, a generated time series dataset.
 - date_examples.csv, a generated dataset with various date and time formats.
 
-These snippets were tested against the Spark 3.0.1 API. This page was last updated 2020-11-28 20:51:09.
+These snippets were tested against the Spark 3.0.1 API. This page was last updated 2020-11-29 18:41:14.
 
 Make note of these helpful links:
 - [Built-in Spark SQL Functions](https://spark.apache.org/docs/latest/api/sql/index.html)
@@ -146,6 +146,9 @@ Table of contents
       * [Cumulative Sum in a Period](#cumulative-sum-in-a-period)
       * [Cumulative Average](#cumulative-average)
       * [Cumulative Average in a Period](#cumulative-average-in-a-period)
+   * [Machine Learning](#machine-learning)
+      * [A basic Linear Regression model](#a-basic-linear-regression-model)
+      * [A basic Random Forest Regression model](#a-basic-random-forest-regression-model)
    * [Performance](#performance)
       * [Get the Spark version](#get-the-spark-version)
       * [Cache a DataFrame](#cache-a-dataframe)
@@ -3091,6 +3094,138 @@ df = df.withColumn("running_avg", avg("spend_dollars").over(w))
 |2021-12-31|         26|       7.2300| 49.0344...|
 |2021-01-31|         31|      31.0600| 31.0600...|
 +----------+-----------+-------------+-----------+
+only showing top 10 rows
+```
+
+Machine Learning
+================
+Machine Learning
+
+A basic Linear Regression model
+-------------------------------
+
+```python
+from pyspark.ml.feature import VectorAssembler
+from pyspark.ml.regression import LinearRegression
+
+vectorAssembler = VectorAssembler(
+    inputCols=[
+        "cylinders",
+        "displacement",
+        "horsepower",
+        "weight",
+        "acceleration",
+    ],
+    outputCol="features",
+    handleInvalid="skip",
+)
+assembled = vectorAssembler.transform(df)
+assembled = assembled.select(["features", "mpg", "carname"])
+
+# Random test/train split.
+train_df, test_df = assembled.randomSplit([0.7, 0.3])
+
+# Define the model.
+lr = LinearRegression(
+    featuresCol="features",
+    labelCol="mpg",
+    maxIter=10,
+    regParam=0.3,
+    elasticNetParam=0.8,
+)
+
+# Train the model.
+lr_model = lr.fit(train_df)
+
+# Stats for training.
+print(
+    "RMSE={} r2={}".format(
+        lr_model.summary.rootMeanSquaredError, lr_model.summary.r2
+    )
+)
+
+# Make predictions.
+predictions = lr_model.transform(test_df)
+```
+```
+# Code snippet result:
++----------+----+----------+----------+
+|  features| mpg|   carname|prediction|
++----------+----+----------+----------+
+|[3.0,70...|18.0| maxda rx3|29.6191...|
+|[4.0,68...|29.0|  fiat 128|32.0159...|
+|[4.0,72...|35.0|datsun ...|32.2755...|
+|[4.0,79...|36.0|renault...|31.7310...|
+|[4.0,79...|31.0|datsun ...|30.8702...|
+|[4.0,79...|26.0|volkswa...|30.8013...|
+|[4.0,79...|31.0| fiat x1.9|30.6486...|
+|[4.0,83...|32.0|datsun 710|30.8320...|
+|[4.0,85...|29.0|chevrol...|31.0293...|
+|[4.0,85...|33.5|datsun ...|30.7048...|
++----------+----+----------+----------+
+only showing top 10 rows
+```
+
+A basic Random Forest Regression model
+--------------------------------------
+
+```python
+from pyspark.ml.feature import VectorAssembler
+from pyspark.ml.regression import RandomForestRegressor
+from pyspark.ml.evaluation import RegressionEvaluator
+
+vectorAssembler = VectorAssembler(
+    inputCols=[
+        "cylinders",
+        "displacement",
+        "horsepower",
+        "weight",
+        "acceleration",
+    ],
+    outputCol="features",
+    handleInvalid="skip",
+)
+assembled = vectorAssembler.transform(df)
+assembled = assembled.select(["features", "mpg", "carname"])
+
+# Random test/train split.
+train_df, test_df = assembled.randomSplit([0.7, 0.3])
+
+# Define the model.
+rf = RandomForestRegressor(
+    numTrees=20,
+    featuresCol="features",
+    labelCol="mpg",
+)
+
+# Train the model.
+rf_model = rf.fit(train_df)
+
+# Make predictions.
+predictions = rf_model.transform(test_df)
+
+# Evaluate the model.
+r2 = RegressionEvaluator(labelCol="mpg", predictionCol="prediction", metricName="r2").evaluate(predictions)
+rmse = RegressionEvaluator(labelCol="mpg", predictionCol="prediction", metricName="rmse").evaluate(predictions)
+print("RMSE={} r2={}".format(rmse, r2))
+
+```
+```
+# Code snippet result:
++----------+----+----------+----------+
+|  features| mpg|   carname|prediction|
++----------+----+----------+----------+
+|[3.0,70...|23.7|mazda r...|22.3787...|
+|[3.0,80...|21.5|mazda rx-4|21.3819...|
+|[4.0,71...|32.0|toyota ...|34.1479...|
+|[4.0,72...|35.0|datsun ...|33.0823...|
+|[4.0,76...|31.0|toyota ...|35.3256...|
+|[4.0,78...|32.8|mazda g...|36.1497...|
+|[4.0,79...|31.0| fiat x1.9|34.2505...|
+|[4.0,79...|30.0|peugeot...|33.8114...|
+|[4.0,83...|32.0|datsun 710|37.0184...|
+|[4.0,85...|29.0|chevrol...|37.2753...|
++----------+----+----------+----------+
 only showing top 10 rows
 ```
 
