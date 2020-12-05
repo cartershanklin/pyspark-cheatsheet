@@ -50,8 +50,12 @@ Time Series:
     priority: 13
     description: Techniques for dealing with time series data.
 
-Performance:
+Machine Learning:
     priority: 14
+    description: Machine Learning
+
+Performance:
+    priority: 15
     description: A few performance tips and tricks.
 
 Preamble:

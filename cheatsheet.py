@@ -225,6 +225,19 @@ class dfo_change_column_name_multi(snippet):
         return df
 
 
+class dfo_column_to_python_list(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Convert a DataFrame column to a Python list"
+        self.category = "DataFrame Operations"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 710
+
+    def snippet(self, df):
+        names = df.select("carname").rdd.flatMap(lambda x: x).collect()
+        return str(names[:10])
+
+
 class dfo_dataframe_from_rdd(snippet):
     def __init__(self):
         super().__init__()
@@ -761,8 +774,6 @@ class sortsearch_string_match(snippet):
         self.priority = 500
 
     def snippet(self, df):
-        from pyspark.sql.functions import col
-
         filtered = df.where(df.carname.contains("custom"))
         return filtered
 
@@ -979,6 +990,7 @@ class loadsave_read_oracle(snippet):
         }
         url = f"jdbc:oracle:thin:@{tnsname}?TNS_ADMIN={wallet_path}"
         df = spark.read.jdbc(url=url, table=table, properties=properties)
+        return df
 
 
 class loadsave_write_oracle(snippet):
@@ -1699,6 +1711,112 @@ class performance_shuffle_partitions(snippet):
         return [ "200 partition(s)", "20 partition(s)" ]
 
 
+class ml_linear_regression(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "A basic Linear Regression model"
+        self.category = "Machine Learning"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 100
+        self.preconvert = True
+
+    def snippet(self, df):
+        from pyspark.ml.feature import VectorAssembler
+        from pyspark.ml.regression import LinearRegression
+
+        vectorAssembler = VectorAssembler(
+            inputCols=[
+                "cylinders",
+                "displacement",
+                "horsepower",
+                "weight",
+                "acceleration",
+            ],
+            outputCol="features",
+            handleInvalid="skip",
+        )
+        assembled = vectorAssembler.transform(df)
+        assembled = assembled.select(["features", "mpg", "carname"])
+
+        # Random test/train split.
+        train_df, test_df = assembled.randomSplit([0.7, 0.3])
+
+        # Define the model.
+        lr = LinearRegression(
+            featuresCol="features",
+            labelCol="mpg",
+            maxIter=10,
+            regParam=0.3,
+            elasticNetParam=0.8,
+        )
+
+        # Train the model.
+        lr_model = lr.fit(train_df)
+
+        # Stats for training.
+        print(
+            "RMSE={} r2={}".format(
+                lr_model.summary.rootMeanSquaredError, lr_model.summary.r2
+            )
+        )
+
+        # Make predictions.
+        predictions = lr_model.transform(test_df)
+        return predictions
+
+
+class ml_random_forest_regression(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "A basic Random Forest Regression model"
+        self.category = "Machine Learning"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 200
+        self.preconvert = True
+
+    def snippet(self, df):
+        from pyspark.ml.feature import VectorAssembler
+        from pyspark.ml.regression import RandomForestRegressor
+        from pyspark.ml.evaluation import RegressionEvaluator
+
+        vectorAssembler = VectorAssembler(
+            inputCols=[
+                "cylinders",
+                "displacement",
+                "horsepower",
+                "weight",
+                "acceleration",
+            ],
+            outputCol="features",
+            handleInvalid="skip",
+        )
+        assembled = vectorAssembler.transform(df)
+        assembled = assembled.select(["features", "mpg", "carname"])
+
+        # Random test/train split.
+        train_df, test_df = assembled.randomSplit([0.7, 0.3])
+
+        # Define the model.
+        rf = RandomForestRegressor(
+            numTrees=20,
+            featuresCol="features",
+            labelCol="mpg",
+        )
+
+        # Train the model.
+        rf_model = rf.fit(train_df)
+
+        # Make predictions.
+        predictions = rf_model.transform(test_df)
+
+        # Evaluate the model.
+        r2 = RegressionEvaluator(labelCol="mpg", predictionCol="prediction", metricName="r2").evaluate(predictions)
+        rmse = RegressionEvaluator(labelCol="mpg", predictionCol="prediction", metricName="rmse").evaluate(predictions)
+        print("RMSE={} r2={}".format(rmse, r2))
+
+        return predictions
+
+
 class performance_cache(snippet):
     def __init__(self):
         super().__init__()
@@ -1723,7 +1841,9 @@ class performance_cache(snippet):
         df1.cache()
         print(df1.storageLevel)
 
-        print("\nChange storage level to the equivalent of cache using an explicit StorageLevel.")
+        print(
+            "\nChange storage level to the equivalent of cache using an explicit StorageLevel."
+        )
         df2.persist(storageLevel=StorageLevel(True, True, False, True, 1))
         print(df2.storageLevel)
 
@@ -1744,10 +1864,23 @@ class performance_cache(snippet):
         # INCLUDE
 
 
+class performance_get_spark_version(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Get the Spark version"
+        self.category = "Performance"
+        self.dataset = "UNUSED"
+        self.priority = 100
+
+    def snippet(self, df):
+        print(spark.sparkContext.version)
+        return spark.sparkContext.version
+
+
 class performance_partitioning(snippet):
     def __init__(self):
         super().__init__()
-        self.name = "Change DataFrame partitioning"
+        self.name = "Change Number of DataFrame Partitions"
         self.category = "Performance"
         self.dataset = "auto-mpg.csv"
         self.priority = 300
@@ -1800,26 +1933,13 @@ class performance_spark_change_configuration(snippet):
         spark = spark_builder.getOrCreate()
 
 
-class performance_get_spark_version(snippet):
-    def __init__(self):
-        super().__init__()
-        self.name = "Get the Spark version"
-        self.category = "Performance"
-        self.dataset = "UNUSED"
-        self.priority = 100
-
-    def snippet(self, df):
-        print(spark.sparkContext.version)
-        return spark.sparkContext.version
-
-
 class performance_reduce_dataframe_partitions(snippet):
     def __init__(self):
         super().__init__()
         self.name = "Coalesce DataFrame partitions"
         self.category = "Performance"
         self.dataset = "auto-mpg.csv"
-        self.priority = 200
+        self.priority = 210
 
     def snippet(self, df):
         import math
@@ -1827,6 +1947,93 @@ class performance_reduce_dataframe_partitions(snippet):
         target_partitions = math.ceil(df.rdd.getNumPartitions() / 2)
         df = df.coalesce(target_partitions)
         return df
+
+
+class performance_partition_by_value(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Partition by a Column Value"
+        self.category = "Performance"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 200
+
+    def snippet(self, df):
+        # rows is an iterable, e.g. itertools.chain
+        def number_in_partition(rows):
+            try:
+                first_row = next(rows)
+                partition_size = sum(1 for x in rows) + 1
+                partition_value = first_row.modelyear
+                print(f"Partition {partition_value} has {partition_size} records")
+            except StopIteration:
+                print("Empty partition")
+
+        df = df.repartition(20, "modelyear")
+        df.foreachPartition(number_in_partition)
+        # EXCLUDE
+        return """Partition 82 has 31 records
+Partition 76 has 34 records
+Partition 77 has 28 records
+Partition 80 has 29 records
+Partition 81 has 29 records
+Partition 70 has 29 records
+Partition 72 has 55 records
+Partition 78 has 36 records
+Empty partition
+Empty partition
+Empty partition
+Partition 75 has 30 records
+Empty partition
+Partition 71 has 68 records
+Partition 79 has 29 records
+Empty partition
+Empty partition
+Empty partition
+Empty partition
+Empty partition
+"""
+        # INCLUDE
+
+
+# XXX: Should find some solution for hard-coded output.
+class performance_partition_by_range(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Range Partition a DataFrame"
+        self.category = "Performance"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 230
+
+    def snippet(self, df):
+        from pyspark.sql.functions import col
+
+        # rows is an iterable, e.g. itertools.chain
+        def count_in_partition(rows):
+            my_years = set()
+            number_in_partition = 0
+            for row in rows:
+                my_years.add(row.modelyear)
+                number_in_partition += 1
+            seen_years = sorted(list(my_years))
+            if len(seen_years) > 0:
+                seen_values = ",".join(seen_years)
+                print(
+                    f"This partition has {number_in_partition} records with years {seen_values}"
+                )
+            else:
+                print("Empty partition")
+
+        number_of_partitions = 5
+        df = df.repartitionByRange(number_of_partitions, col("modelyear"))
+        df.foreachPartition(count_in_partition)
+        # EXCLUDE
+        return """
+This partition has 60 records with years 81,82
+This partition has 62 records with years 76,77
+This partition has 85 records with years 70,71,72
+This partition has 97 records with years 73,74,75
+This partition has 94 records with years 78,79,80"""
+        # INCLUDE
 
 
 class performance_increase_heap_space(snippet):
@@ -2008,6 +2215,85 @@ class profile_numeric_max(snippet):
         exprs = {x[0]: "max" for x in df.dtypes if x[1] in numerics}
         result = df.agg(exprs)
         return result
+
+
+class profile_numeric_median(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Compute median values of all numeric columns"
+        self.category = "Data Profiling"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 500
+        self.preconvert = True
+
+    def snippet(self, df):
+        # Register as a table to access SQL median.
+        df.registerTempTable("profile_median")
+
+        numerics = set(["decimal", "double", "float", "integer", "long", "short"])
+        names = []
+        for name, dtype in df.dtypes:
+            if dtype not in numerics:
+                continue
+            names.append(name)
+
+        generated = ",".join(
+            f"percentile({name}, 0.5) as median_{name}" for name in names
+        )
+        profiled = sqlContext.sql(f"select {generated} from profile_median")
+        return profiled
+
+
+class profile_outliers(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Identify Outliers in a DataFrame"
+        self.category = "Data Profiling"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 600
+        self.preconvert = True
+
+    def snippet(self, df):
+        # This approach uses the Median Absolute Deviation.
+        # Outliers are based on variances in a single numeric column.
+        # Tune outlier sensitivity using z_score_threshold.
+        from pyspark.sql.functions import col, sqrt
+
+        target_column = "mpg"
+        z_score_threshold = 2
+
+        # Compute the median of the target column.
+        target_df = df.select(target_column)
+        target_df.registerTempTable("target_column")
+        profiled = sqlContext.sql(
+            f"select percentile({target_column}, 0.5) as median from target_column"
+        )
+
+        # Compute deviations.
+        deviations = target_df.crossJoin(profiled).withColumn(
+            "deviation", sqrt((target_df[target_column] - profiled["median"]) ** 2)
+        )
+        deviations.registerTempTable("deviations")
+
+        # The Median Absolute Deviation
+        mad = sqlContext.sql(
+            f"select percentile(deviation, 0.5) as mad from deviations"
+        )
+
+        # Add a modified z score to the original DataFrame.
+        df = (
+            df.crossJoin(mad)
+            .crossJoin(profiled)
+            .withColumn(
+                "zscore",
+                0.6745
+                * sqrt((df[target_column] - profiled["median"]) ** 2)
+                / mad["mad"],
+            )
+        )
+
+        df_outliers = df.where(col("zscore") > z_score_threshold)
+        return df_outliers
 
 
 class timeseries_zero_fill(snippet):
@@ -2227,7 +2513,6 @@ class fileprocessing_load_files_oci(snippet):
             StringType,
             TimestampType,
         )
-        import datetime
 
         # Requires an object_store_client object.
         # See https://oracle-cloud-infrastructure-python-sdk.readthedocs.io/en/latest/api/object_storage/client/oci.object_storage.ObjectStorageClient.html
@@ -2299,13 +2584,14 @@ class streaming_connect_kafka_sasl_plain(snippet):
         options = {
             "kafka.sasl.jaas.config": 'org.apache.kafka.common.security.plain.PlainLoginModule required username="USERNAME" password="PASSWORD";',
             "kafka.sasl.mechanism": "PLAIN",
-            "kafka.security.protocol" : "SASL_SSL",
+            "kafka.security.protocol": "SASL_SSL",
             "kafka.bootstrap.servers": "server:9092",
             "group.id": "my_group",
             "subscribe": "my_topic",
         }
         df = spark.readStream.format("kafka").options(**options).load()
         return df
+
 
 class streaming_add_timestamp(snippet):
     def __init__(self):
@@ -2320,6 +2606,7 @@ class streaming_add_timestamp(snippet):
 
         df = df.withColumn("timestamp", current_timestamp())
         return df
+
 
 # Dynamically build a list of all cheats.
 cheat_sheet = []
@@ -2455,11 +2742,11 @@ def get_code_snippet(source):
     include = True
     after_lines = []
     for line in before_lines:
-        if line.startswith("# EXCLUDE"):
+        if line.strip().startswith("# EXCLUDE"):
             include = False
         if include:
             after_lines.append(line)
-        if line.startswith("# INCLUDE"):
+        if line.strip().startswith("# INCLUDE"):
             include = True
 
     cleaned = "\n".join(after_lines)
