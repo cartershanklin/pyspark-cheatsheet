@@ -9,7 +9,7 @@ These snippets use DataFrames loaded from various data sources:
 - customer_spend.csv, a generated time series dataset.
 - date_examples.csv, a generated dataset with various date and time formats.
 
-These snippets were tested against the Spark 3.0.1 API. This page was last updated 2020-11-29 18:41:14.
+These snippets were tested against the Spark 3.0.1 API. This page was last updated 2020-12-05 05:32:49.
 
 Make note of these helpful links:
 - [Built-in Spark SQL Functions](https://spark.apache.org/docs/latest/api/sql/index.html)
@@ -152,10 +152,13 @@ Table of contents
    * [Performance](#performance)
       * [Get the Spark version](#get-the-spark-version)
       * [Cache a DataFrame](#cache-a-dataframe)
-      * [Change Number of DataFrame Partitions](#change-number-of-dataframe-partitions)
-      * [Coalesce DataFrame partitions](#coalesce-dataframe-partitions)
       * [Partition by a Column Value](#partition-by-a-column-value)
       * [Range Partition a DataFrame](#range-partition-a-dataframe)
+      * [Change Number of DataFrame Partitions](#change-number-of-dataframe-partitions)
+      * [Coalesce DataFrame partitions](#coalesce-dataframe-partitions)
+      * [Set the number of shuffle partitions](#set-the-number-of-shuffle-partitions)
+      * [Print Spark configuration properties](#print-spark-configuration-properties)
+      * [Set Spark configuration properties](#set-spark-configuration-properties)
       * [Increase Spark driver/executor heap space](#increase-spark-driverexecutor-heap-space)
 <!--te-->
     
@@ -2879,16 +2882,16 @@ df = df.withColumn("timestamp", current_timestamp())
 +----+---------+------------+----------+------+------------+---------+------+----------+----------+
 | mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname| timestamp|
 +----+---------+------------+----------+------+------------+---------+------+----------+----------+
-|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|2020-11...|
-|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|2020-11...|
-|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|2020-11...|
-|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|2020-11...|
-|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|2020-11...|
-|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|2020-11...|
-|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|2020-11...|
-|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|2020-11...|
-|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|2020-11...|
-|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|2020-11...|
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|2020-12...|
+|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|2020-12...|
+|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|2020-12...|
+|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|2020-12...|
+|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|2020-12...|
+|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|2020-12...|
+|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|2020-12...|
+|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|2020-12...|
+|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|2020-12...|
+|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|2020-12...|
 +----+---------+------------+----------+------+------------+---------+------+----------+----------+
 only showing top 10 rows
 ```
@@ -3152,16 +3155,16 @@ predictions = lr_model.transform(test_df)
 +----------+----+----------+----------+
 |  features| mpg|   carname|prediction|
 +----------+----+----------+----------+
-|[3.0,70...|18.0| maxda rx3|29.6191...|
-|[4.0,68...|29.0|  fiat 128|32.0159...|
-|[4.0,72...|35.0|datsun ...|32.2755...|
-|[4.0,79...|36.0|renault...|31.7310...|
-|[4.0,79...|31.0|datsun ...|30.8702...|
-|[4.0,79...|26.0|volkswa...|30.8013...|
-|[4.0,79...|31.0| fiat x1.9|30.6486...|
-|[4.0,83...|32.0|datsun 710|30.8320...|
-|[4.0,85...|29.0|chevrol...|31.0293...|
-|[4.0,85...|33.5|datsun ...|30.7048...|
+|[3.0,70...|18.0| maxda rx3|29.8359...|
+|[3.0,70...|19.0|mazda r...|28.6753...|
+|[3.0,70...|23.7|mazda r...|28.1702...|
+|[4.0,68...|29.0|  fiat 128|31.9926...|
+|[4.0,79...|31.0| fiat x1.9|30.7129...|
+|[4.0,85...|29.0|chevrol...|30.9795...|
+|[4.0,85...|31.8|datsun 210|30.6318...|
+|[4.0,86...|34.1|maxda g...|30.8274...|
+|[4.0,89...|29.8|vokswag...|31.4874...|
+|[4.0,89...|31.5|volkswa...|30.5402...|
 +----------+----+----------+----------+
 only showing top 10 rows
 ```
@@ -3192,11 +3195,7 @@ assembled = assembled.select(["features", "mpg", "carname"])
 train_df, test_df = assembled.randomSplit([0.7, 0.3])
 
 # Define the model.
-rf = RandomForestRegressor(
-    numTrees=20,
-    featuresCol="features",
-    labelCol="mpg",
-)
+rf = RandomForestRegressor(numTrees=20, featuresCol="features", labelCol="mpg",)
 
 # Train the model.
 rf_model = rf.fit(train_df)
@@ -3205,8 +3204,12 @@ rf_model = rf.fit(train_df)
 predictions = rf_model.transform(test_df)
 
 # Evaluate the model.
-r2 = RegressionEvaluator(labelCol="mpg", predictionCol="prediction", metricName="r2").evaluate(predictions)
-rmse = RegressionEvaluator(labelCol="mpg", predictionCol="prediction", metricName="rmse").evaluate(predictions)
+r2 = RegressionEvaluator(
+    labelCol="mpg", predictionCol="prediction", metricName="r2"
+).evaluate(predictions)
+rmse = RegressionEvaluator(
+    labelCol="mpg", predictionCol="prediction", metricName="rmse"
+).evaluate(predictions)
 print("RMSE={} r2={}".format(rmse, r2))
 
 ```
@@ -3215,16 +3218,16 @@ print("RMSE={} r2={}".format(rmse, r2))
 +----------+----+----------+----------+
 |  features| mpg|   carname|prediction|
 +----------+----+----------+----------+
-|[3.0,70...|23.7|mazda r...|22.3787...|
-|[3.0,80...|21.5|mazda rx-4|21.3819...|
-|[4.0,71...|32.0|toyota ...|34.1479...|
-|[4.0,72...|35.0|datsun ...|33.0823...|
-|[4.0,76...|31.0|toyota ...|35.3256...|
-|[4.0,78...|32.8|mazda g...|36.1497...|
-|[4.0,79...|31.0| fiat x1.9|34.2505...|
-|[4.0,79...|30.0|peugeot...|33.8114...|
-|[4.0,83...|32.0|datsun 710|37.0184...|
-|[4.0,85...|29.0|chevrol...|37.2753...|
+|[3.0,70...|23.7|mazda r...|22.7373...|
+|[4.0,71...|32.0|toyota ...|32.9587...|
+|[4.0,79...|39.1|toyota ...|33.1792...|
+|[4.0,85...|37.0|datsun ...|32.6015...|
+|[4.0,85...|40.8|datsun 210|32.3545...|
+|[4.0,85...|32.0|datsun ...|32.4497...|
+|[4.0,86...|39.0|plymout...|33.4590...|
+|[4.0,86...|37.2|datsun 310|33.4590...|
+|[4.0,86...|46.6| mazda glc|33.1437...|
+|[4.0,89...|29.8|vokswag...|33.5058...|
 +----------+----+----------+----------+
 only showing top 10 rows
 ```
@@ -3286,63 +3289,6 @@ Disk Memory Deserialized 1x Replicated
 
 Set storage level to NONE using an explicit StorageLevel.
 Serialized 1x Replicated
-```
-
-Change Number of DataFrame Partitions
--------------------------------------
-
-```python
-from pyspark.sql.functions import col
-
-df = df.repartition(col("modelyear"))
-number_of_partitions = 5
-df = df.repartitionByRange(number_of_partitions, col("mpg"))
-```
-```
-# Code snippet result:
-+----+---------+------------+----------+------+------------+---------+------+----------+
-| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
-+----+---------+------------+----------+------+------------+---------+------+----------+
-|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|
-|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|
-|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|
-|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|
-|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|
-|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|
-|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|
-|15.0|        8|       383.0|     170.0| 3563.|        10.0|       70|     1|dodge c...|
-|14.0|        8|       340.0|     160.0| 3609.|         8.0|       70|     1|plymout...|
-|15.0|        8|       400.0|     150.0| 3761.|         9.5|       70|     1|chevrol...|
-+----+---------+------------+----------+------+------------+---------+------+----------+
-only showing top 10 rows
-```
-
-Coalesce DataFrame partitions
------------------------------
-
-```python
-import math
-
-target_partitions = math.ceil(df.rdd.getNumPartitions() / 2)
-df = df.coalesce(target_partitions)
-```
-```
-# Code snippet result:
-+----+---------+------------+----------+------+------------+---------+------+----------+
-| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
-+----+---------+------------+----------+------+------------+---------+------+----------+
-|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|
-|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|
-|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|
-|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|
-|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|
-|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|
-|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|
-|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|
-|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|
-|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|
-+----+---------+------------+----------+------+------------+---------+------+----------+
-only showing top 10 rows
 ```
 
 Partition by a Column Value
@@ -3421,6 +3367,116 @@ This partition has 85 records with years 70,71,72
 This partition has 97 records with years 73,74,75
 This partition has 94 records with years 78,79,80
 ```
+
+Change Number of DataFrame Partitions
+-------------------------------------
+
+```python
+from pyspark.sql.functions import col
+
+df = df.repartition(col("modelyear"))
+number_of_partitions = 5
+df = df.repartitionByRange(number_of_partitions, col("mpg"))
+```
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+----------+------+------------+---------+------+----------+
+|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|
+|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|
+|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|
+|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|
+|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|
+|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|
+|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|
+|15.0|        8|       383.0|     170.0| 3563.|        10.0|       70|     1|dodge c...|
+|14.0|        8|       340.0|     160.0| 3609.|         8.0|       70|     1|plymout...|
+|15.0|        8|       400.0|     150.0| 3761.|         9.5|       70|     1|chevrol...|
++----+---------+------------+----------+------+------------+---------+------+----------+
+only showing top 10 rows
+```
+
+Coalesce DataFrame partitions
+-----------------------------
+
+```python
+import math
+
+target_partitions = math.ceil(df.rdd.getNumPartitions() / 2)
+df = df.coalesce(target_partitions)
+```
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+----------+------+------------+---------+------+----------+
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|
+|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|
+|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|
+|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|
+|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|
+|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|
+|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|
+|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|
+|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|
+|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|
++----+---------+------------+----------+------+------------+---------+------+----------+
+only showing top 10 rows
+```
+
+Set the number of shuffle partitions
+------------------------------------
+
+```python
+# Default shuffle partitions is usually 200.
+grouped1 = df.groupBy("cylinders").count()
+print("{} partition(s)".format(grouped1.rdd.getNumPartitions()))
+
+# Set the shuffle partitions to 20.
+# This can reduce the number of files generated when saving DataFrames.
+spark.conf.set("spark.sql.shuffle.partitions", 20)
+
+grouped2 = df.groupBy("cylinders").count()
+print("{} partition(s)".format(grouped2.rdd.getNumPartitions()))
+```
+```
+# Code snippet result:
+200 partition(s)
+20 partition(s)
+```
+
+Print Spark configuration properties
+------------------------------------
+
+```python
+print(spark.sparkContext.getConf().getAll())
+```
+```
+# Code snippet result:
+[('spark.driver.port', '44003'), ('spark.rdd.compress', 'True'), ('spark.serializer.objectStreamReset', '100'), ('spark.master', 'local[*]'), ('spark.submit.pyFiles', ''), ('spark.executor.id', 'driver'), ('spark.submit.deployMode', 'client'), ('spark.app.name', 'cheatsheet'), ('spark.app.id', 'local-1607175167863'), ('spark.ui.showConsoleProgress', 'true'), ('spark.driver.host', '192.168.1.40')]
+```
+
+Set Spark configuration properties
+----------------------------------
+
+```python
+key = "spark.hadoop.mapreduce.fileoutputcommitter.algorithm.version"
+value = 2
+
+# Wrong! Settings cannot be changed this way.
+# spark.sparkContext.getConf().set(key, value)
+
+# Correct.
+spark.conf.set(key, value)
+
+# Alternatively: Set at build time.
+# Some settings can only be made at build time.
+spark_builder = SparkSession.builder.appName("My App")
+spark_builder.config(key, value)
+spark = spark_builder.getOrCreate()
+```
+
 
 Increase Spark driver/executor heap space
 -----------------------------------------
