@@ -1689,27 +1689,6 @@ class missing_count_of_null_nan(snippet):
         )
         return result
 
-class performance_shuffle_partitions(snippet):
-    def __init__(self):
-        super().__init__()
-        self.name = "Set the number of shuffle partitions"
-        self.category = "Performance"
-        self.dataset = "auto-mpg.csv"
-        self.priority = 401
-
-    def snippet(self, df):
-        # Default shuffle partitions is usually 200.
-        grouped1 = df.groupBy("cylinders").count()
-        print("{} partition(s)".format(grouped1.rdd.getNumPartitions()))
-
-        # Set the shuffle partitions to 20.
-        # This can reduce the number of files generated when saving DataFrames.
-        spark.conf.set("spark.sql.shuffle.partitions", 20)
-
-        grouped2 = df.groupBy("cylinders").count()
-        print("{} partition(s)".format(grouped2.rdd.getNumPartitions()))
-        return [ "200 partition(s)", "20 partition(s)" ]
-
 
 class ml_linear_regression(snippet):
     def __init__(self):
@@ -1797,11 +1776,7 @@ class ml_random_forest_regression(snippet):
         train_df, test_df = assembled.randomSplit([0.7, 0.3])
 
         # Define the model.
-        rf = RandomForestRegressor(
-            numTrees=20,
-            featuresCol="features",
-            labelCol="mpg",
-        )
+        rf = RandomForestRegressor(numTrees=20, featuresCol="features", labelCol="mpg",)
 
         # Train the model.
         rf_model = rf.fit(train_df)
@@ -1810,11 +1785,28 @@ class ml_random_forest_regression(snippet):
         predictions = rf_model.transform(test_df)
 
         # Evaluate the model.
-        r2 = RegressionEvaluator(labelCol="mpg", predictionCol="prediction", metricName="r2").evaluate(predictions)
-        rmse = RegressionEvaluator(labelCol="mpg", predictionCol="prediction", metricName="rmse").evaluate(predictions)
+        r2 = RegressionEvaluator(
+            labelCol="mpg", predictionCol="prediction", metricName="r2"
+        ).evaluate(predictions)
+        rmse = RegressionEvaluator(
+            labelCol="mpg", predictionCol="prediction", metricName="rmse"
+        ).evaluate(predictions)
         print("RMSE={} r2={}".format(rmse, r2))
 
         return predictions
+
+
+class performance_get_spark_version(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Get the Spark version"
+        self.category = "Performance"
+        self.dataset = "UNUSED"
+        self.priority = 100
+
+    def snippet(self, df):
+        print(spark.sparkContext.version)
+        return spark.sparkContext.version
 
 
 class performance_cache(snippet):
@@ -1823,7 +1815,7 @@ class performance_cache(snippet):
         self.name = "Cache a DataFrame"
         self.category = "Performance"
         self.dataset = "auto-mpg.csv"
-        self.priority = 400
+        self.priority = 200
 
     def snippet(self, df):
         from pyspark import StorageLevel
@@ -1864,98 +1856,13 @@ class performance_cache(snippet):
         # INCLUDE
 
 
-class performance_get_spark_version(snippet):
-    def __init__(self):
-        super().__init__()
-        self.name = "Get the Spark version"
-        self.category = "Performance"
-        self.dataset = "UNUSED"
-        self.priority = 100
-
-    def snippet(self, df):
-        print(spark.sparkContext.version)
-        return spark.sparkContext.version
-
-
-class performance_partitioning(snippet):
-    def __init__(self):
-        super().__init__()
-        self.name = "Change Number of DataFrame Partitions"
-        self.category = "Performance"
-        self.dataset = "auto-mpg.csv"
-        self.priority = 300
-
-    def snippet(self, df):
-        from pyspark.sql.functions import col
-
-        df = df.repartition(col("modelyear"))
-        number_of_partitions = 5
-        df = df.repartitionByRange(number_of_partitions, col("mpg"))
-        return df
-
-
-class performance_spark_get_configuration(snippet):
-    def __init__(self):
-        super().__init__()
-        self.name = "Print Spark configuration properties"
-        self.category = "Performance"
-        self.dataset = "UNUSED"
-        self.priority = 600
-
-    def snippet(self, df):
-        print(spark.sparkContext.getConf().getAll())
-        return str(spark.sparkContext.getConf().getAll())
-
-
-class performance_spark_change_configuration(snippet):
-    def __init__(self):
-        super().__init__()
-        self.name = "Set Spark configuration properties"
-        self.category = "Performance"
-        self.dataset = "UNUSED"
-        self.priority = 610
-        self.skip_run = True
-
-    def snippet(self, df):
-        key = "spark.hadoop.mapreduce.fileoutputcommitter.algorithm.version"
-        value = 2
-
-        # Wrong! Settings cannot be changed this way.
-        # spark.sparkContext.getConf().set(key, value)
-
-        # Correct.
-        spark.conf.set(key, value)
-
-        # Alternatively: Set at build time.
-        # Some settings can only be made at build time.
-        spark_builder = SparkSession.builder.appName("My App")
-        spark_builder.config(key, value)
-        spark = spark_builder.getOrCreate()
-
-
-class performance_reduce_dataframe_partitions(snippet):
-    def __init__(self):
-        super().__init__()
-        self.name = "Coalesce DataFrame partitions"
-        self.category = "Performance"
-        self.dataset = "auto-mpg.csv"
-        self.priority = 210
-
-    def snippet(self, df):
-        import math
-
-        target_partitions = math.ceil(df.rdd.getNumPartitions() / 2)
-        df = df.coalesce(target_partitions)
-        return df
-
-
 class performance_partition_by_value(snippet):
     def __init__(self):
         super().__init__()
         self.name = "Partition by a Column Value"
         self.category = "Performance"
         self.dataset = "auto-mpg.csv"
-        self.priority = 200
+        self.priority = 300
 
     def snippet(self, df):
         # rows is an iterable, e.g. itertools.chain
@@ -2002,7 +1909,7 @@ class performance_partition_by_range(snippet):
         self.name = "Range Partition a DataFrame"
         self.category = "Performance"
         self.dataset = "auto-mpg.csv"
-        self.priority = 230
+        self.priority = 310
 
     def snippet(self, df):
         from pyspark.sql.functions import col
@@ -2036,13 +1943,107 @@ This partition has 94 records with years 78,79,80"""
         # INCLUDE
 
 
+class performance_partitioning(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Change Number of DataFrame Partitions"
+        self.category = "Performance"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 320
+
+    def snippet(self, df):
+        from pyspark.sql.functions import col
+
+        df = df.repartition(col("modelyear"))
+        number_of_partitions = 5
+        df = df.repartitionByRange(number_of_partitions, col("mpg"))
+        return df
+
+
+class performance_reduce_dataframe_partitions(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Coalesce DataFrame partitions"
+        self.category = "Performance"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 330
+
+    def snippet(self, df):
+        import math
+
+        target_partitions = math.ceil(df.rdd.getNumPartitions() / 2)
+        df = df.coalesce(target_partitions)
+        return df
+
+
+class performance_shuffle_partitions(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Set the number of shuffle partitions"
+        self.category = "Performance"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 340
+
+    def snippet(self, df):
+        # Default shuffle partitions is usually 200.
+        grouped1 = df.groupBy("cylinders").count()
+        print("{} partition(s)".format(grouped1.rdd.getNumPartitions()))
+
+        # Set the shuffle partitions to 20.
+        # This can reduce the number of files generated when saving DataFrames.
+        spark.conf.set("spark.sql.shuffle.partitions", 20)
+
+        grouped2 = df.groupBy("cylinders").count()
+        print("{} partition(s)".format(grouped2.rdd.getNumPartitions()))
+        return ["200 partition(s)", "20 partition(s)"]
+
+
+class performance_spark_get_configuration(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Print Spark configuration properties"
+        self.category = "Performance"
+        self.dataset = "UNUSED"
+        self.priority = 400
+
+    def snippet(self, df):
+        print(spark.sparkContext.getConf().getAll())
+        return str(spark.sparkContext.getConf().getAll())
+
+
+class performance_spark_change_configuration(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Set Spark configuration properties"
+        self.category = "Performance"
+        self.dataset = "UNUSED"
+        self.priority = 410
+        self.skip_run = True
+
+    def snippet(self, df):
+        key = "spark.hadoop.mapreduce.fileoutputcommitter.algorithm.version"
+        value = 2
+
+        # Wrong! Settings cannot be changed this way.
+        # spark.sparkContext.getConf().set(key, value)
+
+        # Correct.
+        spark.conf.set(key, value)
+
+        # Alternatively: Set at build time.
+        # Some settings can only be made at build time.
+        spark_builder = SparkSession.builder.appName("My App")
+        spark_builder.config(key, value)
+        spark = spark_builder.getOrCreate()
+
+
 class performance_increase_heap_space(snippet):
     def __init__(self):
         super().__init__()
         self.name = "Increase Spark driver/executor heap space"
         self.category = "Performance"
         self.dataset = "auto-mpg.csv"
-        self.priority = 1000
+        self.priority = 10000
 
     def snippet(self, df):
         # Memory configuration depends entirely on your runtime.
