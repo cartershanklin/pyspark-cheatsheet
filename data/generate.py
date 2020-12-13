@@ -11,6 +11,7 @@ import scipy.stats
 
 import numpy as np
 
+
 def date_examples():
     with open("date_examples_dates.txt") as fd:
         all_dates = fd.read().split("\n")[:-1]
@@ -21,8 +22,9 @@ def date_examples():
         writer = csv.writer(fd)
         writer.writerow(["date"])
         for entry in itertools.product(all_dates, all_times):
-            text = ' '.join(entry)
+            text = " ".join(entry)
             writer.writerow([text])
+
 
 def customer_spend():
     number_customers = 100
@@ -49,29 +51,56 @@ def customer_spend():
                     spend_dollars = (scipy.stats.f.rvs(4, 5) - 0.5) * multiplier
                     if spend_dollars <= 0:
                         continue
-                    spend_dollars = '${:,.2f}'.format(spend_dollars)
-                    record = [ date_string, customer_id, spend_dollars ]
+                    spend_dollars = "${:,.2f}".format(spend_dollars)
+                    record = [date_string, customer_id, spend_dollars]
                     writer.writerow(record)
             current_date += datetime.timedelta(days=1)
 
+
 def json_example():
     from faker import Faker
+
     f = Faker()
     records = []
     for i in range(1000):
-        records.append(dict(
-            timestamp=f.unix_time(),
-            uri=f.uri(),
-            session=f.uuid4()[:8],
-            user=f.uuid4()[:6] if random.random() > 0.4 else None,
-            client=dict(browser=f.chrome(), adblock=(True if random.random() > 0.7 else False)),
-            country=f.country(),
-        ))
+        records.append(
+            dict(
+                timestamp=f.unix_time(),
+                uri=f.uri(),
+                session=f.uuid4()[:8],
+                user=f.uuid4()[:6] if random.random() > 0.4 else None,
+                client=dict(
+                    browser=f.chrome(),
+                    adblock=(True if random.random() > 0.7 else False),
+                ),
+                country=f.country(),
+            )
+        )
     with open("weblog.jsonl", "w") as fd:
         for record in records:
             fd.write(json.dumps(record))
             fd.write("\n")
 
+
+def mixed_csv_json():
+    from faker import Faker
+
+    f = Faker()
+    with open("inline_json.csv", "w") as fd:
+        writer = csv.writer(fd)
+        writer.writerow(["id", "attributes"])
+        for i in range(1000):
+            record = dict(
+                name=f.name(),
+                age=f.random_int(25, 85),
+                address=f.address(),
+                country=f.country(),
+            )
+            record_text = json.dumps(record)
+            writer.writerow([i + 1, record_text])
+
+
 customer_spend()
 date_examples()
 json_example()
+mixed_csv_json()
