@@ -34,28 +34,32 @@ Dealing with Dates:
     priority: 9
     description: Parsing and processing dates and times.
 
-Pandas:
+Unstructured Analytics:
     priority: 10
+    description: Analyzing unstructured data like JSON, XML, etc.
+
+Pandas:
+    priority: 12
     description: Using Python's Pandas library to augment Spark. Some operations require the pyarrow library.
 
 Data Profiling:
-    priority: 11
+    priority: 14
     description: Extracting key statistics out of a body of data.
 
 Spark Streaming:
-    priority: 12
+    priority: 16
     description: Spark Streaming (Focuses on Structured Streaming).
 
 Time Series:
-    priority: 13
+    priority: 18
     description: Techniques for dealing with time series data.
 
 Machine Learning:
-    priority: 14
+    priority: 20
     description: Machine Learning
 
 Performance:
-    priority: 15
+    priority: 22
     description: A few performance tips and tricks.
 
 Preamble:

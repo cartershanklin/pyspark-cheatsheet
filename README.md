@@ -9,7 +9,7 @@ These snippets use DataFrames loaded from various data sources:
 - customer_spend.csv, a generated time series dataset.
 - date_examples.csv, a generated dataset with various date and time formats.
 
-These snippets were tested against the Spark 3.0.1 API. This page was last updated 2020-12-05 05:32:49.
+These snippets were tested against the Spark 3.0.1 API. This page was last updated 2020-12-13 04:25:55.
 
 Make note of these helpful links:
 - [Built-in Spark SQL Functions](https://spark.apache.org/docs/latest/api/sql/index.html)
@@ -65,7 +65,6 @@ Table of contents
       * [DataFrame Flatmap example](#dataframe-flatmap-example)
       * [Create a custom UDF](#create-a-custom-udf)
    * [Transforming Data](#transforming-data)
-      * [Extract data from a string using a regular expression](#extract-data-from-a-string-using-a-regular-expression)
       * [Extract data from a string using a regular expression](#extract-data-from-a-string-using-a-regular-expression)
       * [Fill NULL values in specific columns](#fill-null-values-in-specific-columns)
       * [Fill NULL values with column average](#fill-null-values-with-column-average)
@@ -123,6 +122,10 @@ Table of contents
       * [Get the last day of the current month](#get-the-last-day-of-the-current-month)
       * [Convert UNIX (seconds since epoch) timestamp to date](#convert-unix-seconds-since-epoch-timestamp-to-date)
       * [Load a CSV file with complex dates into a DataFrame](#load-a-csv-file-with-complex-dates-into-a-dataframe)
+   * [Unstructured Analytics](#unstructured-analytics)
+      * [Flatten top level text fields in a JSONl document](#flatten-top-level-text-fields-in-a-jsonl-document)
+      * [Flatten top level text fields from a JSON column](#flatten-top-level-text-fields-from-a-json-column)
+      * [Unnest an array of complex structures](#unnest-an-array-of-complex-structures)
    * [Pandas](#pandas)
       * [Convert Spark DataFrame to Pandas DataFrame](#convert-spark-dataframe-to-pandas-dataframe)
       * [Convert Pandas DataFrame to Spark DataFrame](#convert-pandas-dataframe-to-spark-dataframe)
@@ -1074,46 +1077,6 @@ only showing top 10 rows
 Transforming Data
 =================
 Data conversions and other modifications.
-
-Extract data from a string using a regular expression
------------------------------------------------------
-
-```python
-from pyspark.sql.functions import col, regexp_extract
-
-group = 0
-df = (
-    df.withColumn(
-        "identifier", regexp_extract(col("carname"), "(\S?\d+)", group)
-    )
-    .drop("acceleration")
-    .drop("cylinders")
-    .drop("displacement")
-    .drop("modelyear")
-    .drop("mpg")
-    .drop("origin")
-    .drop("horsepower")
-    .drop("weight")
-)
-```
-```
-# Code snippet result:
-+----------+----------+
-|   carname|identifier|
-+----------+----------+
-|chevrol...|          |
-|buick s...|       320|
-|plymout...|          |
-|amc reb...|          |
-|ford to...|          |
-|ford ga...|       500|
-|chevrol...|          |
-|plymout...|          |
-|pontiac...|          |
-|amc amb...|          |
-+----------+----------+
-only showing top 10 rows
-```
 
 Extract data from a string using a regular expression
 -----------------------------------------------------
@@ -2541,6 +2504,150 @@ df = df.withColumn("parsed", date_convert(df.date))
 only showing top 10 rows
 ```
 
+Unstructured Analytics
+======================
+Analyzing unstructured data like JSON, XML, etc.
+
+Flatten top level text fields in a JSONl document
+-------------------------------------------------
+
+```python
+from pyspark.sql.functions import col
+
+base = spark.read.json("data/financial.jsonl")
+target_json_fields = [
+    col("symbol").alias("symbol"),
+    col("quoteType.longName").alias("longName"),
+    col("price.marketCap.raw").alias("marketCap"),
+    col("summaryDetail.previousClose.raw").alias("previousClose"),
+    col("summaryDetail.fiftyTwoWeekHigh.raw").alias("fiftyTwoWeekHigh"),
+    col("summaryDetail.fiftyTwoWeekLow.raw").alias("fiftyTwoWeekLow"),
+    col("summaryDetail.trailingPE.raw").alias("trailingPE"),
+]
+df = base.select(target_json_fields)
+```
+```
+# Code snippet result:
++------+----------+----------+-------------+----------------+---------------+----------+
+|symbol|  longName| marketCap|previousClose|fiftyTwoWeekHigh|fiftyTwoWeekLow|trailingPE|
++------+----------+----------+-------------+----------------+---------------+----------+
+|  ACLS|Axcelis...| 747277888|        22.58|            31.5|          12.99| 21.616652|
+|  AMSC|America...| 403171712|        14.69|            18.5|            4.4|      null|
+|   ATH|Athene ...|6210204672|        33.31|           50.43|          13.37| 13.404612|
+|  BLDR|Builder...|3659266048|        31.69|           34.69|            9.0| 17.721876|
+|   BRC|Brady C...|2069810944|        41.27|           59.11|           33.0| 18.997612|
+|  CATC|Cambrid...| 437452224|        64.43|            82.0|           44.2| 14.195144|
+|  CBSH|Commerc...|6501258752|        58.54|           71.92|          45.51|  22.01284|
+|  CFFI|C&F Fin...| 113067632|        29.18|           57.61|           28.0|  6.614728|
+|  CFFN|Capitol...|1613282304|        11.28|           14.57|           8.75| 22.937624|
+|  COHR|Coheren...|2668193024|       112.97|          178.08|          78.21|      null|
++------+----------+----------+-------------+----------------+---------------+----------+
+only showing top 10 rows
+```
+
+Flatten top level text fields from a JSON column
+------------------------------------------------
+
+```python
+from pyspark.sql.functions import col, from_json, schema_of_json
+
+# quote/escape options needed when loading CSV containing JSON.
+base = (
+    spark.read.format("csv")
+    .option("header", True)
+    .option("quote", '"')
+    .option("escape", '"')
+    .load("data/financial.csv")
+)
+
+# Infer JSON schema from one entry in the DataFrame.
+sample_json_document = base.select("financial_data").first()[0]
+schema = schema_of_json(sample_json_document)
+
+# Parse using this schema.
+parsed = base.withColumn("parsed", from_json("financial_data", schema))
+
+# Extract interesting fields.
+target_json_fields = [
+    col("parsed.symbol").alias("symbol"),
+    col("parsed.quoteType.longName").alias("longName"),
+    col("parsed.price.marketCap.raw").alias("marketCap"),
+    col("parsed.summaryDetail.previousClose.raw").alias("previousClose"),
+    col("parsed.summaryDetail.fiftyTwoWeekHigh.raw").alias("fiftyTwoWeekHigh"),
+    col("parsed.summaryDetail.fiftyTwoWeekLow.raw").alias("fiftyTwoWeekLow"),
+    col("parsed.summaryDetail.trailingPE.raw").alias("trailingPE"),
+]
+df = parsed.select(target_json_fields)
+```
+```
+# Code snippet result:
++------+----------+----------+-------------+----------------+---------------+----------+
+|symbol|  longName| marketCap|previousClose|fiftyTwoWeekHigh|fiftyTwoWeekLow|trailingPE|
++------+----------+----------+-------------+----------------+---------------+----------+
+|  ACLS|Axcelis...| 747277888|        22.58|            31.5|          12.99| 21.616652|
+|  AMSC|America...| 403171712|        14.69|            18.5|            4.4|      null|
+|   ATH|Athene ...|6210204672|        33.31|           50.43|          13.37| 13.404612|
+|  BLDR|Builder...|3659266048|         null|            null|           null|      null|
+|   BRC|Brady C...|2069810944|         null|            null|           null|      null|
+|  CATC|Cambrid...| 437452224|         null|            null|           null|      null|
+|  CBSH|Commerc...|6501258752|         null|            null|           null|      null|
+|  CFFI|C&F Fin...| 113067632|         null|            null|           null|      null|
+|  CFFN|Capitol...|1613282304|         null|            null|           null|      null|
+|  COHR|Coheren...|2668193024|       112.97|          178.08|          78.21|      null|
++------+----------+----------+-------------+----------------+---------------+----------+
+only showing top 10 rows
+```
+
+Unnest an array of complex structures
+-------------------------------------
+
+```python
+from pyspark.sql.functions import col, explode
+
+base = spark.read.json("data/financial.jsonl")
+
+# Analyze balance sheet data, which is held in an array of complex types.
+target_json_fields = [
+    col("symbol").alias("symbol"),
+    col("balanceSheetHistoryQuarterly.balanceSheetStatements").alias(
+        "balanceSheetStatements"
+    ),
+]
+selected = base.select(target_json_fields)
+
+# Select a few fields from the balance sheet statement data.
+target_json_fields = [
+    col("symbol").alias("symbol"),
+    col("col.endDate.fmt").alias("endDate"),
+    col("col.cash.raw").alias("cash"),
+    col("col.totalAssets.raw").alias("totalAssets"),
+    col("col.totalLiab.raw").alias("totalLiab"),
+]
+
+# Balance sheet data is in an array, use explode to generate one row per entry.
+df = selected.select("symbol", explode("balanceSheetStatements")).select(
+    target_json_fields
+)
+```
+```
+# Code snippet result:
++------+----------+----------+-----------+----------+
+|symbol|   endDate|      cash|totalAssets| totalLiab|
++------+----------+----------+-----------+----------+
+|  ACLS|2020-06-30| 190340000|  588564000| 143540000|
+|  ACLS|2020-03-31| 174745000|  562573000| 135401000|
+|  ACLS|2019-12-31| 139881000|  548094000| 128667000|
+|  ACLS|2019-09-30| 155317000|  530477000| 122630000|
+|  AMSC|2020-06-30|  20709000|  109670000|  40251000|
+|  AMSC|2020-03-31|  24699000|  124109000|  51890000|
+|  AMSC|2019-12-31|  25481000|  123491000|  46303000|
+|  AMSC|2019-09-30|  52829000|  117443000|  40757000|
+|   ATH|2020-06-30|6240000000| 1832410...|1676020...|
+|   ATH|2020-03-31|5419000000| 1421790...|1316490...|
++------+----------+----------+-----------+----------+
+only showing top 10 rows
+```
+
 Pandas
 ======
 Using Python's Pandas library to augment Spark. Some operations require the pyarrow library.
@@ -2814,9 +2921,7 @@ deviations = target_df.crossJoin(profiled).withColumn(
 deviations.registerTempTable("deviations")
 
 # The Median Absolute Deviation
-mad = sqlContext.sql(
-    f"select percentile(deviation, 0.5) as mad from deviations"
-)
+mad = sqlContext.sql("select percentile(deviation, 0.5) as mad from deviations")
 
 # Add a modified z score to the original DataFrame.
 df = (
@@ -3155,16 +3260,16 @@ predictions = lr_model.transform(test_df)
 +----------+----+----------+----------+
 |  features| mpg|   carname|prediction|
 +----------+----+----------+----------+
-|[3.0,70...|18.0| maxda rx3|29.8359...|
-|[3.0,70...|19.0|mazda r...|28.6753...|
-|[3.0,70...|23.7|mazda r...|28.1702...|
-|[4.0,68...|29.0|  fiat 128|31.9926...|
-|[4.0,79...|31.0| fiat x1.9|30.7129...|
-|[4.0,85...|29.0|chevrol...|30.9795...|
-|[4.0,85...|31.8|datsun 210|30.6318...|
-|[4.0,86...|34.1|maxda g...|30.8274...|
-|[4.0,89...|29.8|vokswag...|31.4874...|
-|[4.0,89...|31.5|volkswa...|30.5402...|
+|[3.0,70...|23.7|mazda r...|27.3410...|
+|[4.0,71...|31.0|toyota ...|31.8562...|
+|[4.0,71...|32.0|toyota ...|31.5760...|
+|[4.0,76...|31.0|toyota ...|33.0287...|
+|[4.0,79...|39.1|toyota ...|32.2367...|
+|[4.0,79...|31.0|datsun ...|30.9173...|
+|[4.0,79...|31.0| fiat x1.9|30.6949...|
+|[4.0,79...|30.0|peugeot...|30.2151...|
+|[4.0,86...|39.0|plymout...|31.3567...|
+|[4.0,86...|34.1|maxda g...|30.8617...|
 +----------+----+----------+----------+
 only showing top 10 rows
 ```
@@ -3195,7 +3300,11 @@ assembled = assembled.select(["features", "mpg", "carname"])
 train_df, test_df = assembled.randomSplit([0.7, 0.3])
 
 # Define the model.
-rf = RandomForestRegressor(numTrees=20, featuresCol="features", labelCol="mpg",)
+rf = RandomForestRegressor(
+    numTrees=20,
+    featuresCol="features",
+    labelCol="mpg",
+)
 
 # Train the model.
 rf_model = rf.fit(train_df)
@@ -3218,16 +3327,16 @@ print("RMSE={} r2={}".format(rmse, r2))
 +----------+----+----------+----------+
 |  features| mpg|   carname|prediction|
 +----------+----+----------+----------+
-|[3.0,70...|23.7|mazda r...|22.7373...|
-|[4.0,71...|32.0|toyota ...|32.9587...|
-|[4.0,79...|39.1|toyota ...|33.1792...|
-|[4.0,85...|37.0|datsun ...|32.6015...|
-|[4.0,85...|40.8|datsun 210|32.3545...|
-|[4.0,85...|32.0|datsun ...|32.4497...|
-|[4.0,86...|39.0|plymout...|33.4590...|
-|[4.0,86...|37.2|datsun 310|33.4590...|
-|[4.0,86...|46.6| mazda glc|33.1437...|
-|[4.0,89...|29.8|vokswag...|33.5058...|
+|[3.0,70...|19.0|mazda r...|22.4755...|
+|[4.0,71...|32.0|toyota ...|33.2422...|
+|[4.0,72...|35.0|datsun ...|31.9369...|
+|[4.0,79...|39.1|toyota ...|33.7593...|
+|[4.0,79...|26.0|volkswa...|33.4731...|
+|[4.0,79...|31.0| fiat x1.9|34.1088...|
+|[4.0,81...|35.1|honda c...|34.3299...|
+|[4.0,83...|32.0|datsun 710|34.7086...|
+|[4.0,85...|37.0|datsun ...|33.7080...|
+|[4.0,85...|39.4|datsun ...|32.6036...|
 +----------+----+----------+----------+
 only showing top 10 rows
 ```
@@ -3454,7 +3563,7 @@ print(spark.sparkContext.getConf().getAll())
 ```
 ```
 # Code snippet result:
-[('spark.driver.port', '44003'), ('spark.rdd.compress', 'True'), ('spark.serializer.objectStreamReset', '100'), ('spark.master', 'local[*]'), ('spark.submit.pyFiles', ''), ('spark.executor.id', 'driver'), ('spark.submit.deployMode', 'client'), ('spark.app.name', 'cheatsheet'), ('spark.app.id', 'local-1607175167863'), ('spark.ui.showConsoleProgress', 'true'), ('spark.driver.host', '192.168.1.40')]
+[('spark.rdd.compress', 'True'), ('spark.serializer.objectStreamReset', '100'), ('spark.master', 'local[*]'), ('spark.driver.port', '42889'), ('spark.submit.pyFiles', ''), ('spark.executor.id', 'driver'), ('spark.submit.deployMode', 'client'), ('spark.app.name', 'cheatsheet'), ('spark.app.id', 'local-1607862353883'), ('spark.ui.showConsoleProgress', 'true'), ('spark.driver.host', '192.168.1.40')]
 ```
 
 Set Spark configuration properties

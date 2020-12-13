@@ -1411,6 +1411,113 @@ class dates_complexdate(snippet):
         return df
 
 
+class unstructured_json_top_level_map(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Flatten top level text fields in a JSONl document"
+        self.category = "Unstructured Analytics"
+        self.dataset = "UNUSED"
+        self.priority = 100
+
+    def snippet(self, df):
+        from pyspark.sql.functions import col
+
+        # Load JSONl into a DataFrame. Schema is inferred automatically.
+        base = spark.read.json("data/financial.jsonl")
+
+        # Extract interesting fields. Alias keeps columns readable.
+        target_json_fields = [
+            col("symbol").alias("symbol"),
+            col("quoteType.longName").alias("longName"),
+            col("price.marketCap.raw").alias("marketCap"),
+            col("summaryDetail.previousClose.raw").alias("previousClose"),
+            col("summaryDetail.fiftyTwoWeekHigh.raw").alias("fiftyTwoWeekHigh"),
+            col("summaryDetail.fiftyTwoWeekLow.raw").alias("fiftyTwoWeekLow"),
+            col("summaryDetail.trailingPE.raw").alias("trailingPE"),
+        ]
+        df = base.select(target_json_fields)
+        return df
+
+
+class unstructured_json_column_map(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Flatten top level text fields from a JSON column"
+        self.category = "Unstructured Analytics"
+        self.dataset = "UNUSED"
+        self.priority = 110
+
+    def snippet(self, df):
+        from pyspark.sql.functions import col, from_json, schema_of_json
+
+        # quote/escape options needed when loading CSV containing JSON.
+        base = (
+            spark.read.format("csv")
+            .option("header", True)
+            .option("quote", '"')
+            .option("escape", '"')
+            .load("data/financial.csv")
+        )
+
+        # Infer JSON schema from one entry in the DataFrame.
+        sample_json_document = base.select("financial_data").first()[0]
+        schema = schema_of_json(sample_json_document)
+
+        # Parse using this schema.
+        parsed = base.withColumn("parsed", from_json("financial_data", schema))
+
+        # Extract interesting fields.
+        target_json_fields = [
+            col("parsed.symbol").alias("symbol"),
+            col("parsed.quoteType.longName").alias("longName"),
+            col("parsed.price.marketCap.raw").alias("marketCap"),
+            col("parsed.summaryDetail.previousClose.raw").alias("previousClose"),
+            col("parsed.summaryDetail.fiftyTwoWeekHigh.raw").alias("fiftyTwoWeekHigh"),
+            col("parsed.summaryDetail.fiftyTwoWeekLow.raw").alias("fiftyTwoWeekLow"),
+            col("parsed.summaryDetail.trailingPE.raw").alias("trailingPE"),
+        ]
+        df = parsed.select(target_json_fields)
+        return df
+
+
+class unstructured_json_unnest_complex_array(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Unnest an array of complex structures"
+        self.category = "Unstructured Analytics"
+        self.dataset = "UNUSED"
+        self.priority = 200
+
+    def snippet(self, df):
+        from pyspark.sql.functions import col, explode
+
+        base = spark.read.json("data/financial.jsonl")
+
+        # Analyze balance sheet data, which is held in an array of complex types.
+        target_json_fields = [
+            col("symbol").alias("symbol"),
+            col("balanceSheetHistoryQuarterly.balanceSheetStatements").alias(
+                "balanceSheetStatements"
+            ),
+        ]
+        selected = base.select(target_json_fields)
+
+        # Select a few fields from the balance sheet statement data.
+        target_json_fields = [
+            col("symbol").alias("symbol"),
+            col("col.endDate.fmt").alias("endDate"),
+            col("col.cash.raw").alias("cash"),
+            col("col.totalAssets.raw").alias("totalAssets"),
+            col("col.totalLiab.raw").alias("totalLiab"),
+        ]
+
+        # Balance sheet data is in an array, use explode to generate one row per entry.
+        df = selected.select("symbol", explode("balanceSheetStatements")).select(
+            target_json_fields
+        )
+        return df
+
+
 class loadsave_to_parquet(snippet):
     def __init__(self):
         super().__init__()
@@ -1776,7 +1883,11 @@ class ml_random_forest_regression(snippet):
         train_df, test_df = assembled.randomSplit([0.7, 0.3])
 
         # Define the model.
-        rf = RandomForestRegressor(numTrees=20, featuresCol="features", labelCol="mpg",)
+        rf = RandomForestRegressor(
+            numTrees=20,
+            featuresCol="features",
+            labelCol="mpg",
+        )
 
         # Train the model.
         rf_model = rf.fit(train_df)
@@ -2277,9 +2388,7 @@ class profile_outliers(snippet):
         deviations.registerTempTable("deviations")
 
         # The Median Absolute Deviation
-        mad = sqlContext.sql(
-            f"select percentile(deviation, 0.5) as mad from deviations"
-        )
+        mad = sqlContext.sql("select percentile(deviation, 0.5) as mad from deviations")
 
         # Add a modified z score to the original DataFrame.
         df = (
@@ -2561,15 +2670,6 @@ class fileprocessing_transform_images(snippet):
         files = [[x] for x in glob.glob("data/resize_image?.png")]
         df = spark.createDataFrame(files)
         df.foreach(resize_an_image)
-
-
-# Dynamically build a list of all cheats.
-cheat_sheet = []
-clsmembers = inspect.getmembers(sys.modules[__name__], inspect.isclass)
-for name, clazz in clsmembers:
-    classes = [str(x) for x in inspect.getmro(clazz)[1:]]
-    if "<class '__main__.snippet'>" in classes:
-        cheat_sheet.append(clazz())
 
 
 class streaming_connect_kafka_sasl_plain(snippet):
