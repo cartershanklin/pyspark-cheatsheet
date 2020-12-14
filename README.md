@@ -9,7 +9,7 @@ These snippets use DataFrames loaded from various data sources:
 - customer_spend.csv, a generated time series dataset.
 - date_examples.csv, a generated dataset with various date and time formats.
 
-These snippets were tested against the Spark 3.0.1 API. This page was last updated 2020-12-13 04:25:55.
+These snippets were tested against the Spark 3.0.1 API. This page was last updated 2020-12-14 06:03:59.
 
 Make note of these helpful links:
 - [Built-in Spark SQL Functions](https://spark.apache.org/docs/latest/api/sql/index.html)
@@ -152,6 +152,10 @@ Table of contents
    * [Machine Learning](#machine-learning)
       * [A basic Linear Regression model](#a-basic-linear-regression-model)
       * [A basic Random Forest Regression model](#a-basic-random-forest-regression-model)
+      * [Encode string variables before using a VectorAssembler](#encode-string-variables-before-using-a-vectorassembler)
+      * [Get feature importances of a trained model](#get-feature-importances-of-a-trained-model)
+      * [Automatically encode categorical variables](#automatically-encode-categorical-variables)
+      * [Hyperparameter tuning](#hyperparameter-tuning)
    * [Performance](#performance)
       * [Get the Spark version](#get-the-spark-version)
       * [Cache a DataFrame](#cache-a-dataframe)
@@ -2514,7 +2518,10 @@ Flatten top level text fields in a JSONl document
 ```python
 from pyspark.sql.functions import col
 
+# Load JSONl into a DataFrame. Schema is inferred automatically.
 base = spark.read.json("data/financial.jsonl")
+
+# Extract interesting fields. Alias keeps columns readable.
 target_json_fields = [
     col("symbol").alias("symbol"),
     col("quoteType.longName").alias("longName"),
@@ -3260,16 +3267,16 @@ predictions = lr_model.transform(test_df)
 +----------+----+----------+----------+
 |  features| mpg|   carname|prediction|
 +----------+----+----------+----------+
-|[3.0,70...|23.7|mazda r...|27.3410...|
-|[4.0,71...|31.0|toyota ...|31.8562...|
-|[4.0,71...|32.0|toyota ...|31.5760...|
-|[4.0,76...|31.0|toyota ...|33.0287...|
-|[4.0,79...|39.1|toyota ...|32.2367...|
-|[4.0,79...|31.0|datsun ...|30.9173...|
-|[4.0,79...|31.0| fiat x1.9|30.6949...|
-|[4.0,79...|30.0|peugeot...|30.2151...|
-|[4.0,86...|39.0|plymout...|31.3567...|
-|[4.0,86...|34.1|maxda g...|30.8617...|
+|[4.0,68...|29.0|  fiat 128|32.0373...|
+|[4.0,71...|32.0|toyota ...|31.6592...|
+|[4.0,79...|39.1|toyota ...|31.8729...|
+|[4.0,79...|31.0| fiat x1.9|30.3650...|
+|[4.0,79...|30.0|peugeot...|30.2177...|
+|[4.0,85...|29.0|chevrol...|31.2613...|
+|[4.0,85...|37.0|datsun ...|30.7893...|
+|[4.0,85...|40.8|datsun 210|30.1745...|
+|[4.0,85...|33.5|datsun ...|30.5096...|
+|[4.0,85...|32.0|datsun ...|30.3272...|
 +----------+----+----------+----------+
 only showing top 10 rows
 ```
@@ -3327,18 +3334,306 @@ print("RMSE={} r2={}".format(rmse, r2))
 +----------+----+----------+----------+
 |  features| mpg|   carname|prediction|
 +----------+----+----------+----------+
-|[3.0,70...|19.0|mazda r...|22.4755...|
-|[4.0,71...|32.0|toyota ...|33.2422...|
-|[4.0,72...|35.0|datsun ...|31.9369...|
-|[4.0,79...|39.1|toyota ...|33.7593...|
-|[4.0,79...|26.0|volkswa...|33.4731...|
-|[4.0,79...|31.0| fiat x1.9|34.1088...|
-|[4.0,81...|35.1|honda c...|34.3299...|
-|[4.0,83...|32.0|datsun 710|34.7086...|
-|[4.0,85...|37.0|datsun ...|33.7080...|
-|[4.0,85...|39.4|datsun ...|32.6036...|
+|[3.0,70...|19.0|mazda r...|23.6950...|
+|[4.0,71...|32.0|toyota ...|33.8643...|
+|[4.0,79...|30.0|peugeot...|31.7584...|
+|[4.0,85...|29.0|chevrol...|39.0247...|
+|[4.0,85...|39.4|datsun ...|31.9118...|
+|[4.0,90...|24.0|  fiat 128|31.7239...|
+|[4.0,90...|28.0|dodge colt|30.9263...|
+|[4.0,91...|33.0|honda c...|34.5480...|
+|[4.0,91...|38.0|honda c...|33.2562...|
+|[4.0,91...|31.0|mazda g...|33.9701...|
 +----------+----+----------+----------+
 only showing top 10 rows
+```
+
+Encode string variables before using a VectorAssembler
+------------------------------------------------------
+
+```python
+from pyspark.ml import Pipeline
+from pyspark.ml.feature import StringIndexer, VectorAssembler
+from pyspark.ml.regression import RandomForestRegressor
+from pyspark.ml.evaluation import RegressionEvaluator
+from pyspark.sql.functions import udf
+from pyspark.sql.types import StringType
+
+# Add manufacturer name we will use as a string column.
+first_word_udf = udf(lambda x: x.split()[0], StringType())
+df = df.withColumn("manufacturer", first_word_udf(df.carname))
+
+# Strings must be indexed or we will get:
+# pyspark.sql.utils.IllegalArgumentException: Data type string of column manufacturer is not supported.
+#
+# We also encode outside of the main pipeline or else we risk getting:
+#  Caused by: org.apache.spark.SparkException: Unseen label: XXX. To handle unseen labels, set Param handleInvalid to keep.
+#
+# This is because training data is selected randomly and may not have all possible categories.
+manufacturer_encoded = StringIndexer(
+    inputCol="manufacturer", outputCol="manufacturer_encoded"
+)
+encoded_df = manufacturer_encoded.fit(df).transform(df)
+
+# Set up our main ML pipeline.
+columns_to_assemble = [
+    "manufacturer_encoded",
+    "cylinders",
+    "displacement",
+    "horsepower",
+    "weight",
+    "acceleration",
+]
+vector_assembler = VectorAssembler(
+    inputCols=columns_to_assemble,
+    outputCol="features",
+    handleInvalid="skip",
+)
+
+# Random test/train split.
+train_df, test_df = encoded_df.randomSplit([0.7, 0.3])
+
+# Define the model.
+rf = RandomForestRegressor(
+    numTrees=20,
+    featuresCol="features",
+    labelCol="mpg",
+)
+
+# Run the pipeline.
+pipeline = Pipeline(stages=[vector_assembler, rf])
+model = pipeline.fit(train_df)
+
+# Make predictions.
+predictions = model.transform(test_df).select("carname", "mpg", "prediction")
+
+# Select (prediction, true label) and compute test error
+rmse = RegressionEvaluator(
+    labelCol="mpg", predictionCol="prediction", metricName="rmse"
+).evaluate(predictions)
+print("RMSE={}".format(rmse))
+
+```
+```
+# Code snippet result:
++----------+----+----------+
+|   carname| mpg|prediction|
++----------+----+----------+
+|  hi 1200d| 9.0|18.6502...|
+|chevrol...|10.0|13.9315...|
+|dodge d200|11.0|13.6592...|
+|chevrol...|11.0|14.1479...|
+|mercury...|11.0|13.8768...|
+|oldsmob...|12.0|16.1555...|
+|oldsmob...|12.0|15.8661...|
+|buick e...|12.0|13.7624...|
+|ford gr...|13.0|15.7885...|
+|dodge d100|13.0|15.5261...|
++----------+----+----------+
+only showing top 10 rows
+```
+
+Get feature importances of a trained model
+------------------------------------------
+
+```python
+from pyspark.ml import Pipeline
+from pyspark.ml.feature import StringIndexer, VectorAssembler
+from pyspark.ml.regression import RandomForestRegressor
+from pyspark.sql.functions import udf
+from pyspark.sql.types import StringType
+
+# Add manufacturer name we will use as a string column.
+first_word_udf = udf(lambda x: x.split()[0], StringType())
+df = df.withColumn("manufacturer", first_word_udf(df.carname))
+manufacturer_encoded = StringIndexer(
+    inputCol="manufacturer", outputCol="manufacturer_encoded"
+)
+encoded_df = manufacturer_encoded.fit(df).transform(df)
+
+# Set up our main ML pipeline.
+columns_to_assemble = [
+    "manufacturer_encoded",
+    "cylinders",
+    "displacement",
+    "horsepower",
+    "weight",
+    "acceleration",
+]
+vector_assembler = VectorAssembler(
+    inputCols=columns_to_assemble,
+    outputCol="features",
+    handleInvalid="skip",
+)
+
+# Random test/train split.
+train_df, test_df = encoded_df.randomSplit([0.7, 0.3])
+
+# Define the model.
+rf = RandomForestRegressor(
+    numTrees=20,
+    featuresCol="features",
+    labelCol="mpg",
+)
+
+# Run the pipeline.
+pipeline = Pipeline(stages=[vector_assembler, rf])
+model = pipeline.fit(train_df)
+
+# Make predictions.
+predictions = model.transform(test_df).select("carname", "mpg", "prediction")
+
+# Get feature importances.
+real_model = model.stages[1]
+for feature, importance in zip(
+    columns_to_assemble, real_model.featureImportances
+):
+    print("{} contributes {:0.3f}%".format(feature, importance * 100))
+
+```
+```
+# Code snippet result:
+manufacturer_encoded contributes 10.324%
+cylinders contributes 12.338%
+displacement contributes 24.850%
+horsepower contributes 18.823%
+weight contributes 30.816%
+acceleration contributes 2.849%
+```
+
+Automatically encode categorical variables
+------------------------------------------
+
+```python
+from pyspark.ml.feature import StringIndexer, VectorAssembler, VectorIndexer
+from pyspark.ml.regression import RandomForestRegressor
+from pyspark.sql.functions import udf, countDistinct
+from pyspark.sql.types import StringType
+
+# Remove non-numeric columns.
+df = df.drop("carname")
+
+# Profile this DataFrame to get a good value for maxCategories.
+grouped = df.agg(*(countDistinct(c) for c in df.columns))
+grouped.show()
+
+# Assemble all columns except mpg into a vector.
+feature_columns = list(df.columns)
+feature_columns.remove("mpg")
+vector_assembler = VectorAssembler(
+    inputCols=feature_columns,
+    outputCol="features",
+    handleInvalid="skip",
+)
+assembled = vector_assembler.transform(df)
+
+# From profiling the dataset, 15 is a good value for max categories.
+indexer = VectorIndexer(inputCol="features", outputCol="indexed", maxCategories=15)
+indexed = indexer.fit(assembled).transform(assembled)
+
+# Build and train the model.
+train_df, test_df = indexed.randomSplit([0.7, 0.3])
+rf = RandomForestRegressor(
+    numTrees=50,
+    featuresCol="features",
+    labelCol="mpg",
+)
+rf_model = rf.fit(train_df)
+
+# Get feature importances.
+for feature, importance in zip(
+    feature_columns, rf_model.featureImportances
+):
+    print("{} contributes {:0.3f}%".format(feature, importance * 100))
+
+# Make predictions.
+predictions = rf_model.transform(test_df).select("mpg", "prediction")
+```
+```
+# Code snippet result:
++----+----------+
+| mpg|prediction|
++----+----------+
+| 9.0|13.9133...|
+|10.0|13.6545...|
+|11.0|13.8933...|
+|11.0|14.2072...|
+|12.0|13.7936...|
+|12.0|13.2725...|
+|12.0|13.4991...|
+|12.0|13.1346...|
+|13.0|14.5266...|
+|13.0|13.7266...|
++----+----------+
+only showing top 10 rows
+```
+
+Hyperparameter tuning
+---------------------
+
+```python
+from pyspark.ml import Pipeline
+from pyspark.ml.evaluation import RegressionEvaluator
+from pyspark.ml.feature import StringIndexer, VectorAssembler
+from pyspark.ml.regression import RandomForestRegressor
+from pyspark.ml.tuning import CrossValidator, ParamGridBuilder
+from pyspark.sql.functions import udf
+from pyspark.sql.types import StringType
+
+# Add manufacturer name we will use as a string column.
+first_word_udf = udf(lambda x: x.split()[0], StringType())
+df = df.withColumn("manufacturer", first_word_udf(df.carname))
+manufacturer_encoded = StringIndexer(
+    inputCol="manufacturer", outputCol="manufacturer_encoded"
+)
+encoded_df = manufacturer_encoded.fit(df).transform(df)
+
+# Set up our main ML pipeline.
+columns_to_assemble = [
+    "manufacturer_encoded",
+    "cylinders",
+    "displacement",
+    "horsepower",
+    "weight",
+    "acceleration",
+]
+vector_assembler = VectorAssembler(
+    inputCols=columns_to_assemble,
+    outputCol="features",
+    handleInvalid="skip",
+)
+
+# Random test/train split.
+train_df, test_df = encoded_df.randomSplit([0.7, 0.3])
+
+# Define the model.
+rf = RandomForestRegressor(
+    numTrees=20,
+    featuresCol="features",
+    labelCol="mpg",
+)
+
+# Run the pipeline.
+pipeline = Pipeline(stages=[vector_assembler, rf])
+
+# Hyperparameter search.
+paramGrid = ParamGridBuilder().addGrid(rf.numTrees, list(range(20, 100, 10))).build()
+crossval = CrossValidator(estimator=pipeline,
+      estimatorParamMaps=paramGrid,
+      evaluator=RegressionEvaluator(labelCol="mpg", predictionCol="prediction"),
+      numFolds=2)
+
+# Run cross-validation, and choose the best set of parameters.
+model = crossval.fit(train_df)
+
+# Identify the best hyperparameters.
+real_model = model.bestModel.stages[1]
+print("Best model has {} trees.".format(real_model.getNumTrees))
+
+```
+```
+# Code snippet result:
+Best model has 80 trees.
 ```
 
 Performance
@@ -3563,7 +3858,7 @@ print(spark.sparkContext.getConf().getAll())
 ```
 ```
 # Code snippet result:
-[('spark.rdd.compress', 'True'), ('spark.serializer.objectStreamReset', '100'), ('spark.master', 'local[*]'), ('spark.driver.port', '42889'), ('spark.submit.pyFiles', ''), ('spark.executor.id', 'driver'), ('spark.submit.deployMode', 'client'), ('spark.app.name', 'cheatsheet'), ('spark.app.id', 'local-1607862353883'), ('spark.ui.showConsoleProgress', 'true'), ('spark.driver.host', '192.168.1.40')]
+[('spark.rdd.compress', 'True'), ('spark.serializer.objectStreamReset', '100'), ('spark.master', 'local[*]'), ('spark.driver.port', '41753'), ('spark.submit.pyFiles', ''), ('spark.executor.id', 'driver'), ('spark.submit.deployMode', 'client'), ('spark.app.name', 'cheatsheet'), ('spark.ui.showConsoleProgress', 'true'), ('spark.driver.host', '192.168.1.40'), ('spark.app.id', 'local-1607954637806')]
 ```
 
 Set Spark configuration properties

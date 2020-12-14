@@ -55,7 +55,7 @@ class snippet:
             .load(os.path.join("data", self.dataset))
         )
         if self.preconvert:
-            if self.dataset == "auto-mpg.csv":
+            if self.dataset in ("auto-mpg.csv", "auto-mpg-fixed.csv"):
                 from pyspark.sql.functions import col
 
                 for (
@@ -65,6 +65,7 @@ class snippet:
                 ):
                     df = df.withColumn(column_name, col(column_name).cast("double"))
                 df = df.withColumn("modelyear", col("modelyear").cast("int"))
+                df = df.withColumn("origin", col("origin").cast("int"))
             elif self.dataset == "customer_spend.csv":
                 from pyspark.sql.functions import col, to_date, udf
                 from pyspark.sql.types import DecimalType
@@ -1905,6 +1906,284 @@ class ml_random_forest_regression(snippet):
         print("RMSE={} r2={}".format(rmse, r2))
 
         return predictions
+
+
+class ml_string_encode(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Encode string variables before using a VectorAssembler"
+        self.category = "Machine Learning"
+        self.dataset = "auto-mpg-fixed.csv"
+        self.priority = 300
+        self.preconvert = True
+
+    def snippet(self, df):
+        from pyspark.ml import Pipeline
+        from pyspark.ml.feature import StringIndexer, VectorAssembler
+        from pyspark.ml.regression import RandomForestRegressor
+        from pyspark.ml.evaluation import RegressionEvaluator
+        from pyspark.sql.functions import udf
+        from pyspark.sql.types import StringType
+
+        # Add manufacturer name we will use as a string column.
+        first_word_udf = udf(lambda x: x.split()[0], StringType())
+        df = df.withColumn("manufacturer", first_word_udf(df.carname))
+
+        # Strings must be indexed or we will get:
+        # pyspark.sql.utils.IllegalArgumentException: Data type string of column manufacturer is not supported.
+        #
+        # We also encode outside of the main pipeline or else we risk getting:
+        #  Caused by: org.apache.spark.SparkException: Unseen label: XXX. To handle unseen labels, set Param handleInvalid to keep.
+        #
+        # This is because training data is selected randomly and may not have all possible categories.
+        manufacturer_encoded = StringIndexer(
+            inputCol="manufacturer", outputCol="manufacturer_encoded"
+        )
+        encoded_df = manufacturer_encoded.fit(df).transform(df)
+
+        # Set up our main ML pipeline.
+        columns_to_assemble = [
+            "manufacturer_encoded",
+            "cylinders",
+            "displacement",
+            "horsepower",
+            "weight",
+            "acceleration",
+        ]
+        vector_assembler = VectorAssembler(
+            inputCols=columns_to_assemble,
+            outputCol="features",
+            handleInvalid="skip",
+        )
+
+        # Random test/train split.
+        train_df, test_df = encoded_df.randomSplit([0.7, 0.3])
+
+        # Define the model.
+        rf = RandomForestRegressor(
+            numTrees=20,
+            featuresCol="features",
+            labelCol="mpg",
+        )
+
+        # Run the pipeline.
+        pipeline = Pipeline(stages=[vector_assembler, rf])
+        model = pipeline.fit(train_df)
+
+        # Make predictions.
+        predictions = model.transform(test_df).select("carname", "mpg", "prediction")
+
+        # Select (prediction, true label) and compute test error
+        rmse = RegressionEvaluator(
+            labelCol="mpg", predictionCol="prediction", metricName="rmse"
+        ).evaluate(predictions)
+        print("RMSE={}".format(rmse))
+
+        return predictions
+
+
+class ml_feature_importances(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Get feature importances of a trained model"
+        self.category = "Machine Learning"
+        self.dataset = "auto-mpg-fixed.csv"
+        self.priority = 310
+        self.preconvert = True
+
+    def snippet(self, df):
+        from pyspark.ml import Pipeline
+        from pyspark.ml.feature import StringIndexer, VectorAssembler
+        from pyspark.ml.regression import RandomForestRegressor
+        from pyspark.sql.functions import udf
+        from pyspark.sql.types import StringType
+
+        # Add manufacturer name we will use as a string column.
+        first_word_udf = udf(lambda x: x.split()[0], StringType())
+        df = df.withColumn("manufacturer", first_word_udf(df.carname))
+        manufacturer_encoded = StringIndexer(
+            inputCol="manufacturer", outputCol="manufacturer_encoded"
+        )
+        encoded_df = manufacturer_encoded.fit(df).transform(df)
+
+        # Set up our main ML pipeline.
+        columns_to_assemble = [
+            "manufacturer_encoded",
+            "cylinders",
+            "displacement",
+            "horsepower",
+            "weight",
+            "acceleration",
+        ]
+        vector_assembler = VectorAssembler(
+            inputCols=columns_to_assemble,
+            outputCol="features",
+            handleInvalid="skip",
+        )
+
+        # Random test/train split.
+        train_df, test_df = encoded_df.randomSplit([0.7, 0.3])
+
+        # Define the model.
+        rf = RandomForestRegressor(
+            numTrees=20,
+            featuresCol="features",
+            labelCol="mpg",
+        )
+
+        # Run the pipeline.
+        pipeline = Pipeline(stages=[vector_assembler, rf])
+        model = pipeline.fit(train_df)
+
+        # Make predictions.
+        predictions = model.transform(test_df).select("carname", "mpg", "prediction")
+
+        # Get feature importances.
+        real_model = model.stages[1]
+        for feature, importance in zip(
+            columns_to_assemble, real_model.featureImportances
+        ):
+            print("{} contributes {:0.3f}%".format(feature, importance * 100))
+
+        # EXCLUDE
+        retval = []
+        for feature, importance in zip(
+            columns_to_assemble, real_model.featureImportances
+        ):
+            retval.append("{} contributes {:0.3f}%".format(feature, importance * 100))
+        return retval
+        # INCLUDE
+
+
+class ml_automated_feature_vectorization(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Automatically encode categorical variables"
+        self.category = "Machine Learning"
+        self.dataset = "auto-mpg-fixed.csv"
+        self.priority = 400
+        self.preconvert = True
+
+    def snippet(self, df):
+        from pyspark.ml.feature import StringIndexer, VectorAssembler, VectorIndexer
+        from pyspark.ml.regression import RandomForestRegressor
+        from pyspark.sql.functions import udf, countDistinct
+        from pyspark.sql.types import StringType
+
+        # Remove non-numeric columns.
+        df = df.drop("carname")
+
+        # Profile this DataFrame to get a good value for maxCategories.
+        grouped = df.agg(*(countDistinct(c) for c in df.columns))
+        grouped.show()
+
+        # Assemble all columns except mpg into a vector.
+        feature_columns = list(df.columns)
+        feature_columns.remove("mpg")
+        vector_assembler = VectorAssembler(
+            inputCols=feature_columns,
+            outputCol="features",
+            handleInvalid="skip",
+        )
+        assembled = vector_assembler.transform(df)
+
+        # From profiling the dataset, 15 is a good value for max categories.
+        indexer = VectorIndexer(inputCol="features", outputCol="indexed", maxCategories=15)
+        indexed = indexer.fit(assembled).transform(assembled)
+
+        # Build and train the model.
+        train_df, test_df = indexed.randomSplit([0.7, 0.3])
+        rf = RandomForestRegressor(
+            numTrees=50,
+            featuresCol="features",
+            labelCol="mpg",
+        )
+        rf_model = rf.fit(train_df)
+
+        # Get feature importances.
+        for feature, importance in zip(
+            feature_columns, rf_model.featureImportances
+        ):
+            print("{} contributes {:0.3f}%".format(feature, importance * 100))
+
+        # Make predictions.
+        predictions = rf_model.transform(test_df).select("mpg", "prediction")
+        return predictions
+
+
+class ml_hyperparameter_tuning(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Hyperparameter tuning"
+        self.category = "Machine Learning"
+        self.dataset = "auto-mpg-fixed.csv"
+        self.priority = 410
+        self.preconvert = True
+
+    def snippet(self, df):
+        from pyspark.ml import Pipeline
+        from pyspark.ml.evaluation import RegressionEvaluator
+        from pyspark.ml.feature import StringIndexer, VectorAssembler
+        from pyspark.ml.regression import RandomForestRegressor
+        from pyspark.ml.tuning import CrossValidator, ParamGridBuilder
+        from pyspark.sql.functions import udf
+        from pyspark.sql.types import StringType
+
+        # Add manufacturer name we will use as a string column.
+        first_word_udf = udf(lambda x: x.split()[0], StringType())
+        df = df.withColumn("manufacturer", first_word_udf(df.carname))
+        manufacturer_encoded = StringIndexer(
+            inputCol="manufacturer", outputCol="manufacturer_encoded"
+        )
+        encoded_df = manufacturer_encoded.fit(df).transform(df)
+
+        # Set up our main ML pipeline.
+        columns_to_assemble = [
+            "manufacturer_encoded",
+            "cylinders",
+            "displacement",
+            "horsepower",
+            "weight",
+            "acceleration",
+        ]
+        vector_assembler = VectorAssembler(
+            inputCols=columns_to_assemble,
+            outputCol="features",
+            handleInvalid="skip",
+        )
+
+        # Random test/train split.
+        train_df, test_df = encoded_df.randomSplit([0.7, 0.3])
+
+        # Define the model.
+        rf = RandomForestRegressor(
+            numTrees=20,
+            featuresCol="features",
+            labelCol="mpg",
+        )
+
+        # Run the pipeline.
+        pipeline = Pipeline(stages=[vector_assembler, rf])
+
+        # Hyperparameter search.
+        paramGrid = ParamGridBuilder().addGrid(rf.numTrees, list(range(20, 100, 10))).build()
+        crossval = CrossValidator(estimator=pipeline,
+              estimatorParamMaps=paramGrid,
+              evaluator=RegressionEvaluator(labelCol="mpg", predictionCol="prediction"),
+              numFolds=2)
+
+        # Run cross-validation, and choose the best set of parameters.
+        model = crossval.fit(train_df)
+
+        # Identify the best hyperparameters.
+        real_model = model.bestModel.stages[1]
+        print("Best model has {} trees.".format(real_model.getNumTrees))
+
+        # EXCLUDE
+        retval = []
+        retval.append("Best model has {} trees.".format(real_model.getNumTrees))
+        return retval
+        # INCLUDE
 
 
 class performance_get_spark_version(snippet):
