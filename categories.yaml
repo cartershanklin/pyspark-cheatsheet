@@ -88,11 +88,13 @@ Preamble:
 
         Make note of these helpful links:
 
+        - [PySpark DataFrame Operations](http://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.DataFrame)
+
         - [Built-in Spark SQL Functions](https://spark.apache.org/docs/latest/api/sql/index.html)
 
-        - [PySpark SQL Functions Source](https://spark.apache.org/docs/latest/api/python/_modules/pyspark/sql/functions.html)
+        - [PySpark MLlib Reference](https://spark.apache.org/docs/latest/api/python/pyspark.mllib.html)
 
-        - [PySpark DataFrame Operations](http://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.DataFrame)
+        - [PySpark SQL Functions Source](https://spark.apache.org/docs/latest/api/python/_modules/pyspark/sql/functions.html)
 
 
         If you find this guide helpful and want an easy way to run Spark, check out [Oracle Cloud Infrastructure Data Flow](https://www.oracle.com/big-data/data-flow/), a fully-managed Spark service that lets you run Spark jobs at any scale with no administrative overhead. You can try Data Flow free.

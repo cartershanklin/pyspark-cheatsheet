@@ -9,12 +9,13 @@ These snippets use DataFrames loaded from various data sources:
 - customer_spend.csv, a generated time series dataset.
 - date_examples.csv, a generated dataset with various date and time formats.
 
-These snippets were tested against the Spark 3.0.1 API. This page was last updated 2020-12-14 06:03:59.
+These snippets were tested against the Spark 3.0.1 API. This page was last updated 2020-12-19 14:51:23.
 
 Make note of these helpful links:
-- [Built-in Spark SQL Functions](https://spark.apache.org/docs/latest/api/sql/index.html)
-- [PySpark SQL Functions Source](https://spark.apache.org/docs/latest/api/python/_modules/pyspark/sql/functions.html)
 - [PySpark DataFrame Operations](http://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.DataFrame)
+- [Built-in Spark SQL Functions](https://spark.apache.org/docs/latest/api/sql/index.html)
+- [PySpark MLlib Reference](https://spark.apache.org/docs/latest/api/python/pyspark.mllib.html)
+- [PySpark SQL Functions Source](https://spark.apache.org/docs/latest/api/python/_modules/pyspark/sql/functions.html)
 
 If you find this guide helpful and want an easy way to run Spark, check out [Oracle Cloud Infrastructure Data Flow](https://www.oracle.com/big-data/data-flow/), a fully-managed Spark service that lets you run Spark jobs at any scale with no administrative overhead. You can try Data Flow free.
 
@@ -156,6 +157,9 @@ Table of contents
       * [Get feature importances of a trained model](#get-feature-importances-of-a-trained-model)
       * [Automatically encode categorical variables](#automatically-encode-categorical-variables)
       * [Hyperparameter tuning](#hyperparameter-tuning)
+      * [Compute correlation matrix](#compute-correlation-matrix)
+      * [Load a model and use it for predictions](#load-a-model-and-use-it-for-predictions)
+      * [Save a model](#save-a-model)
    * [Performance](#performance)
       * [Get the Spark version](#get-the-spark-version)
       * [Cache a DataFrame](#cache-a-dataframe)
@@ -164,6 +168,7 @@ Table of contents
       * [Change Number of DataFrame Partitions](#change-number-of-dataframe-partitions)
       * [Coalesce DataFrame partitions](#coalesce-dataframe-partitions)
       * [Set the number of shuffle partitions](#set-the-number-of-shuffle-partitions)
+      * [Sample a subset of a DataFrame](#sample-a-subset-of-a-dataframe)
       * [Print Spark configuration properties](#print-spark-configuration-properties)
       * [Set Spark configuration properties](#set-spark-configuration-properties)
       * [Increase Spark driver/executor heap space](#increase-spark-driverexecutor-heap-space)
@@ -3267,16 +3272,16 @@ predictions = lr_model.transform(test_df)
 +----------+----+----------+----------+
 |  features| mpg|   carname|prediction|
 +----------+----+----------+----------+
-|[4.0,68...|29.0|  fiat 128|32.0373...|
-|[4.0,71...|32.0|toyota ...|31.6592...|
-|[4.0,79...|39.1|toyota ...|31.8729...|
-|[4.0,79...|31.0| fiat x1.9|30.3650...|
-|[4.0,79...|30.0|peugeot...|30.2177...|
-|[4.0,85...|29.0|chevrol...|31.2613...|
-|[4.0,85...|37.0|datsun ...|30.7893...|
-|[4.0,85...|40.8|datsun 210|30.1745...|
-|[4.0,85...|33.5|datsun ...|30.5096...|
-|[4.0,85...|32.0|datsun ...|30.3272...|
+|[3.0,70...|19.0|mazda r...|28.2572...|
+|[4.0,68...|29.0|  fiat 128|31.5406...|
+|[4.0,71...|32.0|toyota ...|31.1397...|
+|[4.0,78...|32.8|mazda g...|30.8216...|
+|[4.0,79...|30.0|peugeot...|29.8591...|
+|[4.0,85...|32.0|datsun ...|30.1565...|
+|[4.0,85...|39.4|datsun ...|29.8090...|
+|[4.0,86...|34.1|maxda g...|30.3673...|
+|[4.0,86...|37.2|datsun 310|30.1762...|
+|[4.0,89...|38.1|toyota ...|30.5208...|
 +----------+----+----------+----------+
 only showing top 10 rows
 ```
@@ -3334,16 +3339,16 @@ print("RMSE={} r2={}".format(rmse, r2))
 +----------+----+----------+----------+
 |  features| mpg|   carname|prediction|
 +----------+----+----------+----------+
-|[3.0,70...|19.0|mazda r...|23.6950...|
-|[4.0,71...|32.0|toyota ...|33.8643...|
-|[4.0,79...|30.0|peugeot...|31.7584...|
-|[4.0,85...|29.0|chevrol...|39.0247...|
-|[4.0,85...|39.4|datsun ...|31.9118...|
-|[4.0,90...|24.0|  fiat 128|31.7239...|
-|[4.0,90...|28.0|dodge colt|30.9263...|
-|[4.0,91...|33.0|honda c...|34.5480...|
-|[4.0,91...|38.0|honda c...|33.2562...|
-|[4.0,91...|31.0|mazda g...|33.9701...|
+|[3.0,70...|18.0| maxda rx3|27.6475...|
+|[4.0,68...|29.0|  fiat 128|34.3781...|
+|[4.0,72...|35.0|datsun ...|32.6475...|
+|[4.0,78...|32.8|mazda g...|34.8870...|
+|[4.0,79...|36.0|renault...|34.0291...|
+|[4.0,79...|31.0|datsun ...|34.4324...|
+|[4.0,79...|26.0|volkswa...|34.8036...|
+|[4.0,79...|31.0| fiat x1.9|34.6881...|
+|[4.0,85...|29.0|chevrol...|40.8162...|
+|[4.0,85...|37.0|datsun ...|34.4204...|
 +----------+----+----------+----------+
 only showing top 10 rows
 ```
@@ -3419,16 +3424,16 @@ print("RMSE={}".format(rmse))
 +----------+----+----------+
 |   carname| mpg|prediction|
 +----------+----+----------+
-|  hi 1200d| 9.0|18.6502...|
-|chevrol...|10.0|13.9315...|
-|dodge d200|11.0|13.6592...|
-|chevrol...|11.0|14.1479...|
-|mercury...|11.0|13.8768...|
-|oldsmob...|12.0|16.1555...|
-|oldsmob...|12.0|15.8661...|
-|buick e...|12.0|13.7624...|
-|ford gr...|13.0|15.7885...|
-|dodge d100|13.0|15.5261...|
+|dodge d200|11.0|14.1724...|
+|oldsmob...|11.0|17.6042...|
+|chevrol...|11.0|13.5217...|
+|oldsmob...|12.0|16.8887...|
+|oldsmob...|12.0|16.6801...|
+|ford mu...|13.0|18.5513...|
+| ford f108|13.0|16.7363...|
+|ford gr...|13.0|14.9047...|
+|chevrol...|13.0|14.8450...|
+|  ford ltd|13.0|14.5775...|
 +----------+----+----------+
 only showing top 10 rows
 ```
@@ -3493,22 +3498,21 @@ for feature, importance in zip(
 ```
 ```
 # Code snippet result:
-manufacturer_encoded contributes 10.324%
-cylinders contributes 12.338%
-displacement contributes 24.850%
-horsepower contributes 18.823%
-weight contributes 30.816%
-acceleration contributes 2.849%
+manufacturer_encoded contributes 8.749%
+cylinders contributes 14.836%
+displacement contributes 27.241%
+horsepower contributes 15.328%
+weight contributes 30.845%
+acceleration contributes 3.002%
 ```
 
 Automatically encode categorical variables
 ------------------------------------------
 
 ```python
-from pyspark.ml.feature import StringIndexer, VectorAssembler, VectorIndexer
+from pyspark.ml.feature import VectorAssembler, VectorIndexer
 from pyspark.ml.regression import RandomForestRegressor
-from pyspark.sql.functions import udf, countDistinct
-from pyspark.sql.types import StringType
+from pyspark.sql.functions import countDistinct
 
 # Remove non-numeric columns.
 df = df.drop("carname")
@@ -3528,7 +3532,9 @@ vector_assembler = VectorAssembler(
 assembled = vector_assembler.transform(df)
 
 # From profiling the dataset, 15 is a good value for max categories.
-indexer = VectorIndexer(inputCol="features", outputCol="indexed", maxCategories=15)
+indexer = VectorIndexer(
+    inputCol="features", outputCol="indexed", maxCategories=15
+)
 indexed = indexer.fit(assembled).transform(assembled)
 
 # Build and train the model.
@@ -3541,9 +3547,7 @@ rf = RandomForestRegressor(
 rf_model = rf.fit(train_df)
 
 # Get feature importances.
-for feature, importance in zip(
-    feature_columns, rf_model.featureImportances
-):
+for feature, importance in zip(feature_columns, rf_model.featureImportances):
     print("{} contributes {:0.3f}%".format(feature, importance * 100))
 
 # Make predictions.
@@ -3554,16 +3558,16 @@ predictions = rf_model.transform(test_df).select("mpg", "prediction")
 +----+----------+
 | mpg|prediction|
 +----+----------+
-| 9.0|13.9133...|
-|10.0|13.6545...|
-|11.0|13.8933...|
-|11.0|14.2072...|
-|12.0|13.7936...|
-|12.0|13.2725...|
-|12.0|13.4991...|
-|12.0|13.1346...|
-|13.0|14.5266...|
-|13.0|13.7266...|
+| 9.0|13.0307...|
+|11.0|13.8032...|
+|11.0|13.3223...|
+|12.0|13.6380...|
+|12.0|13.3516...|
+|13.0|14.0259...|
+|13.0|13.7935...|
+|13.0|13.4872...|
+|13.0|13.3516...|
+|14.0|15.4211...|
 +----+----------+
 only showing top 10 rows
 ```
@@ -3617,11 +3621,15 @@ rf = RandomForestRegressor(
 pipeline = Pipeline(stages=[vector_assembler, rf])
 
 # Hyperparameter search.
-paramGrid = ParamGridBuilder().addGrid(rf.numTrees, list(range(20, 100, 10))).build()
-crossval = CrossValidator(estimator=pipeline,
-      estimatorParamMaps=paramGrid,
-      evaluator=RegressionEvaluator(labelCol="mpg", predictionCol="prediction"),
-      numFolds=2)
+paramGrid = (
+    ParamGridBuilder().addGrid(rf.numTrees, list(range(20, 100, 10))).build()
+)
+crossval = CrossValidator(
+    estimator=pipeline,
+    estimatorParamMaps=paramGrid,
+    evaluator=RegressionEvaluator(labelCol="mpg", predictionCol="prediction"),
+    numFolds=2,
+)
 
 # Run cross-validation, and choose the best set of parameters.
 model = crossval.fit(train_df)
@@ -3633,8 +3641,131 @@ print("Best model has {} trees.".format(real_model.getNumTrees))
 ```
 ```
 # Code snippet result:
-Best model has 80 trees.
+Best model has 40 trees.
 ```
+
+Compute correlation matrix
+--------------------------
+
+```python
+from pyspark.ml.feature import VectorAssembler, VectorIndexer
+from pyspark.ml.regression import RandomForestRegressor
+from pyspark.ml.stat import Correlation
+from pyspark.sql.functions import countDistinct
+
+# Remove non-numeric columns.
+df = df.drop("carname")
+
+# Assemble all columns except mpg into a vector.
+feature_columns = list(df.columns)
+feature_columns.remove("mpg")
+vector_col = "features"
+vector_assembler = VectorAssembler(
+    inputCols=feature_columns,
+    outputCol=vector_col,
+    handleInvalid="skip",
+)
+df_vector = vector_assembler.transform(df).select(vector_col)
+
+# Compute the correlation matrix.
+matrix = Correlation.corr(df_vector, vector_col)
+corr_array = matrix.collect()[0]["pearson({})".format(vector_col)].toArray()
+
+# This part is just for pretty-printing.
+pdf = pandas.DataFrame(corr_array, index=feature_columns, columns=feature_columns)
+```
+```
+# Code snippet result:
+              cylinders  displacement  horsepower    weight  acceleration  modelyear    origin
+cylinders      1.000000      0.950823    0.842983  0.897527     -0.504683  -0.345647 -0.568932
+displacement   0.950823      1.000000    0.897257  0.932994     -0.543800  -0.369855 -0.614535
+horsepower     0.842983      0.897257    1.000000  0.864538     -0.689196  -0.416361 -0.455171
+weight         0.897527      0.932994    0.864538  1.000000     -0.416839  -0.309120 -0.585005
+acceleration  -0.504683     -0.543800   -0.689196 -0.416839      1.000000   0.290316  0.212746
+modelyear     -0.345647     -0.369855   -0.416361 -0.309120      0.290316   1.000000  0.181528
+origin        -0.568932     -0.614535   -0.455171 -0.585005      0.212746   0.181528  1.000000
+```
+
+Load a model and use it for predictions
+---------------------------------------
+
+```python
+from pyspark.ml.feature import VectorAssembler
+from pyspark.ml.regression import RandomForestRegressionModel
+
+# Model type and assembled features need to agree with the trained model.
+rf_model = RandomForestRegressionModel.load("rf_regression.model")
+vectorAssembler = VectorAssembler(
+    inputCols=[
+        "cylinders",
+        "displacement",
+        "horsepower",
+        "weight",
+        "acceleration",
+    ],
+    outputCol="features",
+    handleInvalid="skip",
+)
+assembled = vectorAssembler.transform(df)
+
+predictions = rf_model.transform(assembled).select(
+    "carname", "mpg", "prediction"
+)
+```
+```
+# Code snippet result:
++----------+----+----------+
+|   carname| mpg|prediction|
++----------+----+----------+
+|chevrol...|18.0|16.6795...|
+|buick s...|15.0|14.9306...|
+|plymout...|18.0|15.6175...|
+|amc reb...|16.0|15.7207...|
+|ford to...|17.0|17.0660...|
+|ford ga...|15.0|14.4392...|
+|chevrol...|14.0|14.4392...|
+|plymout...|14.0|14.4392...|
+|pontiac...|14.0|14.4392...|
+|amc amb...|15.0|14.6320...|
++----------+----+----------+
+only showing top 10 rows
+```
+
+Save a model
+------------
+
+```python
+from pyspark.ml.feature import VectorAssembler
+from pyspark.ml.regression import RandomForestRegressor
+
+vectorAssembler = VectorAssembler(
+    inputCols=[
+        "cylinders",
+        "displacement",
+        "horsepower",
+        "weight",
+        "acceleration",
+    ],
+    outputCol="features",
+    handleInvalid="skip",
+)
+assembled = vectorAssembler.transform(df)
+
+# Random test/train split.
+train_df, test_df = assembled.randomSplit([0.7, 0.3])
+
+# Define the model.
+rf = RandomForestRegressor(
+    numTrees=50,
+    featuresCol="features",
+    labelCol="mpg",
+)
+
+# Train the model.
+rf_model = rf.fit(train_df)
+rf_model.write().overwrite().save("rf_regression.model")
+```
+
 
 Performance
 ===========
@@ -3850,6 +3981,36 @@ print("{} partition(s)".format(grouped2.rdd.getNumPartitions()))
 20 partition(s)
 ```
 
+Sample a subset of a DataFrame
+------------------------------
+
+```python
+df = (
+    spark.read.format("csv")
+    .option("header", True)
+    .load("data/auto-mpg.csv")
+    .sample(0.1)
+)
+```
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+----------+------+------------+---------+------+----------+
+|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|
+|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|
+|14.0|        8|       340.0|     160.0| 3609.|         8.0|       70|     1|plymout...|
+|22.0|        6|       198.0|     95.00| 2833.|        15.5|       70|     1|plymout...|
+|18.0|        6|       199.0|     97.00| 2774.|        15.5|       70|     1|amc hornet|
+| 9.0|        8|       304.0|     193.0| 4732.|        18.5|       70|     1|  hi 1200d|
+|19.0|        6|       232.0|     100.0| 2634.|        13.0|       71|     1|amc gre...|
+|13.0|        8|       400.0|     170.0| 4746.|        12.0|       71|     1|ford co...|
+|28.0|        4|       116.0|     90.00| 2123.|        14.0|       71|     2| opel 1900|
+|24.0|        4|       113.0|     95.00| 2278.|        15.5|       72|     3|toyota ...|
++----+---------+------------+----------+------+------------+---------+------+----------+
+only showing top 10 rows
+```
+
 Print Spark configuration properties
 ------------------------------------
 
@@ -3858,7 +4019,7 @@ print(spark.sparkContext.getConf().getAll())
 ```
 ```
 # Code snippet result:
-[('spark.rdd.compress', 'True'), ('spark.serializer.objectStreamReset', '100'), ('spark.master', 'local[*]'), ('spark.driver.port', '41753'), ('spark.submit.pyFiles', ''), ('spark.executor.id', 'driver'), ('spark.submit.deployMode', 'client'), ('spark.app.name', 'cheatsheet'), ('spark.ui.showConsoleProgress', 'true'), ('spark.driver.host', '192.168.1.40'), ('spark.app.id', 'local-1607954637806')]
+[('spark.rdd.compress', 'True'), ('spark.app.id', 'local-1608418281807'), ('spark.driver.port', '37191'), ('spark.serializer.objectStreamReset', '100'), ('spark.master', 'local[*]'), ('spark.submit.pyFiles', ''), ('spark.executor.id', 'driver'), ('spark.submit.deployMode', 'client'), ('spark.app.name', 'cheatsheet'), ('spark.ui.showConsoleProgress', 'true'), ('spark.driver.host', '192.168.1.40')]
 ```
 
 Set Spark configuration properties

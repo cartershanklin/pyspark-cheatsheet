@@ -3,3 +3,4 @@ output.csv
 output.parquet
 single.csv
 spark-warehouse
+rf_regression.model

@@ -49,6 +49,10 @@ class snippet:
         assert self.dataset is not None, "Dataset not set"
         if self.dataset == "UNUSED":
             return None
+        if self.dataset == "covtype.parquet":
+            return spark.read.format("parquet").load(
+                os.path.join("data", "covtype.parquet")
+            )
         df = (
             spark.read.format("csv")
             .option("header", True)
@@ -2065,10 +2069,9 @@ class ml_automated_feature_vectorization(snippet):
         self.preconvert = True
 
     def snippet(self, df):
-        from pyspark.ml.feature import StringIndexer, VectorAssembler, VectorIndexer
+        from pyspark.ml.feature import VectorAssembler, VectorIndexer
         from pyspark.ml.regression import RandomForestRegressor
-        from pyspark.sql.functions import udf, countDistinct
-        from pyspark.sql.types import StringType
+        from pyspark.sql.functions import countDistinct
 
         # Remove non-numeric columns.
         df = df.drop("carname")
@@ -2088,7 +2091,9 @@ class ml_automated_feature_vectorization(snippet):
         assembled = vector_assembler.transform(df)
 
         # From profiling the dataset, 15 is a good value for max categories.
-        indexer = VectorIndexer(inputCol="features", outputCol="indexed", maxCategories=15)
+        indexer = VectorIndexer(
+            inputCol="features", outputCol="indexed", maxCategories=15
+        )
         indexed = indexer.fit(assembled).transform(assembled)
 
         # Build and train the model.
@@ -2101,9 +2106,7 @@ class ml_automated_feature_vectorization(snippet):
         rf_model = rf.fit(train_df)
 
         # Get feature importances.
-        for feature, importance in zip(
-            feature_columns, rf_model.featureImportances
-        ):
+        for feature, importance in zip(feature_columns, rf_model.featureImportances):
             print("{} contributes {:0.3f}%".format(feature, importance * 100))
 
         # Make predictions.
@@ -2166,11 +2169,15 @@ class ml_hyperparameter_tuning(snippet):
         pipeline = Pipeline(stages=[vector_assembler, rf])
 
         # Hyperparameter search.
-        paramGrid = ParamGridBuilder().addGrid(rf.numTrees, list(range(20, 100, 10))).build()
-        crossval = CrossValidator(estimator=pipeline,
-              estimatorParamMaps=paramGrid,
-              evaluator=RegressionEvaluator(labelCol="mpg", predictionCol="prediction"),
-              numFolds=2)
+        paramGrid = (
+            ParamGridBuilder().addGrid(rf.numTrees, list(range(20, 100, 10))).build()
+        )
+        crossval = CrossValidator(
+            estimator=pipeline,
+            estimatorParamMaps=paramGrid,
+            evaluator=RegressionEvaluator(labelCol="mpg", predictionCol="prediction"),
+            numFolds=2,
+        )
 
         # Run cross-validation, and choose the best set of parameters.
         model = crossval.fit(train_df)
@@ -2184,6 +2191,119 @@ class ml_hyperparameter_tuning(snippet):
         retval.append("Best model has {} trees.".format(real_model.getNumTrees))
         return retval
         # INCLUDE
+
+
+class ml_covariance(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Compute correlation matrix"
+        self.category = "Machine Learning"
+        self.dataset = "auto-mpg-fixed.csv"
+        self.priority = 500
+        self.preconvert = True
+
+    def snippet(self, df):
+        from pyspark.ml.feature import VectorAssembler, VectorIndexer
+        from pyspark.ml.regression import RandomForestRegressor
+        from pyspark.ml.stat import Correlation
+        from pyspark.sql.functions import countDistinct
+
+        # Remove non-numeric columns.
+        df = df.drop("carname")
+
+        # Assemble all columns except mpg into a vector.
+        feature_columns = list(df.columns)
+        feature_columns.remove("mpg")
+        vector_col = "features"
+        vector_assembler = VectorAssembler(
+            inputCols=feature_columns,
+            outputCol=vector_col,
+            handleInvalid="skip",
+        )
+        df_vector = vector_assembler.transform(df).select(vector_col)
+
+        # Compute the correlation matrix.
+        matrix = Correlation.corr(df_vector, vector_col)
+        corr_array = matrix.collect()[0]["pearson({})".format(vector_col)].toArray()
+
+        # This part is just for pretty-printing.
+        pdf = pandas.DataFrame(corr_array, index=feature_columns, columns=feature_columns)
+        return pdf
+
+
+class ml_save_model(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Save a model"
+        self.category = "Machine Learning"
+        self.dataset = "auto-mpg-fixed.csv"
+        self.priority = 1000
+        self.preconvert = True
+
+    def snippet(self, df):
+        from pyspark.ml.feature import VectorAssembler
+        from pyspark.ml.regression import RandomForestRegressor
+
+        vectorAssembler = VectorAssembler(
+            inputCols=[
+                "cylinders",
+                "displacement",
+                "horsepower",
+                "weight",
+                "acceleration",
+            ],
+            outputCol="features",
+            handleInvalid="skip",
+        )
+        assembled = vectorAssembler.transform(df)
+
+        # Random test/train split.
+        train_df, test_df = assembled.randomSplit([0.7, 0.3])
+
+        # Define the model.
+        rf = RandomForestRegressor(
+            numTrees=50,
+            featuresCol="features",
+            labelCol="mpg",
+        )
+
+        # Train the model.
+        rf_model = rf.fit(train_df)
+        rf_model.write().overwrite().save("rf_regression.model")
+
+
+class ml_load_model(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Load a model and use it for predictions"
+        self.category = "Machine Learning"
+        self.dataset = "auto-mpg-fixed.csv"
+        self.priority = 1000
+        self.preconvert = True
+
+    def snippet(self, df):
+        from pyspark.ml.feature import VectorAssembler
+        from pyspark.ml.regression import RandomForestRegressionModel
+
+        # Model type and assembled features need to agree with the trained model.
+        rf_model = RandomForestRegressionModel.load("rf_regression.model")
+        vectorAssembler = VectorAssembler(
+            inputCols=[
+                "cylinders",
+                "displacement",
+                "horsepower",
+                "weight",
+                "acceleration",
+            ],
+            outputCol="features",
+            handleInvalid="skip",
+        )
+        assembled = vectorAssembler.transform(df)
+
+        predictions = rf_model.transform(assembled).select(
+            "carname", "mpg", "prediction"
+        )
+        return predictions
 
 
 class performance_get_spark_version(snippet):
@@ -2388,13 +2508,31 @@ class performance_shuffle_partitions(snippet):
         return ["200 partition(s)", "20 partition(s)"]
 
 
+class performance_spark_sample(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Sample a subset of a DataFrame"
+        self.category = "Performance"
+        self.dataset = "UNUSED"
+        self.priority = 400
+
+    def snippet(self, df):
+        df = (
+            spark.read.format("csv")
+            .option("header", True)
+            .load("data/auto-mpg.csv")
+            .sample(0.1)
+        )
+        return df
+
+
 class performance_spark_get_configuration(snippet):
     def __init__(self):
         super().__init__()
         self.name = "Print Spark configuration properties"
         self.category = "Performance"
         self.dataset = "UNUSED"
-        self.priority = 400
+        self.priority = 500
 
     def snippet(self, df):
         print(spark.sparkContext.getConf().getAll())
@@ -2407,7 +2545,7 @@ class performance_spark_change_configuration(snippet):
         self.name = "Set Spark configuration properties"
         self.category = "Performance"
         self.dataset = "UNUSED"
-        self.priority = 410
+        self.priority = 510
         self.skip_run = True
 
     def snippet(self, df):
