@@ -9,7 +9,7 @@ These snippets use DataFrames loaded from various data sources:
 - customer_spend.csv, a generated time series dataset.
 - date_examples.csv, a generated dataset with various date and time formats.
 
-These snippets were tested against the Spark 3.0.1 API. This page was last updated 2020-12-20 07:47:59.
+These snippets were tested against the Spark 3.0.1 API. This page was last updated 2020-12-20 09:09:09.
 
 Make note of these helpful links:
 - [PySpark DataFrame Operations](http://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.DataFrame)
@@ -3275,16 +3275,16 @@ predictions = lr_model.transform(test_df)
 +----------+----+----------+----------+
 |  features| mpg|   carname|prediction|
 +----------+----+----------+----------+
-|[3.0,70...|18.0| maxda rx3|29.8075...|
-|[4.0,71...|32.0|toyota ...|31.6713...|
-|[4.0,79...|39.1|toyota ...|32.1705...|
-|[4.0,79...|36.0|renault...|31.8366...|
-|[4.0,79...|26.0|volkswa...|30.9218...|
-|[4.0,81...|35.1|honda c...|32.0680...|
-|[4.0,83...|32.0|datsun 710|30.8587...|
-|[4.0,85...|29.0|chevrol...|30.9409...|
-|[4.0,85...|37.0|datsun ...|30.8566...|
-|[4.0,85...|32.0|datsun ...|30.6425...|
+|[3.0,80...|21.5|mazda rx-4|26.5381...|
+|[4.0,71...|32.0|toyota ...|31.1933...|
+|[4.0,72...|35.0|datsun ...|31.8484...|
+|[4.0,79...|39.1|toyota ...|31.6374...|
+|[4.0,79...|31.0| fiat x1.9|30.4156...|
+|[4.0,79...|30.0|peugeot...|30.0362...|
+|[4.0,85...|40.8|datsun 210|30.0071...|
+|[4.0,86...|34.1|maxda g...|30.4866...|
+|[4.0,86...|37.2|datsun 310|30.3260...|
+|[4.0,86...|46.6| mazda glc|29.9938...|
 +----------+----+----------+----------+
 only showing top 10 rows
 ```
@@ -3342,16 +3342,16 @@ print("RMSE={} r2={}".format(rmse, r2))
 +----------+----+----------+----------+
 |  features| mpg|   carname|prediction|
 +----------+----+----------+----------+
-|[4.0,68...|29.0|  fiat 128|34.0609...|
-|[4.0,78...|32.8|mazda g...|34.9274...|
-|[4.0,79...|36.0|renault...|33.5551...|
-|[4.0,79...|31.0|datsun ...|32.9235...|
-|[4.0,81...|35.1|honda c...|32.9414...|
-|[4.0,85...|32.0|datsun ...|33.1471...|
-|[4.0,86...|39.0|plymout...|32.8454...|
-|[4.0,86...|34.1|maxda g...|34.1107...|
-|[4.0,88...|30.0| fiat 124b|30.8092...|
-|[4.0,89...|31.9|vw rabb...|31.6813...|
+|[3.0,70...|19.0|mazda r...|25.9122...|
+|[3.0,70...|23.7|mazda r...|27.5397...|
+|[3.0,80...|21.5|mazda rx-4|26.2012...|
+|[4.0,71...|31.0|toyota ...|33.5321...|
+|[4.0,71...|32.0|toyota ...|34.0711...|
+|[4.0,72...|35.0|datsun ...|33.0238...|
+|[4.0,76...|31.0|toyota ...|33.0332...|
+|[4.0,79...|36.0|renault...|33.4163...|
+|[4.0,79...|26.0|volkswa...|32.9262...|
+|[4.0,79...|30.0|peugeot...|34.0288...|
 +----------+----+----------+----------+
 only showing top 10 rows
 ```
@@ -3387,7 +3387,6 @@ rf_model = rf.fit(train_df)
 
 # Make predictions.
 predictions = rf_model.transform(test_df)
-predictions.select([label_column, "prediction"]).show()
 
 # Select (prediction, true label) and compute test error
 evaluator = MulticlassClassificationEvaluator(
@@ -3395,10 +3394,26 @@ evaluator = MulticlassClassificationEvaluator(
 )
 accuracy = evaluator.evaluate(predictions)
 print("Test Error = %g" % (1.0 - accuracy))
-
-print(rf_model)
+results = predictions.select([label_column, "prediction"])
 ```
-
+```
+# Code snippet result:
++----------+----------+
+|cover_type|prediction|
++----------+----------+
+|         3|       3.0|
+|         3|       3.0|
+|         6|       3.0|
+|         3|       3.0|
+|         3|       3.0|
+|         6|       3.0|
+|         3|       3.0|
+|         6|       3.0|
+|         6|       3.0|
+|         6|       3.0|
++----------+----------+
+only showing top 10 rows
+```
 
 Encode string variables before using a VectorAssembler
 ------------------------------------------------------
@@ -3471,16 +3486,16 @@ print("RMSE={}".format(rmse))
 +----------+----+----------+
 |   carname| mpg|prediction|
 +----------+----+----------+
-|  hi 1200d| 9.0|14.0152...|
-| ford f108|13.0|15.8066...|
-|buick l...|13.0|13.4882...|
-|buick c...|13.0|14.1365...|
-|chevrol...|13.0|13.0985...|
-|ford co...|13.0|12.3164...|
-|chrysle...|13.0|13.3753...|
-|chrysle...|13.0|13.5953...|
-|amc mat...|14.0|15.9142...|
-|plymout...|14.0|14.5342...|
+|chevrol...|10.0|12.4775...|
+|ford mu...|13.0|17.6979...|
+|dodge d100|13.0|15.3025...|
+|chevrol...|13.0|14.1541...|
+|plymout...|13.0|13.6294...|
+|amc amb...|13.0|14.7467...|
+|ford co...|13.0|13.0238...|
+|ford gr...|14.0|16.0644...|
+|chevrol...|14.0|14.1854...|
+|  ford ltd|14.0|13.5143...|
 +----------+----+----------+
 only showing top 10 rows
 ```
@@ -3545,12 +3560,12 @@ for feature, importance in zip(
 ```
 ```
 # Code snippet result:
-manufacturer_encoded contributes 10.951%
-cylinders contributes 18.867%
-displacement contributes 17.548%
-horsepower contributes 16.301%
-weight contributes 32.972%
-acceleration contributes 3.361%
+manufacturer_encoded contributes 8.682%
+cylinders contributes 20.930%
+displacement contributes 32.752%
+horsepower contributes 15.752%
+weight contributes 19.039%
+acceleration contributes 2.844%
 ```
 
 Automatically encode categorical variables
@@ -3605,16 +3620,16 @@ predictions = rf_model.transform(test_df).select("mpg", "prediction")
 +----+----------+
 | mpg|prediction|
 +----+----------+
-| 9.0|14.1967...|
-|11.0|14.6576...|
-|12.0|13.1743...|
-|12.0|12.4709...|
-|13.0|17.1158...|
-|13.0|14.8917...|
-|13.0|14.8705...|
-|13.0|15.3992...|
-|13.0|13.2380...|
-|13.0|14.2844...|
+| 9.0|12.4565...|
+|11.0|13.4036...|
+|11.0|12.9588...|
+|12.0|12.9372...|
+|13.0|15.9575...|
+|13.0|15.9412...|
+|13.0|13.4091...|
+|13.0|13.7826...|
+|13.0|13.3031...|
+|14.0|14.6464...|
 +----+----------+
 only showing top 10 rows
 ```
@@ -3672,7 +3687,9 @@ paramGrid = (
 crossval = CrossValidator(
     estimator=pipeline,
     estimatorParamMaps=paramGrid,
-    evaluator=RegressionEvaluator(labelCol="mpg", predictionCol="prediction", metricName=target_metric),
+    evaluator=RegressionEvaluator(
+        labelCol="mpg", predictionCol="prediction", metricName=target_metric
+    ),
     numFolds=2,
     parallelism=4,
 )
@@ -3685,7 +3702,7 @@ print("Best model has {} trees.".format(real_model.getNumTrees))
 ```
 ```
 # Code snippet result:
-Best model has 70 trees.
+Best model has 50 trees.
 ```
 
 Plot Hyperparameter tuning metrics
@@ -3741,7 +3758,9 @@ paramGrid = (
 crossval = CrossValidator(
     estimator=pipeline,
     estimatorParamMaps=paramGrid,
-    evaluator=RegressionEvaluator(labelCol="mpg", predictionCol="prediction", metricName=target_metric),
+    evaluator=RegressionEvaluator(
+        labelCol="mpg", predictionCol="prediction", metricName=target_metric
+    ),
     numFolds=2,
     parallelism=4,
 )
@@ -3751,9 +3770,14 @@ model = crossval.fit(encoded_df)
 
 # Plot results using matplotlib.
 import matplotlib
-parameter_grid = [ { k.name : v for k, v in p.items() } for p in model.getEstimatorParamMaps() ]
+
+parameter_grid = [
+    {k.name: v for k, v in p.items()} for p in model.getEstimatorParamMaps()
+]
 pdf = pandas.DataFrame(
-    model.avgMetrics, index=[ x["numTrees"] for x in parameter_grid ] , columns=[target_metric]
+    model.avgMetrics,
+    index=[x["numTrees"] for x in parameter_grid],
+    columns=[target_metric],
 )
 ax = pdf.plot(style="*-")
 ax.figure.suptitle("Hyperparameter Search: RMSE by Number of Trees")
@@ -3762,8 +3786,8 @@ ax.figure.savefig("hyperparameters.png")
 ```
 ```
 # Code snippet result:
-![Hyperparameter Search](hyperparameters.png)
 ```
+![Hyperparameter Search](hyperparameters.png)
 
 A Random Forest Classification model with Hyperparameter Tuning
 ---------------------------------------------------------------
@@ -3888,16 +3912,16 @@ predictions = rf_model.transform(assembled).select(
 +----------+----+----------+
 |   carname| mpg|prediction|
 +----------+----+----------+
-|chevrol...|18.0|17.1025...|
-|buick s...|15.0|14.8658...|
-|plymout...|18.0|16.0511...|
-|amc reb...|16.0|16.2462...|
-|ford to...|17.0|16.8646...|
-|ford ga...|15.0|13.6455...|
-|chevrol...|14.0|13.6455...|
-|plymout...|14.0|13.6455...|
-|pontiac...|14.0|12.8664...|
-|amc amb...|15.0|14.4725...|
+|chevrol...|18.0|17.6218...|
+|buick s...|15.0|14.0259...|
+|plymout...|18.0|15.1527...|
+|amc reb...|16.0|16.1033...|
+|ford to...|17.0|17.3883...|
+|ford ga...|15.0|14.3924...|
+|chevrol...|14.0|13.6900...|
+|plymout...|14.0|14.2169...|
+|pontiac...|14.0|13.6900...|
+|amc amb...|15.0|14.3591...|
 +----------+----+----------+
 only showing top 10 rows
 ```
@@ -4168,16 +4192,16 @@ df = (
 +----+---------+------------+----------+------+------------+---------+------+----------+
 | mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
 +----+---------+------------+----------+------+------------+---------+------+----------+
-|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|
-|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|
-|10.0|        8|       307.0|     200.0| 4376.|        15.0|       70|     1| chevy c20|
-|17.0|        6|       250.0|     100.0| 3329.|        15.5|       71|     1|chevrol...|
-|18.0|        6|       232.0|     100.0| 3288.|        15.5|       71|     1|amc mat...|
-|14.0|        8|       318.0|     150.0| 4096.|        13.0|       71|     1|plymout...|
-|17.0|        8|       304.0|     150.0| 3672.|        11.5|       72|     1|amc amb...|
-|13.0|        8|       350.0|     155.0| 4502.|        13.5|       72|     1|buick l...|
-|19.0|        3|       70.00|     97.00| 2330.|        13.5|       72|     3|mazda r...|
-|15.0|        8|       304.0|     150.0| 3892.|        12.5|       72|     1|amc mat...|
+|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|
+|14.0|        8|       455.0|     225.0| 3086.|        10.0|       70|     1|buick e...|
+|14.0|        8|       350.0|     165.0| 4209.|        12.0|       71|     1|chevrol...|
+|27.0|        4|       97.00|     60.00| 1834.|        19.0|       71|     2|volkswa...|
+|26.0|        4|       91.00|     70.00| 1955.|        20.5|       71|     1|plymout...|
+|14.0|        8|       400.0|     175.0| 4385.|        12.0|       72|     1|pontiac...|
+|11.0|        8|       429.0|     208.0| 4633.|        11.0|       72|     1|mercury...|
+|22.0|        4|       121.0|     76.00| 2511.|        18.0|       72|     2|volkswa...|
+|28.0|        4|       98.00|     80.00| 2164.|        15.0|       72|     1|dodge c...|
+|13.0|        8|       360.0|     170.0| 4654.|        13.0|       73|     1|plymout...|
 +----+---------+------------+----------+------+------------+---------+------+----------+
 only showing top 10 rows
 ```
@@ -4190,7 +4214,7 @@ print(spark.sparkContext.getConf().getAll())
 ```
 ```
 # Code snippet result:
-[('spark.driver.memory', '2G'), ('spark.rdd.compress', 'True'), ('spark.serializer.objectStreamReset', '100'), ('spark.executor.memory', '2G'), ('spark.master', 'local[*]'), ('spark.submit.pyFiles', ''), ('spark.executor.id', 'driver'), ('spark.submit.deployMode', 'client'), ('spark.app.name', 'cheatsheet'), ('spark.app.id', 'local-1608479278232'), ('spark.ui.showConsoleProgress', 'true'), ('spark.driver.host', '192.168.1.40'), ('spark.driver.port', '41603')]
+[('spark.driver.memory', '2G'), ('spark.driver.port', '34199'), ('spark.rdd.compress', 'True'), ('spark.app.id', 'local-1608484147629'), ('spark.serializer.objectStreamReset', '100'), ('spark.executor.memory', '2G'), ('spark.master', 'local[*]'), ('spark.submit.pyFiles', ''), ('spark.executor.id', 'driver'), ('spark.submit.deployMode', 'client'), ('spark.app.name', 'cheatsheet'), ('spark.ui.showConsoleProgress', 'true'), ('spark.driver.host', '192.168.1.40')]
 ```
 
 Set Spark configuration properties

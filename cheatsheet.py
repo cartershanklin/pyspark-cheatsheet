@@ -1961,7 +1961,6 @@ class ml_random_forest_classification(snippet):
 
         # Make predictions.
         predictions = rf_model.transform(test_df)
-        predictions.select([label_column, "prediction"]).show()
 
         # Select (prediction, true label) and compute test error
         evaluator = MulticlassClassificationEvaluator(
@@ -1969,8 +1968,8 @@ class ml_random_forest_classification(snippet):
         )
         accuracy = evaluator.evaluate(predictions)
         print("Test Error = %g" % (1.0 - accuracy))
-
-        print(rf_model)
+        results = predictions.select([label_column, "prediction"])
+        return results
 
 
 class ml_string_encode(snippet):
@@ -3416,12 +3415,17 @@ Table of contents
                 fd.write(snippet_template.format(code=source))
                 result = cheat.run(show=False)
                 if result is not None:
-                    fd.write("```\n# Code snippet result:\n")
                     result_text = get_result_text(result)
-                    fd.write(result_text)
-                    if not result_text.endswith("\n"):
-                        fd.write("\n")
-                    fd.write("```")
+                    if result_text.startswith("!["):
+                        fd.write("```\n# Code snippet result:\n")
+                        fd.write("```\n")
+                        fd.write(result_text)
+                    else:
+                        fd.write("```\n# Code snippet result:\n")
+                        fd.write(result_text)
+                        if not result_text.endswith("\n"):
+                            fd.write("\n")
+                        fd.write("```")
 
 
 def all_tests(category=None):
