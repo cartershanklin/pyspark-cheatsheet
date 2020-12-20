@@ -14,7 +14,13 @@ import yaml
 from pyspark.sql import SparkSession, SQLContext
 from slugify import slugify
 
-spark = SparkSession.builder.appName("cheatsheet").getOrCreate()
+spark = (
+    SparkSession.builder.master("local[*]")
+    .config("spark.executor.memory", "2G")
+    .config("spark.driver.memory", "2G")
+    .appName("cheatsheet")
+    .getOrCreate()
+)
 sqlContext = SQLContext(spark)
 
 
@@ -32,6 +38,8 @@ def get_result_text(result, truncate=True):
         return str(result)
     elif type(result) == list:
         return "\n".join(result)
+    elif type(result) == dict and "image" in result:
+        return "![{}]({})".format(result["alt"], result["image"])
     else:
         return result
 
@@ -50,9 +58,14 @@ class snippet:
         if self.dataset == "UNUSED":
             return None
         if self.dataset == "covtype.parquet":
-            return spark.read.format("parquet").load(
+            from pyspark.sql.functions import col
+
+            df = spark.read.format("parquet").load(
                 os.path.join("data", "covtype.parquet")
             )
+            for column_name in df.columns:
+                df = df.withColumn(column_name, col(column_name).cast("int"))
+            return df
         df = (
             spark.read.format("csv")
             .option("header", True)
@@ -1862,7 +1875,7 @@ class ml_random_forest_regression(snippet):
         self.name = "A basic Random Forest Regression model"
         self.category = "Machine Learning"
         self.dataset = "auto-mpg.csv"
-        self.priority = 200
+        self.priority = 110
         self.preconvert = True
 
     def snippet(self, df):
@@ -1910,6 +1923,54 @@ class ml_random_forest_regression(snippet):
         print("RMSE={} r2={}".format(rmse, r2))
 
         return predictions
+
+
+class ml_random_forest_classification(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "A basic Random Forest Classification model"
+        self.category = "Machine Learning"
+        self.dataset = "covtype.parquet"
+        self.priority = 200
+
+    def snippet(self, df):
+        from pyspark.ml.classification import RandomForestClassifier
+        from pyspark.ml.evaluation import MulticlassClassificationEvaluator
+        from pyspark.ml.feature import VectorAssembler
+
+        label_column = "cover_type"
+        vectorAssembler = VectorAssembler(
+            inputCols=df.columns,
+            outputCol="features",
+            handleInvalid="skip",
+        )
+        assembled = vectorAssembler.transform(df)
+
+        # Random test/train split.
+        train_df, test_df = assembled.randomSplit([0.7, 0.3])
+
+        # Define the model.
+        rf = RandomForestClassifier(
+            numTrees=50,
+            featuresCol="features",
+            labelCol=label_column,
+        )
+
+        # Train the model.
+        rf_model = rf.fit(train_df)
+
+        # Make predictions.
+        predictions = rf_model.transform(test_df)
+        predictions.select([label_column, "prediction"]).show()
+
+        # Select (prediction, true label) and compute test error
+        evaluator = MulticlassClassificationEvaluator(
+            labelCol=label_column, predictionCol="prediction", metricName="accuracy"
+        )
+        accuracy = evaluator.evaluate(predictions)
+        print("Test Error = %g" % (1.0 - accuracy))
+
+        print(rf_model)
 
 
 class ml_string_encode(snippet):
@@ -2155,8 +2216,83 @@ class ml_hyperparameter_tuning(snippet):
             handleInvalid="skip",
         )
 
-        # Random test/train split.
-        train_df, test_df = encoded_df.randomSplit([0.7, 0.3])
+        # Define the model.
+        rf = RandomForestRegressor(
+            numTrees=20,
+            featuresCol="features",
+            labelCol="mpg",
+        )
+
+        # Run the pipeline.
+        pipeline = Pipeline(stages=[vector_assembler, rf])
+
+        # Hyperparameter search.
+        target_metric = "rmse"
+        paramGrid = (
+            ParamGridBuilder().addGrid(rf.numTrees, list(range(20, 100, 10))).build()
+        )
+        crossval = CrossValidator(
+            estimator=pipeline,
+            estimatorParamMaps=paramGrid,
+            evaluator=RegressionEvaluator(
+                labelCol="mpg", predictionCol="prediction", metricName=target_metric
+            ),
+            numFolds=2,
+            parallelism=4,
+        )
+
+        # Run cross-validation, and choose the best set of parameters.
+        model = crossval.fit(encoded_df)
+        real_model = model.bestModel.stages[1]
+        print("Best model has {} trees.".format(real_model.getNumTrees))
+
+        # EXCLUDE
+        retval = []
+        retval.append("Best model has {} trees.".format(real_model.getNumTrees))
+        return retval
+        # INCLUDE
+
+
+class ml_hyperparameter_tuning_plot(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Plot Hyperparameter tuning metrics"
+        self.category = "Machine Learning"
+        self.dataset = "auto-mpg-fixed.csv"
+        self.priority = 415
+        self.preconvert = True
+
+    def snippet(self, df):
+        from pyspark.ml import Pipeline
+        from pyspark.ml.evaluation import RegressionEvaluator
+        from pyspark.ml.feature import StringIndexer, VectorAssembler
+        from pyspark.ml.regression import RandomForestRegressor
+        from pyspark.ml.tuning import CrossValidator, ParamGridBuilder
+        from pyspark.sql.functions import udf
+        from pyspark.sql.types import StringType
+
+        # Add manufacturer name we will use as a string column.
+        first_word_udf = udf(lambda x: x.split()[0], StringType())
+        df = df.withColumn("manufacturer", first_word_udf(df.carname))
+        manufacturer_encoded = StringIndexer(
+            inputCol="manufacturer", outputCol="manufacturer_encoded"
+        )
+        encoded_df = manufacturer_encoded.fit(df).transform(df)
+
+        # Set up our main ML pipeline.
+        columns_to_assemble = [
+            "manufacturer_encoded",
+            "cylinders",
+            "displacement",
+            "horsepower",
+            "weight",
+            "acceleration",
+        ]
+        vector_assembler = VectorAssembler(
+            inputCols=columns_to_assemble,
+            outputCol="features",
+            handleInvalid="skip",
+        )
 
         # Define the model.
         rf = RandomForestRegressor(
@@ -2169,28 +2305,93 @@ class ml_hyperparameter_tuning(snippet):
         pipeline = Pipeline(stages=[vector_assembler, rf])
 
         # Hyperparameter search.
+        target_metric = "rmse"
         paramGrid = (
             ParamGridBuilder().addGrid(rf.numTrees, list(range(20, 100, 10))).build()
         )
         crossval = CrossValidator(
             estimator=pipeline,
             estimatorParamMaps=paramGrid,
-            evaluator=RegressionEvaluator(labelCol="mpg", predictionCol="prediction"),
+            evaluator=RegressionEvaluator(
+                labelCol="mpg", predictionCol="prediction", metricName=target_metric
+            ),
             numFolds=2,
+            parallelism=4,
         )
 
-        # Run cross-validation, and choose the best set of parameters.
-        model = crossval.fit(train_df)
+        # Run cross-validation, get metrics for each parameter.
+        model = crossval.fit(encoded_df)
+
+        # Plot results using matplotlib.
+        import matplotlib
+
+        parameter_grid = [
+            {k.name: v for k, v in p.items()} for p in model.getEstimatorParamMaps()
+        ]
+        pdf = pandas.DataFrame(
+            model.avgMetrics,
+            index=[x["numTrees"] for x in parameter_grid],
+            columns=[target_metric],
+        )
+        ax = pdf.plot(style="*-")
+        ax.figure.suptitle("Hyperparameter Search: RMSE by Number of Trees")
+        ax.figure.savefig("hyperparameters.png")
+
+        return dict(image="hyperparameters.png", alt="Hyperparameter Search")
+
+
+class ml_random_forest_classification_hyper(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "A Random Forest Classification model with Hyperparameter Tuning"
+        self.category = "Machine Learning"
+        self.dataset = "covtype.parquet"
+        self.priority = 420
+
+    def snippet(self, df):
+        from pyspark.ml.classification import RandomForestClassifier
+        from pyspark.ml.evaluation import MulticlassClassificationEvaluator
+        from pyspark.ml.feature import VectorAssembler
+        from pyspark.ml import Pipeline
+        from pyspark.ml.tuning import CrossValidator, ParamGridBuilder
+
+        label_column = "cover_type"
+        vector_assembler = VectorAssembler(
+            inputCols=df.columns,
+            outputCol="features",
+            handleInvalid="skip",
+        )
+
+        # Define the model.
+        rf = RandomForestClassifier(
+            numTrees=50,
+            featuresCol="features",
+            labelCol=label_column,
+        )
+
+        # Run the pipeline.
+        pipeline = Pipeline(stages=[vector_assembler, rf])
+
+        # Hyperparameter search.
+        paramGrid = (
+            ParamGridBuilder().addGrid(rf.numTrees, list(range(50, 80, 10))).build()
+        )
+        crossval = CrossValidator(
+            estimator=pipeline,
+            estimatorParamMaps=paramGrid,
+            evaluator=MulticlassClassificationEvaluator(
+                labelCol=label_column, predictionCol="prediction"
+            ),
+            numFolds=2,
+            parallelism=4,
+        )
+
+        # Run cross-validation and choose the best set of parameters.
+        model = crossval.fit(df)
 
         # Identify the best hyperparameters.
         real_model = model.bestModel.stages[1]
         print("Best model has {} trees.".format(real_model.getNumTrees))
-
-        # EXCLUDE
-        retval = []
-        retval.append("Best model has {} trees.".format(real_model.getNumTrees))
-        return retval
-        # INCLUDE
 
 
 class ml_covariance(snippet):
@@ -2199,14 +2400,12 @@ class ml_covariance(snippet):
         self.name = "Compute correlation matrix"
         self.category = "Machine Learning"
         self.dataset = "auto-mpg-fixed.csv"
-        self.priority = 500
+        self.priority = 600
         self.preconvert = True
 
     def snippet(self, df):
-        from pyspark.ml.feature import VectorAssembler, VectorIndexer
-        from pyspark.ml.regression import RandomForestRegressor
+        from pyspark.ml.feature import VectorAssembler
         from pyspark.ml.stat import Correlation
-        from pyspark.sql.functions import countDistinct
 
         # Remove non-numeric columns.
         df = df.drop("carname")
@@ -2227,7 +2426,9 @@ class ml_covariance(snippet):
         corr_array = matrix.collect()[0]["pearson({})".format(vector_col)].toArray()
 
         # This part is just for pretty-printing.
-        pdf = pandas.DataFrame(corr_array, index=feature_columns, columns=feature_columns)
+        pdf = pandas.DataFrame(
+            corr_array, index=feature_columns, columns=feature_columns
+        )
         return pdf
 
 
@@ -3282,6 +3483,10 @@ def main():
     parser.add_argument("--debug", action="store_true")
     parser.add_argument("--dump-priorities", action="store_true")
     parser.add_argument("--test")
+    # parser.add_argument(
+    #    "--test",
+    #    default="Plot Hyperparameter tuning metrics",
+    # )
     args = parser.parse_args()
 
     # Set up logging.
