@@ -666,13 +666,31 @@ class group_key_value_to_key_list(snippet):
         return collected
 
 
+class group_group_and_count(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "count(*) on a particular column"
+        self.category = "Grouping"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 100
+
+    def snippet(self, df):
+        from pyspark.sql.functions import desc
+
+        # No sorting.
+        grouped1 = df.groupBy("cylinders").count()
+
+        # With sorting.
+        grouped2 = df.groupBy("cylinders").count().orderBy(desc("count"))
+        return grouped2
+
 class group_group_and_sort(snippet):
     def __init__(self):
         super().__init__()
         self.name = "Group and sort"
         self.category = "Grouping"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 110
 
     def snippet(self, df):
         from pyspark.sql.functions import avg, desc

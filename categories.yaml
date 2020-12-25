@@ -16,7 +16,7 @@ Sorting and Searching:
 
 Grouping:
     priority: 5
-    description: Group DataFrame data by key to perform aggregates like sums, averages, etc.
+    description: Group DataFrame data by key to perform aggregates like counting, sums, averages, etc.
 
 Joining DataFrames:
     priority: 6
