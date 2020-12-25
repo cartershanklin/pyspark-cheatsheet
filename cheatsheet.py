@@ -584,6 +584,61 @@ class group_topn_per_group(snippet):
         return result
 
 
+class group_basic_ntile(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Compute global percentiles"
+        self.category = "Grouping"
+        self.dataset = "auto-mpg.csv"
+        self.preconvert = True
+        self.priority = 1500
+
+    def snippet(self, df):
+        from pyspark.sql.functions import col, ntile
+        from pyspark.sql.window import Window
+
+        w = Window().orderBy(col("mpg").desc())
+        result = df.withColumn("ntile4", ntile(4).over(w))
+        return result
+
+
+class group_ntile_partition(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Compute percentiles within a partition"
+        self.category = "Grouping"
+        self.dataset = "auto-mpg.csv"
+        self.preconvert = True
+        self.priority = 1510
+
+    def snippet(self, df):
+        from pyspark.sql.functions import col, ntile
+        from pyspark.sql.window import Window
+
+        w = Window().partitionBy("cylinders").orderBy(col("mpg").desc())
+        result = df.withColumn("ntile4", ntile(4).over(w))
+        return result
+
+
+class group_ntile_after_aggregate(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Compute percentiles after aggregating"
+        self.category = "Grouping"
+        self.dataset = "auto-mpg.csv"
+        self.preconvert = True
+        self.priority = 1520
+
+    def snippet(self, df):
+        from pyspark.sql.functions import col, ntile
+        from pyspark.sql.window import Window
+
+        grouped = df.groupBy("modelyear").count()
+        w = Window().orderBy(col("count").desc())
+        result = grouped.withColumn("ntile4", ntile(4).over(w))
+        return result
+
+
 class group_count_unique_after_group(snippet):
     def __init__(self):
         super().__init__()
@@ -684,6 +739,7 @@ class group_group_and_count(snippet):
         grouped2 = df.groupBy("cylinders").count().orderBy(desc("count"))
         return grouped2
 
+
 class group_group_and_sort(snippet):
     def __init__(self):
         super().__init__()
@@ -699,6 +755,28 @@ class group_group_and_sort(snippet):
             df.groupBy("cylinders")
             .agg(avg("horsepower").alias("avg_horsepower"))
             .orderBy(desc("avg_horsepower"))
+        )
+        return grouped
+
+
+class group_group_having(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = (
+            "Filter groups based on an aggregate value, equivalent to SQL HAVING clause"
+        )
+        self.category = "Grouping"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 120
+
+    def snippet(self, df):
+        from pyspark.sql.functions import col, desc
+
+        grouped = (
+            df.groupBy("cylinders")
+            .count()
+            .orderBy(desc("count"))
+            .filter(col("count") > 100)
         )
         return grouped
 
@@ -3505,10 +3583,6 @@ def main():
     parser.add_argument("--debug", action="store_true")
     parser.add_argument("--dump-priorities", action="store_true")
     parser.add_argument("--test")
-    # parser.add_argument(
-    #    "--test",
-    #    default="Plot Hyperparameter tuning metrics",
-    # )
     args = parser.parse_args()
 
     # Set up logging.
