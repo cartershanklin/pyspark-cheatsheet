@@ -3059,7 +3059,6 @@ class profile_numeric_median(snippet):
         for name, dtype in df.dtypes:
             if dtype not in numerics:
                 continue
-            x = F.expr('percentile({}, array(0.5))'.format(name))
             aggregates.append(F.expr('percentile({}, array(0.5))'.format(name))[0].alias('{}_median'.format(name)))
         profiled = df.agg(*aggregates)
 
