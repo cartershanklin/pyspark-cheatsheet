@@ -2533,7 +2533,7 @@ class ml_save_model(snippet):
         self.name = "Save a model"
         self.category = "Machine Learning"
         self.dataset = "auto-mpg-fixed.csv"
-        self.priority = 1000
+        self.priority = 10
         self.preconvert = True
 
     def snippet(self, df):
@@ -2574,7 +2574,7 @@ class ml_load_model(snippet):
         self.name = "Load a model and use it for predictions"
         self.category = "Machine Learning"
         self.dataset = "auto-mpg-fixed.csv"
-        self.priority = 1000
+        self.priority = 20
         self.preconvert = True
 
     def snippet(self, df):
