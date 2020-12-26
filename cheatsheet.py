@@ -3052,20 +3052,17 @@ class profile_numeric_median(snippet):
         self.preconvert = True
 
     def snippet(self, df):
-        # Register as a table to access SQL median.
-        df.registerTempTable("profile_median")
+        import pyspark.sql.functions as F
 
         numerics = set(["decimal", "double", "float", "integer", "long", "short"])
-        names = []
+        aggregates = []
         for name, dtype in df.dtypes:
             if dtype not in numerics:
                 continue
-            names.append(name)
+            x = F.expr('percentile({}, array(0.5))'.format(name))
+            aggregates.append(F.expr('percentile({}, array(0.5))'.format(name))[0].alias('{}_median'.format(name)))
+        profiled = df.agg(*aggregates)
 
-        generated = ",".join(
-            f"percentile({name}, 0.5) as median_{name}" for name in names
-        )
-        profiled = sqlContext.sql(f"select {generated} from profile_median")
         return profiled
 
 
