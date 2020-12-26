@@ -9,7 +9,7 @@ These snippets use DataFrames loaded from various data sources:
 - customer_spend.csv, a generated time series dataset.
 - date_examples.csv, a generated dataset with various date and time formats.
 
-These snippets were tested against the Spark 3.0.1 API. This page was last updated 2020-12-25 15:42:55.
+These snippets were tested against the Spark 3.0.1 API. This page was last updated 2020-12-26 07:13:20.
 
 Make note of these helpful links:
 - [PySpark DataFrame Operations](http://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.DataFrame)
@@ -50,6 +50,7 @@ Table of contents
       * [Change a column name](#change-a-column-name)
       * [Change multiple column names](#change-multiple-column-names)
       * [Convert a DataFrame column to a Python list](#convert-a-dataframe-column-to-a-python-list)
+      * [Convert a scalar query to a Python value](#convert-a-scalar-query-to-a-python-value)
       * [Select particular columns from a DataFrame](#select-particular-columns-from-a-dataframe)
       * [Create an empty dataframe with a specified schema](#create-an-empty-dataframe-with-a-specified-schema)
       * [Create a constant dataframe](#create-a-constant-dataframe)
@@ -106,6 +107,7 @@ Table of contents
       * [Compute global percentiles](#compute-global-percentiles)
       * [Compute percentiles within a partition](#compute-percentiles-within-a-partition)
       * [Compute percentiles after aggregating](#compute-percentiles-after-aggregating)
+      * [Filter rows with values below a target percentile](#filter-rows-with-values-below-a-target-percentile)
    * [Joining DataFrames](#joining-dataframes)
       * [Join two DataFrames by column name](#join-two-dataframes-by-column-name)
       * [Join two DataFrames with an expression](#join-two-dataframes-with-an-expression)
@@ -156,6 +158,8 @@ Table of contents
       * [Cumulative Average](#cumulative-average)
       * [Cumulative Average in a Period](#cumulative-average-in-a-period)
    * [Machine Learning](#machine-learning)
+      * [Save a model](#save-a-model)
+      * [Load a model and use it for predictions](#load-a-model-and-use-it-for-predictions)
       * [A basic Linear Regression model](#a-basic-linear-regression-model)
       * [A basic Random Forest Regression model](#a-basic-random-forest-regression-model)
       * [A basic Random Forest Classification model](#a-basic-random-forest-classification-model)
@@ -166,8 +170,6 @@ Table of contents
       * [Plot Hyperparameter tuning metrics](#plot-hyperparameter-tuning-metrics)
       * [A Random Forest Classification model with Hyperparameter Tuning](#a-random-forest-classification-model-with-hyperparameter-tuning)
       * [Compute correlation matrix](#compute-correlation-matrix)
-      * [Load a model and use it for predictions](#load-a-model-and-use-it-for-predictions)
-      * [Save a model](#save-a-model)
    * [Performance](#performance)
       * [Get the Spark version](#get-the-spark-version)
       * [Cache a DataFrame](#cache-a-dataframe)
@@ -742,6 +744,18 @@ names = df.select("carname").rdd.flatMap(lambda x: x).collect()
 ```
 # Code snippet result:
 ['chevrolet chevelle malibu', 'buick skylark 320', 'plymouth satellite', 'amc rebel sst', 'ford torino', 'ford galaxie 500', 'chevrolet impala', 'plymouth fury iii', 'pontiac catalina', 'amc ambassador dpl']
+```
+
+Convert a scalar query to a Python value
+----------------------------------------
+
+```python
+average = df.agg(dict(mpg="avg")).first()[0]
+print(average)
+```
+```
+# Code snippet result:
+23.514572864321615
 ```
 
 Select particular columns from a DataFrame
@@ -2067,6 +2081,35 @@ result = grouped.withColumn("ntile4", ntile(4).over(w))
 only showing top 10 rows
 ```
 
+Filter rows with values below a target percentile
+-------------------------------------------------
+
+```python
+from pyspark.sql.functions import col, lit
+import pyspark.sql.functions as F
+
+target_percentile = df.agg(F.expr("percentile(mpg, 0.9)").alias("target_percentile")).first()[0]
+result = df.filter(col("mpg") > lit(target_percentile))
+```
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+----------+------+------------+---------+------+----------+
+|35.0|      4.0|        72.0|      69.0|1613.0|        18.0|       71|     3|datsun ...|
+|36.0|      4.0|        79.0|      58.0|1825.0|        18.6|       77|     2|renault...|
+|43.1|      4.0|        90.0|      48.0|1985.0|        21.5|       78|     2|volkswa...|
+|36.1|      4.0|        98.0|      66.0|1800.0|        14.4|       78|     1|ford fi...|
+|39.4|      4.0|        85.0|      70.0|2070.0|        18.6|       78|     3|datsun ...|
+|36.1|      4.0|        91.0|      60.0|1800.0|        16.4|       78|     3|honda c...|
+|35.7|      4.0|        98.0|      80.0|1915.0|        14.4|       79|     1|dodge c...|
+|34.5|      4.0|       105.0|      70.0|2150.0|        14.9|       79|     1|plymout...|
+|37.3|      4.0|        91.0|      69.0|2130.0|        14.7|       79|     2|fiat st...|
+|41.5|      4.0|        98.0|      76.0|2144.0|        14.7|       80|     2| vw rabbit|
++----+---------+------------+----------+------+------------+---------+------+----------+
+only showing top 10 rows
+```
+
 Joining DataFrames
 ==================
 Joining and stacking DataFrames.
@@ -3027,25 +3070,25 @@ Compute median values of all numeric columns
 --------------------------------------------
 
 ```python
-# Register as a table to access SQL median.
-df.registerTempTable("profile_median")
+import pyspark.sql.functions as F
 
 numerics = set(["decimal", "double", "float", "integer", "long", "short"])
-names = []
+aggregates = []
 for name, dtype in df.dtypes:
     if dtype not in numerics:
         continue
-    names.append(name)
+    aggregates.append(
+        F.expr("percentile({}, 0.5)".format(name)).alias(
+            "{}_median".format(name)
+        )
+    )
+profiled = df.agg(*aggregates)
 
-generated = ",".join(
-    f"percentile({name}, 0.5) as median_{name}" for name in names
-)
-profiled = sqlContext.sql(f"select {generated} from profile_median")
 ```
 ```
 # Code snippet result:
 +----------+----------------+-------------------+-----------------+-------------+-------------------+
-|median_mpg|median_cylinders|median_displacement|median_horsepower|median_weight|median_acceleration|
+|mpg_median|cylinders_median|displacement_median|horsepower_median|weight_median|acceleration_median|
 +----------+----------------+-------------------+-----------------+-------------+-------------------+
 |      23.0|             4.0|              148.5|             93.5|       2803.5|               15.5|
 +----------+----------------+-------------------+-----------------+-------------+-------------------+
@@ -3365,6 +3408,87 @@ Machine Learning
 ================
 Machine Learning
 
+Save a model
+------------
+
+```python
+from pyspark.ml.feature import VectorAssembler
+from pyspark.ml.regression import RandomForestRegressor
+
+vectorAssembler = VectorAssembler(
+    inputCols=[
+        "cylinders",
+        "displacement",
+        "horsepower",
+        "weight",
+        "acceleration",
+    ],
+    outputCol="features",
+    handleInvalid="skip",
+)
+assembled = vectorAssembler.transform(df)
+
+# Random test/train split.
+train_df, test_df = assembled.randomSplit([0.7, 0.3])
+
+# Define the model.
+rf = RandomForestRegressor(
+    numTrees=50,
+    featuresCol="features",
+    labelCol="mpg",
+)
+
+# Train the model.
+rf_model = rf.fit(train_df)
+rf_model.write().overwrite().save("rf_regression.model")
+```
+
+
+Load a model and use it for predictions
+---------------------------------------
+
+```python
+from pyspark.ml.feature import VectorAssembler
+from pyspark.ml.regression import RandomForestRegressionModel
+
+# Model type and assembled features need to agree with the trained model.
+rf_model = RandomForestRegressionModel.load("rf_regression.model")
+vectorAssembler = VectorAssembler(
+    inputCols=[
+        "cylinders",
+        "displacement",
+        "horsepower",
+        "weight",
+        "acceleration",
+    ],
+    outputCol="features",
+    handleInvalid="skip",
+)
+assembled = vectorAssembler.transform(df)
+
+predictions = rf_model.transform(assembled).select(
+    "carname", "mpg", "prediction"
+)
+```
+```
+# Code snippet result:
++----------+----+----------+
+|   carname| mpg|prediction|
++----------+----+----------+
+|chevrol...|18.0|16.1617...|
+|buick s...|15.0|14.8379...|
+|plymout...|18.0|15.8965...|
+|amc reb...|16.0|15.7757...|
+|ford to...|17.0|16.3156...|
+|ford ga...|15.0|14.2531...|
+|chevrol...|14.0|13.3692...|
+|plymout...|14.0|13.6472...|
+|pontiac...|14.0|12.9340...|
+|amc amb...|15.0|14.4316...|
++----------+----+----------+
+only showing top 10 rows
+```
+
 A basic Linear Regression model
 -------------------------------
 
@@ -3416,16 +3540,16 @@ predictions = lr_model.transform(test_df)
 +----------+----+----------+----------+
 |  features| mpg|   carname|prediction|
 +----------+----+----------+----------+
-|[3.0,70...|23.7|mazda r...|28.6356...|
-|[3.0,80...|21.5|mazda rx-4|26.9536...|
-|[4.0,79...|36.0|renault...|31.8323...|
-|[4.0,79...|26.0|volkswa...|30.9921...|
-|[4.0,79...|30.0|peugeot...|30.4358...|
-|[4.0,85...|32.0|datsun ...|30.7177...|
-|[4.0,86...|39.0|plymout...|31.3631...|
-|[4.0,86...|34.1|maxda g...|30.9099...|
-|[4.0,89...|29.8|vokswag...|31.5095...|
-|[4.0,89...|37.7|toyota ...|30.6382...|
+|[3.0,70...|23.7|mazda r...|27.1256...|
+|[4.0,68...|29.0|  fiat 128|32.3438...|
+|[4.0,79...|39.1|toyota ...|32.4830...|
+|[4.0,79...|31.0| fiat x1.9|30.7826...|
+|[4.0,85...|29.0|chevrol...|31.3058...|
+|[4.0,86...|34.1|maxda g...|30.9982...|
+|[4.0,89...|29.8|vokswag...|31.8121...|
+|[4.0,90...|44.3|vw rabb...|31.2296...|
+|[4.0,90...|43.4|vw dash...|29.9310...|
+|[4.0,90...|25.0|volkswa...|29.4195...|
 +----------+----+----------+----------+
 only showing top 10 rows
 ```
@@ -3483,16 +3607,16 @@ print("RMSE={} r2={}".format(rmse, r2))
 +----------+----+----------+----------+
 |  features| mpg|   carname|prediction|
 +----------+----+----------+----------+
-|[4.0,76...|31.0|toyota ...|33.4701...|
-|[4.0,79...|31.0| fiat x1.9|33.8235...|
-|[4.0,81...|35.1|honda c...|34.1850...|
-|[4.0,83...|32.0|datsun 710|34.2043...|
-|[4.0,85...|40.8|datsun 210|33.9254...|
-|[4.0,85...|39.4|datsun ...|31.5673...|
-|[4.0,86...|46.6| mazda glc|34.6152...|
-|[4.0,89...|31.9|vw rabb...|31.9221...|
-|[4.0,89...|31.5|volkswa...|32.2835...|
-|[4.0,90...|24.0|  fiat 128|30.9100...|
+|[3.0,80...|21.5|mazda rx-4|22.8614...|
+|[4.0,71...|31.0|toyota ...|34.1230...|
+|[4.0,71...|32.0|toyota ...|33.8389...|
+|[4.0,79...|26.0|volkswa...|34.0733...|
+|[4.0,79...|30.0|peugeot...|34.6746...|
+|[4.0,85...|33.5|datsun ...|33.7651...|
+|[4.0,88...|30.0| fiat 124b|32.1055...|
+|[4.0,90...|43.1|volkswa...|36.9585...|
+|[4.0,90...|24.0|  fiat 128|30.7793...|
+|[4.0,91...|33.0|honda c...|34.5173...|
 +----------+----+----------+----------+
 only showing top 10 rows
 ```
@@ -3545,11 +3669,11 @@ results = predictions.select([label_column, "prediction"])
 |         3|       3.0|
 |         6|       3.0|
 |         6|       3.0|
-|         6|       3.0|
-|         6|       3.0|
-|         6|       3.0|
 |         3|       3.0|
 |         3|       3.0|
+|         6|       3.0|
+|         3|       3.0|
+|         6|       3.0|
 |         6|       3.0|
 |         6|       3.0|
 +----------+----------+
@@ -3627,16 +3751,16 @@ print("RMSE={}".format(rmse))
 +----------+----+----------+
 |   carname| mpg|prediction|
 +----------+----+----------+
-|chevrol...|10.0|12.9652...|
-| ford f250|10.0|14.0626...|
-|dodge d200|11.0|14.3970...|
-|mercury...|11.0|13.4944...|
-|ford co...|12.0|13.5392...|
-|ford mu...|13.0|17.7340...|
-| ford f108|13.0|17.4438...|
-|plymout...|13.0|14.7149...|
-|plymout...|13.0|14.0557...|
-|amc mat...|14.0|13.2416...|
+|chevrol...|10.0|14.2306...|
+|oldsmob...|12.0|14.6236...|
+|oldsmob...|12.0|14.0297...|
+|ford mu...|13.0|17.9251...|
+|ford gr...|13.0|15.3950...|
+|chevrol...|13.0|15.6931...|
+|chevrol...|13.0|14.9651...|
+|buick l...|13.0|14.4412...|
+|buick c...|13.0|14.1475...|
+|plymout...|13.0|14.0324...|
 +----------+----+----------+
 only showing top 10 rows
 ```
@@ -3701,12 +3825,12 @@ for feature, importance in zip(
 ```
 ```
 # Code snippet result:
-manufacturer_encoded contributes 5.879%
-cylinders contributes 11.321%
-displacement contributes 41.990%
-horsepower contributes 19.417%
-weight contributes 17.742%
-acceleration contributes 3.652%
+manufacturer_encoded contributes 7.351%
+cylinders contributes 17.036%
+displacement contributes 13.148%
+horsepower contributes 27.540%
+weight contributes 32.023%
+acceleration contributes 2.901%
 ```
 
 Automatically encode categorical variables
@@ -3761,16 +3885,16 @@ predictions = rf_model.transform(test_df).select("mpg", "prediction")
 +----+----------+
 | mpg|prediction|
 +----+----------+
-|10.0|13.7088...|
-|12.0|13.9288...|
-|13.0|16.9514...|
-|13.0|13.3202...|
-|13.0|13.9058...|
-|13.0|13.9686...|
-|13.0|13.6965...|
-|14.0|14.1530...|
-|14.0|14.6523...|
-|14.0|14.0351...|
+|11.0|13.1063...|
+|11.0|15.3387...|
+|11.0|13.4116...|
+|12.0|12.9986...|
+|12.0|12.9561...|
+|13.0|17.4888...|
+|13.0|13.5055...|
+|13.0|13.5320...|
+|13.0|13.6669...|
+|13.0|13.1414...|
 +----+----------+
 only showing top 10 rows
 ```
@@ -4022,87 +4146,6 @@ modelyear     -0.345647     -0.369855   -0.416361 -0.309120      0.290316   1.00
 origin        -0.568932     -0.614535   -0.455171 -0.585005      0.212746   0.181528  1.000000
 ```
 
-Load a model and use it for predictions
----------------------------------------
-
-```python
-from pyspark.ml.feature import VectorAssembler
-from pyspark.ml.regression import RandomForestRegressionModel
-
-# Model type and assembled features need to agree with the trained model.
-rf_model = RandomForestRegressionModel.load("rf_regression.model")
-vectorAssembler = VectorAssembler(
-    inputCols=[
-        "cylinders",
-        "displacement",
-        "horsepower",
-        "weight",
-        "acceleration",
-    ],
-    outputCol="features",
-    handleInvalid="skip",
-)
-assembled = vectorAssembler.transform(df)
-
-predictions = rf_model.transform(assembled).select(
-    "carname", "mpg", "prediction"
-)
-```
-```
-# Code snippet result:
-+----------+----+----------+
-|   carname| mpg|prediction|
-+----------+----+----------+
-|chevrol...|18.0|16.9836...|
-|buick s...|15.0|14.8919...|
-|plymout...|18.0|16.0165...|
-|amc reb...|16.0|16.3620...|
-|ford to...|17.0|16.6149...|
-|ford ga...|15.0|14.5317...|
-|chevrol...|14.0|14.5671...|
-|plymout...|14.0|14.5671...|
-|pontiac...|14.0|13.3466...|
-|amc amb...|15.0|14.7457...|
-+----------+----+----------+
-only showing top 10 rows
-```
-
-Save a model
-------------
-
-```python
-from pyspark.ml.feature import VectorAssembler
-from pyspark.ml.regression import RandomForestRegressor
-
-vectorAssembler = VectorAssembler(
-    inputCols=[
-        "cylinders",
-        "displacement",
-        "horsepower",
-        "weight",
-        "acceleration",
-    ],
-    outputCol="features",
-    handleInvalid="skip",
-)
-assembled = vectorAssembler.transform(df)
-
-# Random test/train split.
-train_df, test_df = assembled.randomSplit([0.7, 0.3])
-
-# Define the model.
-rf = RandomForestRegressor(
-    numTrees=50,
-    featuresCol="features",
-    labelCol="mpg",
-)
-
-# Train the model.
-rf_model = rf.fit(train_df)
-rf_model.write().overwrite().save("rf_regression.model")
-```
-
-
 Performance
 ===========
 A few performance tips and tricks.
@@ -4333,16 +4376,16 @@ df = (
 +----+---------+------------+----------+------+------------+---------+------+----------+
 | mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
 +----+---------+------------+----------+------+------------+---------+------+----------+
-|14.0|        8|       340.0|     160.0| 3609.|         8.0|       70|     1|plymout...|
-|24.0|        4|       107.0|     90.00| 2430.|        14.5|       70|     2|audi 10...|
-|25.0|        4|       104.0|     95.00| 2375.|        17.5|       70|     2|  saab 99e|
-|27.0|        4|       97.00|     88.00| 2130.|        14.5|       71|     3|datsun ...|
-|28.0|        4|       140.0|     90.00| 2264.|        15.5|       71|     1|chevrol...|
+|21.0|        6|       200.0|     85.00| 2587.|        16.0|       70|     1|ford ma...|
+| 9.0|        8|       304.0|     193.0| 4732.|        18.5|       70|     1|  hi 1200d|
 |19.0|        6|       232.0|     100.0| 2634.|        13.0|       71|     1|amc gre...|
-|18.0|        6|       232.0|     100.0| 3288.|        15.5|       71|     1|amc mat...|
-|12.0|        8|       383.0|     180.0| 4955.|        11.5|       71|     1|dodge m...|
-|30.0|        4|       88.00|     76.00| 2065.|        14.5|       71|     2| fiat 124b|
-|15.0|        8|       318.0|     150.0| 4135.|        13.5|       72|     1|plymout...|
+|23.0|        4|       122.0|     86.00| 2220.|        14.0|       71|     1|mercury...|
+|23.0|        4|       97.00|     54.00| 2254.|        23.5|       72|     2|volkswa...|
+|14.0|        8|       400.0|     175.0| 4385.|        12.0|       72|     1|pontiac...|
+|13.0|        8|       400.0|     190.0| 4422.|        12.5|       72|     1|chrysle...|
+|19.0|        3|       70.00|     97.00| 2330.|        13.5|       72|     3|mazda r...|
+|22.0|        4|       122.0|     86.00| 2395.|        16.0|       72|     1|ford pi...|
+|14.0|        8|       304.0|     150.0| 3672.|        11.5|       73|     1|amc mat...|
 +----+---------+------------+----------+------+------------+---------+------+----------+
 only showing top 10 rows
 ```
@@ -4355,7 +4398,7 @@ print(spark.sparkContext.getConf().getAll())
 ```
 ```
 # Code snippet result:
-[('spark.driver.port', '42505'), ('spark.driver.memory', '2G'), ('spark.rdd.compress', 'True'), ('spark.app.id', 'local-1608939769006'), ('spark.serializer.objectStreamReset', '100'), ('spark.executor.memory', '2G'), ('spark.master', 'local[*]'), ('spark.submit.pyFiles', ''), ('spark.executor.id', 'driver'), ('spark.submit.deployMode', 'client'), ('spark.app.name', 'cheatsheet'), ('spark.ui.showConsoleProgress', 'true'), ('spark.driver.host', '192.168.1.40')]
+[('spark.driver.port', '41465'), ('spark.driver.memory', '2G'), ('spark.rdd.compress', 'True'), ('spark.serializer.objectStreamReset', '100'), ('spark.executor.memory', '2G'), ('spark.master', 'local[*]'), ('spark.submit.pyFiles', ''), ('spark.executor.id', 'driver'), ('spark.submit.deployMode', 'client'), ('spark.app.name', 'cheatsheet'), ('spark.ui.showConsoleProgress', 'true'), ('spark.driver.host', '192.168.1.40'), ('spark.app.id', 'local-1608995598699')]
 ```
 
 Set Spark configuration properties

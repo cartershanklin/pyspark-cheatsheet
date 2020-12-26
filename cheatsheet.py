@@ -256,6 +256,20 @@ class dfo_column_to_python_list(snippet):
         return str(names[:10])
 
 
+class dfo_scalar_query_to_python_variable(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Convert a scalar query to a Python value"
+        self.category = "DataFrame Operations"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 720
+
+    def snippet(self, df):
+        average = df.agg(dict(mpg="avg")).first()[0]
+        print(average)
+        return str(average)
+
+
 class dfo_dataframe_from_rdd(snippet):
     def __init__(self):
         super().__init__()
@@ -636,6 +650,24 @@ class group_ntile_after_aggregate(snippet):
         grouped = df.groupBy("modelyear").count()
         w = Window().orderBy(col("count").desc())
         result = grouped.withColumn("ntile4", ntile(4).over(w))
+        return result
+
+
+class group_filter_less_than_percentile(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Filter rows with values below a target percentile"
+        self.category = "Grouping"
+        self.dataset = "auto-mpg.csv"
+        self.preconvert = True
+        self.priority = 1530
+
+    def snippet(self, df):
+        from pyspark.sql.functions import col, lit
+        import pyspark.sql.functions as F
+
+        target_percentile = df.agg(F.expr("percentile(mpg, 0.9)").alias("target_percentile")).first()[0]
+        result = df.filter(col("mpg") > lit(target_percentile))
         return result
 
 
@@ -3059,7 +3091,11 @@ class profile_numeric_median(snippet):
         for name, dtype in df.dtypes:
             if dtype not in numerics:
                 continue
-            aggregates.append(F.expr('percentile({}, array(0.5))'.format(name))[0].alias('{}_median'.format(name)))
+            aggregates.append(
+                F.expr("percentile({}, 0.5)".format(name)).alias(
+                    "{}_median".format(name)
+                )
+            )
         profiled = df.agg(*aggregates)
 
         return profiled
