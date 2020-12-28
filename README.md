@@ -9,7 +9,7 @@ These snippets use DataFrames loaded from various data sources:
 - customer_spend.csv, a generated time series dataset.
 - date_examples.csv, a generated dataset with various date and time formats.
 
-These snippets were tested against the Spark 3.0.1 API. This page was last updated 2020-12-26 07:13:20.
+These snippets were tested against the Spark 3.0.1 API. This page was last updated 2020-12-27 19:14:39.
 
 Make note of these helpful links:
 - [PySpark DataFrame Operations](http://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.DataFrame)
@@ -1398,13 +1398,19 @@ Filter values based on keys in another DataFrame
 ```python
 from pyspark.sql.functions import col
 
-# The anti join returns only keys with no matches.
+# Our DataFrame of keys to exclude.
 exclude_keys = df.select(
     (col("modelyear") + 1).alias("adjusted_year")
 ).distinct()
+
+# The anti join returns only keys with no matches.
 filtered = df.join(
     exclude_keys, how="left_anti", on=df.modelyear == exclude_keys.adjusted_year
 )
+
+# Alternatively we can register a temporary table and use a SQL expression.
+exclude_keys.registerTempTable("exclude_keys")
+filtered = df.filter("modelyear not in ( select adjusted_year from exclude_keys )")
 ```
 ```
 # Code snippet result:
@@ -3475,16 +3481,16 @@ predictions = rf_model.transform(assembled).select(
 +----------+----+----------+
 |   carname| mpg|prediction|
 +----------+----+----------+
-|chevrol...|18.0|16.1617...|
-|buick s...|15.0|14.8379...|
-|plymout...|18.0|15.8965...|
-|amc reb...|16.0|15.7757...|
-|ford to...|17.0|16.3156...|
-|ford ga...|15.0|14.2531...|
-|chevrol...|14.0|13.3692...|
-|plymout...|14.0|13.6472...|
-|pontiac...|14.0|12.9340...|
-|amc amb...|15.0|14.4316...|
+|chevrol...|18.0|17.2136...|
+|buick s...|15.0|14.6630...|
+|plymout...|18.0|16.2871...|
+|amc reb...|16.0|16.4517...|
+|ford to...|17.0|17.8000...|
+|ford ga...|15.0|13.8858...|
+|chevrol...|14.0|13.8858...|
+|plymout...|14.0|13.8858...|
+|pontiac...|14.0|13.8858...|
+|amc amb...|15.0|14.3346...|
 +----------+----+----------+
 only showing top 10 rows
 ```
@@ -3540,16 +3546,16 @@ predictions = lr_model.transform(test_df)
 +----------+----+----------+----------+
 |  features| mpg|   carname|prediction|
 +----------+----+----------+----------+
-|[3.0,70...|23.7|mazda r...|27.1256...|
-|[4.0,68...|29.0|  fiat 128|32.3438...|
-|[4.0,79...|39.1|toyota ...|32.4830...|
-|[4.0,79...|31.0| fiat x1.9|30.7826...|
-|[4.0,85...|29.0|chevrol...|31.3058...|
-|[4.0,86...|34.1|maxda g...|30.9982...|
-|[4.0,89...|29.8|vokswag...|31.8121...|
-|[4.0,90...|44.3|vw rabb...|31.2296...|
-|[4.0,90...|43.4|vw dash...|29.9310...|
-|[4.0,90...|25.0|volkswa...|29.4195...|
+|[4.0,68...|29.0|  fiat 128|31.7668...|
+|[4.0,71...|32.0|toyota ...|31.1531...|
+|[4.0,79...|39.1|toyota ...|31.8343...|
+|[4.0,79...|26.0|volkswa...|30.4221...|
+|[4.0,86...|39.0|plymout...|30.9534...|
+|[4.0,86...|34.1|maxda g...|30.4303...|
+|[4.0,88...|30.0| fiat 124b|29.4784...|
+|[4.0,89...|38.1|toyota ...|30.6856...|
+|[4.0,90...|43.1|volkswa...|31.1624...|
+|[4.0,90...|29.0| vw rabbit|30.3610...|
 +----------+----+----------+----------+
 only showing top 10 rows
 ```
@@ -3607,16 +3613,16 @@ print("RMSE={} r2={}".format(rmse, r2))
 +----------+----+----------+----------+
 |  features| mpg|   carname|prediction|
 +----------+----+----------+----------+
-|[3.0,80...|21.5|mazda rx-4|22.8614...|
-|[4.0,71...|31.0|toyota ...|34.1230...|
-|[4.0,71...|32.0|toyota ...|33.8389...|
-|[4.0,79...|26.0|volkswa...|34.0733...|
-|[4.0,79...|30.0|peugeot...|34.6746...|
-|[4.0,85...|33.5|datsun ...|33.7651...|
-|[4.0,88...|30.0| fiat 124b|32.1055...|
-|[4.0,90...|43.1|volkswa...|36.9585...|
-|[4.0,90...|24.0|  fiat 128|30.7793...|
-|[4.0,91...|33.0|honda c...|34.5173...|
+|[3.0,70...|23.7|mazda r...|22.2196...|
+|[3.0,80...|21.5|mazda rx-4|22.2807...|
+|[4.0,72...|35.0|datsun ...|33.1445...|
+|[4.0,76...|31.0|toyota ...|34.2902...|
+|[4.0,79...|31.0|datsun ...|33.1127...|
+|[4.0,85...|29.0|chevrol...|37.0429...|
+|[4.0,86...|39.0|plymout...|33.6283...|
+|[4.0,86...|34.1|maxda g...|33.3861...|
+|[4.0,86...|37.2|datsun 310|33.9333...|
+|[4.0,88...|30.0| fiat 124b|30.9591...|
 +----------+----+----------+----------+
 only showing top 10 rows
 ```
@@ -3667,12 +3673,12 @@ results = predictions.select([label_column, "prediction"])
 |cover_type|prediction|
 +----------+----------+
 |         3|       3.0|
-|         6|       3.0|
-|         6|       3.0|
 |         3|       3.0|
 |         3|       3.0|
-|         6|       3.0|
 |         3|       3.0|
+|         6|       3.0|
+|         6|       3.0|
+|         6|       3.0|
 |         6|       3.0|
 |         6|       3.0|
 |         6|       3.0|
@@ -3751,16 +3757,16 @@ print("RMSE={}".format(rmse))
 +----------+----+----------+
 |   carname| mpg|prediction|
 +----------+----+----------+
-|chevrol...|10.0|14.2306...|
-|oldsmob...|12.0|14.6236...|
-|oldsmob...|12.0|14.0297...|
-|ford mu...|13.0|17.9251...|
-|ford gr...|13.0|15.3950...|
-|chevrol...|13.0|15.6931...|
-|chevrol...|13.0|14.9651...|
-|buick l...|13.0|14.4412...|
-|buick c...|13.0|14.1475...|
-|plymout...|13.0|14.0324...|
+|  hi 1200d| 9.0|15.0577...|
+|chevrol...|11.0|13.8880...|
+|oldsmob...|12.0|13.7361...|
+|dodge m...|12.0|13.3829...|
+|ford mu...|13.0|17.1785...|
+|buick l...|13.0|13.9381...|
+|chrysle...|13.0|13.6444...|
+|ford gr...|14.0|15.7850...|
+|ford gr...|14.0|15.1058...|
+|dodge c...|14.0|14.5838...|
 +----------+----+----------+
 only showing top 10 rows
 ```
@@ -3825,12 +3831,12 @@ for feature, importance in zip(
 ```
 ```
 # Code snippet result:
-manufacturer_encoded contributes 7.351%
-cylinders contributes 17.036%
-displacement contributes 13.148%
-horsepower contributes 27.540%
-weight contributes 32.023%
-acceleration contributes 2.901%
+manufacturer_encoded contributes 9.956%
+cylinders contributes 13.931%
+displacement contributes 31.824%
+horsepower contributes 11.081%
+weight contributes 30.516%
+acceleration contributes 2.693%
 ```
 
 Automatically encode categorical variables
@@ -3885,16 +3891,16 @@ predictions = rf_model.transform(test_df).select("mpg", "prediction")
 +----+----------+
 | mpg|prediction|
 +----+----------+
-|11.0|13.1063...|
-|11.0|15.3387...|
-|11.0|13.4116...|
-|12.0|12.9986...|
-|12.0|12.9561...|
-|13.0|17.4888...|
-|13.0|13.5055...|
-|13.0|13.5320...|
-|13.0|13.6669...|
-|13.0|13.1414...|
+|10.0|13.1423...|
+|11.0|13.7024...|
+|11.0|13.6341...|
+|12.0|13.9747...|
+|12.0|13.1697...|
+|13.0|15.6123...|
+|13.0|14.0548...|
+|13.0|13.6870...|
+|13.0|14.4543...|
+|13.0|14.0745...|
 +----+----------+
 only showing top 10 rows
 ```
@@ -3967,7 +3973,7 @@ print("Best model has {} trees.".format(real_model.getNumTrees))
 ```
 ```
 # Code snippet result:
-Best model has 50 trees.
+Best model has 90 trees.
 ```
 
 Plot Hyperparameter tuning metrics
@@ -4376,16 +4382,16 @@ df = (
 +----+---------+------------+----------+------+------------+---------+------+----------+
 | mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
 +----+---------+------------+----------+------+------------+---------+------+----------+
-|21.0|        6|       200.0|     85.00| 2587.|        16.0|       70|     1|ford ma...|
-| 9.0|        8|       304.0|     193.0| 4732.|        18.5|       70|     1|  hi 1200d|
-|19.0|        6|       232.0|     100.0| 2634.|        13.0|       71|     1|amc gre...|
-|23.0|        4|       122.0|     86.00| 2220.|        14.0|       71|     1|mercury...|
-|23.0|        4|       97.00|     54.00| 2254.|        23.5|       72|     2|volkswa...|
-|14.0|        8|       400.0|     175.0| 4385.|        12.0|       72|     1|pontiac...|
-|13.0|        8|       400.0|     190.0| 4422.|        12.5|       72|     1|chrysle...|
-|19.0|        3|       70.00|     97.00| 2330.|        13.5|       72|     3|mazda r...|
-|22.0|        4|       122.0|     86.00| 2395.|        16.0|       72|     1|ford pi...|
-|14.0|        8|       304.0|     150.0| 3672.|        11.5|       73|     1|amc mat...|
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|
+|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|
+|11.0|        8|       318.0|     210.0| 4382.|        13.5|       70|     1|dodge d200|
+|16.0|        6|       225.0|     105.0| 3439.|        15.5|       71|     1|plymout...|
+|19.0|        6|       250.0|     88.00| 3302.|        15.5|       71|     1|ford to...|
+|28.0|        4|       116.0|     90.00| 2123.|        14.0|       71|     2| opel 1900|
+|15.0|        8|       318.0|     150.0| 4135.|        13.5|       72|     1|plymout...|
+|11.0|        8|       429.0|     208.0| 4633.|        11.0|       72|     1|mercury...|
+|28.0|        4|       97.00|     92.00| 2288.|        17.0|       72|     3|datsun ...|
+|23.0|        4|       120.0|     97.00| 2506.|        14.5|       72|     3|toyouta...|
 +----+---------+------------+----------+------+------------+---------+------+----------+
 only showing top 10 rows
 ```
@@ -4398,7 +4404,7 @@ print(spark.sparkContext.getConf().getAll())
 ```
 ```
 # Code snippet result:
-[('spark.driver.port', '41465'), ('spark.driver.memory', '2G'), ('spark.rdd.compress', 'True'), ('spark.serializer.objectStreamReset', '100'), ('spark.executor.memory', '2G'), ('spark.master', 'local[*]'), ('spark.submit.pyFiles', ''), ('spark.executor.id', 'driver'), ('spark.submit.deployMode', 'client'), ('spark.app.name', 'cheatsheet'), ('spark.ui.showConsoleProgress', 'true'), ('spark.driver.host', '192.168.1.40'), ('spark.app.id', 'local-1608995598699')]
+[('spark.driver.memory', '2G'), ('spark.driver.port', '37691'), ('spark.rdd.compress', 'True'), ('spark.serializer.objectStreamReset', '100'), ('spark.executor.memory', '2G'), ('spark.master', 'local[*]'), ('spark.submit.pyFiles', ''), ('spark.executor.id', 'driver'), ('spark.submit.deployMode', 'client'), ('spark.app.name', 'cheatsheet'), ('spark.ui.showConsoleProgress', 'true'), ('spark.driver.host', '192.168.1.40'), ('spark.app.id', 'local-1609125277765')]
 ```
 
 Set Spark configuration properties

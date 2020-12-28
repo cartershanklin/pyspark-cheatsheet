@@ -981,13 +981,19 @@ class sortsearch_in_list_from_df(snippet):
     def snippet(self, df):
         from pyspark.sql.functions import col
 
-        # The anti join returns only keys with no matches.
+        # Our DataFrame of keys to exclude.
         exclude_keys = df.select(
             (col("modelyear") + 1).alias("adjusted_year")
         ).distinct()
+
+        # The anti join returns only keys with no matches.
         filtered = df.join(
             exclude_keys, how="left_anti", on=df.modelyear == exclude_keys.adjusted_year
         )
+
+        # Alternatively we can register a temporary table and use a SQL expression.
+        exclude_keys.registerTempTable("exclude_keys")
+        filtered = df.filter("modelyear not in ( select adjusted_year from exclude_keys )")
         return filtered
 
 
