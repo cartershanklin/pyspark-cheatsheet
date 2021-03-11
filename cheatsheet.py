@@ -137,7 +137,7 @@ class dfo_modify_column(snippet):
 class dfo_add_column_builtin(snippet):
     def __init__(self):
         super().__init__()
-        self.name = "Add a new column with to a DataFrame"
+        self.name = "Add a new column to a DataFrame"
         self.category = "DataFrame Operations"
         self.dataset = "auto-mpg.csv"
         self.priority = 100
