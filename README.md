@@ -9,7 +9,7 @@ These snippets use DataFrames loaded from various data sources:
 - customer_spend.csv, a generated time series dataset.
 - date_examples.csv, a generated dataset with various date and time formats.
 
-These snippets were tested against the Spark 3.0.1 API. This page was last updated 2020-12-27 19:14:39.
+These snippets were tested against the Spark 3.1.1 API. This page was last updated 2021-03-11 08:22:04.
 
 Make note of these helpful links:
 - [PySpark DataFrame Operations](http://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.DataFrame)
@@ -41,7 +41,7 @@ Table of contents
       * [Read an Oracle DB table into a DataFrame using a Wallet](#read-an-oracle-db-table-into-a-dataframe-using-a-wallet)
       * [Write a DataFrame to an Oracle DB table using a Wallet](#write-a-dataframe-to-an-oracle-db-table-using-a-wallet)
    * [DataFrame Operations](#dataframe-operations)
-      * [Add a new column with to a DataFrame](#add-a-new-column-with-to-a-dataframe)
+      * [Add a new column to a DataFrame](#add-a-new-column-to-a-dataframe)
       * [Modify a DataFrame column](#modify-a-dataframe-column)
       * [Add a column with multiple conditions](#add-a-column-with-multiple-conditions)
       * [Add a constant column](#add-a-constant-column)
@@ -57,8 +57,8 @@ Table of contents
       * [Convert String to Double](#convert-string-to-double)
       * [Convert String to Integer](#convert-string-to-integer)
       * [Get the size of a DataFrame](#get-the-size-of-a-dataframe)
-      * [Get a DataFrame's number of partitions](#get-a-dataframes-number-of-partitions)
-      * [Get data types of a DataFrame's columns](#get-data-types-of-a-dataframes-columns)
+      * [Get a DataFrame's number of partitions](#get-a-dataframe-s-number-of-partitions)
+      * [Get data types of a DataFrame's columns](#get-data-types-of-a-dataframe-s-columns)
       * [Convert an RDD to Data Frame](#convert-an-rdd-to-data-frame)
       * [Print the contents of an RDD](#print-the-contents-of-an-rdd)
       * [Print the contents of a DataFrame](#print-the-contents-of-a-dataframe)
@@ -71,7 +71,7 @@ Table of contents
       * [Fill NULL values in specific columns](#fill-null-values-in-specific-columns)
       * [Fill NULL values with column average](#fill-null-values-with-column-average)
       * [Fill NULL values with group average](#fill-null-values-with-group-average)
-      * [Unpack a DataFrame's JSON column to a new DataFrame](#unpack-a-dataframes-json-column-to-a-new-dataframe)
+      * [Unpack a DataFrame's JSON column to a new DataFrame](#unpack-a-dataframe-s-json-column-to-a-new-dataframe)
       * [Query a JSON column](#query-a-json-column)
    * [Sorting and Searching](#sorting-and-searching)
       * [Filter a column using a condition](#filter-a-column-using-a-condition)
@@ -81,7 +81,7 @@ Table of contents
       * [Filter values based on keys in another DataFrame](#filter-values-based-on-keys-in-another-dataframe)
       * [Get Dataframe rows that match a substring](#get-dataframe-rows-that-match-a-substring)
       * [Filter a Dataframe based on a custom substring search](#filter-a-dataframe-based-on-a-custom-substring-search)
-      * [Filter based on a column's length](#filter-based-on-a-columns-length)
+      * [Filter based on a column's length](#filter-based-on-a-column-s-length)
       * [Multiple filter conditions](#multiple-filter-conditions)
       * [Sort DataFrame by a column](#sort-dataframe-by-a-column)
       * [Take the first N rows of a DataFrame](#take-the-first-n-rows-of-a-dataframe)
@@ -101,8 +101,8 @@ Table of contents
       * [Count unique after grouping](#count-unique-after-grouping)
       * [Count distinct values on all columns](#count-distinct-values-on-all-columns)
       * [Group by then filter on the count](#group-by-then-filter-on-the-count)
-      * [Find the top N per row group (use N=1 for maximum)](#find-the-top-n-per-row-group-use-n1-for-maximum)
-      * [Group key/values into a list](#group-keyvalues-into-a-list)
+      * [Find the top N per row group (use N=1 for maximum)](#find-the-top-n-per-row-group-use-n-1-for-maximum)
+      * [Group key/values into a list](#group-key-values-into-a-list)
       * [Compute a histogram](#compute-a-histogram)
       * [Compute global percentiles](#compute-global-percentiles)
       * [Compute percentiles within a partition](#compute-percentiles-within-a-partition)
@@ -181,7 +181,7 @@ Table of contents
       * [Sample a subset of a DataFrame](#sample-a-subset-of-a-dataframe)
       * [Print Spark configuration properties](#print-spark-configuration-properties)
       * [Set Spark configuration properties](#set-spark-configuration-properties)
-      * [Increase Spark driver/executor heap space](#increase-spark-driverexecutor-heap-space)
+      * [Increase Spark driver/executor heap space](#increase-spark-driver-executor-heap-space)
 <!--te-->
     
 
@@ -362,16 +362,16 @@ df = spark.read.json("data/weblog.jsonl")
 +----------+----------+--------+----------+----------+------+
 |    client|   country| session| timestamp|       uri|  user|
 +----------+----------+--------+----------+----------+------+
-|[false,...|Bangladesh|55fa8213| 869196249|http://...|dde312|
-|[true, ...|      Niue|2fcd4a83|1031238717|http://...|9d00b9|
-|[true, ...|    Rwanda|013b996e| 628683372|http://...|1339d4|
-|[false,...|   Austria|07e8a71a|1043628668|https:/...|966312|
-|[false,...|    Belize|b23d05d8| 192738669|http://...|2af1e1|
-|[false,...|Lao Peo...|d83dfbae|1066490444|http://...|844395|
-|[false,...|French ...|e77dfaa2|1350920869|https:/...|  null|
-|[false,...|Turks a...|56664269| 280986223|http://...|  null|
-|[false,...|  Ethiopia|628d6059| 881914195|https:/...|8ab45a|
-|[false,...|Saint K...|85f9120c|1065114708|https:/...|  null|
+|{false,...|Bangladesh|55fa8213| 869196249|http://...|dde312|
+|{true, ...|      Niue|2fcd4a83|1031238717|http://...|9d00b9|
+|{true, ...|    Rwanda|013b996e| 628683372|http://...|1339d4|
+|{false,...|   Austria|07e8a71a|1043628668|https:/...|966312|
+|{false,...|    Belize|b23d05d8| 192738669|http://...|2af1e1|
+|{false,...|Lao Peo...|d83dfbae|1066490444|http://...|844395|
+|{false,...|French ...|e77dfaa2|1350920869|https:/...|  null|
+|{false,...|Turks a...|56664269| 280986223|http://...|  null|
+|{false,...|  Ethiopia|628d6059| 881914195|https:/...|8ab45a|
+|{false,...|Saint K...|85f9120c|1065114708|https:/...|  null|
 +----------+----------+--------+----------+----------+------+
 only showing top 10 rows
 ```
@@ -513,8 +513,8 @@ DataFrame Operations
 ====================
 Adding, removing and modifying DataFrame columns.
 
-Add a new column with to a DataFrame
-------------------------------------
+Add a new column to a DataFrame
+-------------------------------
 
 ```python
 from pyspark.sql.functions import upper, lower
@@ -2429,16 +2429,16 @@ df = spark.createDataFrame(entries, schema)
 +----------+----------+-----+----------+
 |      file|      path| size|     mtime|
 +----------+----------+-----+----------+
-| issue.net|/etc/is...|   23|2019-10...|
-|anacrontab|/etc/an...|  401|2017-05...|
-|   modules|/etc/mo...|  195|2019-12...|
-|brltty....|/etc/br...|25341|2018-08...|
-|     group|/etc/group| 1054|2020-11...|
-|ltrace....|/etc/lt...|14867|2016-10...|
-| papersize|/etc/pa...|    7|2020-05...|
-|login.defs|/etc/lo...|10550|2018-01...|
-|kernel-...|/etc/ke...|  110|2020-05...|
-|  pam.conf|/etc/pa...|  552|2018-04...|
+|  manpaths|/etc/ma...|   36|2020-06...|
+| rc.common|/etc/rc...| 1560|2020-06...|
+|auto_ma...|/etc/au...|  195|2020-08...|
+| csh.login|/etc/cs...|  121|2020-06...|
+|syslog....|/etc/sy...|  133|2020-12...|
+|krb5.ke...|/etc/kr...| 1946|2021-02...|
+|    nanorc|/etc/na...|   11|2020-06...|
+|csh.logout|/etc/cs...|   39|2020-06...|
+|aliases.db|/etc/al...|16384|2020-06...|
+|bashrc_...|/etc/ba...| 9192|2020-06...|
 +----------+----------+-----+----------+
 only showing top 10 rows
 ```
@@ -2481,16 +2481,16 @@ df = spark.createDataFrame(files, schema)
 +----------+--------+----------+----------+
 |      name|    size|  modified|       md5|
 +----------+--------+----------+----------+
-|sharedc...|      58|2020-09...|TY0HU7h...|
-|usercon...|32006919|2020-09...|igX2QgX...|
-|usercon...|    4307|2020-10...|NYXxVUc...|
-|usercon...|71183217|2020-09...|HlBkZ/l...|
-|usercon...|16906538|2020-09...|K8qMDXT...|
-|usercon...|    4774|2020-09...|cXnXiq3...|
-|usercon...|     303|2020-09...|5wgh5PJ...|
-|usercon...|    1634|2020-09...|3Nqbf6K...|
-|usercon...|    2611|2020-09...|B8XLwDe...|
-|usercon...| 2017366|2020-09...|XyKoSOA...|
+|sharedc...|      58|2021-01...|TY0HU7h...|
+|usercon...|32006919|2021-01...|igX2QgX...|
+|usercon...|    4307|2021-01...|NYXxVUc...|
+|usercon...|71183217|2021-01...|HlBkZ/l...|
+|usercon...|16906538|2021-01...|K8qMDXT...|
+|usercon...|    4774|2021-01...|cXnXiq3...|
+|usercon...|     303|2021-01...|5wgh5PJ...|
+|usercon...|    1634|2021-01...|3Nqbf6K...|
+|usercon...|    2611|2021-01...|B8XLwDe...|
+|usercon...| 2017366|2021-01...|XyKoSOA...|
 +----------+--------+----------+----------+
 only showing top 10 rows
 ```
@@ -3192,16 +3192,16 @@ df = df.withColumn("timestamp", current_timestamp())
 +----+---------+------------+----------+------+------------+---------+------+----------+----------+
 | mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname| timestamp|
 +----+---------+------------+----------+------+------------+---------+------+----------+----------+
-|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|2020-12...|
-|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|2020-12...|
-|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|2020-12...|
-|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|2020-12...|
-|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|2020-12...|
-|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|2020-12...|
-|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|2020-12...|
-|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|2020-12...|
-|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|2020-12...|
-|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|2020-12...|
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|2021-03...|
+|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|2021-03...|
+|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|2021-03...|
+|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|2021-03...|
+|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|2021-03...|
+|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|2021-03...|
+|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|2021-03...|
+|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|2021-03...|
+|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|2021-03...|
+|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|2021-03...|
 +----+---------+------------+----------+------+------------+---------+------+----------+----------+
 only showing top 10 rows
 ```
@@ -3481,16 +3481,16 @@ predictions = rf_model.transform(assembled).select(
 +----------+----+----------+
 |   carname| mpg|prediction|
 +----------+----+----------+
-|chevrol...|18.0|17.2136...|
-|buick s...|15.0|14.6630...|
-|plymout...|18.0|16.2871...|
-|amc reb...|16.0|16.4517...|
-|ford to...|17.0|17.8000...|
-|ford ga...|15.0|13.8858...|
-|chevrol...|14.0|13.8858...|
-|plymout...|14.0|13.8858...|
-|pontiac...|14.0|13.8858...|
-|amc amb...|15.0|14.3346...|
+|chevrol...|18.0|16.4149...|
+|buick s...|15.0|15.3803...|
+|plymout...|18.0|15.8842...|
+|amc reb...|16.0|15.9641...|
+|ford to...|17.0|16.4603...|
+|ford ga...|15.0|14.0262...|
+|chevrol...|14.0|13.8322...|
+|plymout...|14.0|14.2186...|
+|pontiac...|14.0|13.8322...|
+|amc amb...|15.0|14.5412...|
 +----------+----+----------+
 only showing top 10 rows
 ```
@@ -3546,16 +3546,16 @@ predictions = lr_model.transform(test_df)
 +----------+----+----------+----------+
 |  features| mpg|   carname|prediction|
 +----------+----+----------+----------+
-|[4.0,68...|29.0|  fiat 128|31.7668...|
-|[4.0,71...|32.0|toyota ...|31.1531...|
-|[4.0,79...|39.1|toyota ...|31.8343...|
-|[4.0,79...|26.0|volkswa...|30.4221...|
-|[4.0,86...|39.0|plymout...|30.9534...|
-|[4.0,86...|34.1|maxda g...|30.4303...|
-|[4.0,88...|30.0| fiat 124b|29.4784...|
-|[4.0,89...|38.1|toyota ...|30.6856...|
-|[4.0,90...|43.1|volkswa...|31.1624...|
-|[4.0,90...|29.0| vw rabbit|30.3610...|
+|[3.0,70...|18.0| maxda rx3|29.8870...|
+|[3.0,70...|19.0|mazda r...|28.7609...|
+|[3.0,80...|21.5|mazda rx-4|26.5275...|
+|[4.0,72...|35.0|datsun ...|32.4752...|
+|[4.0,78...|32.8|mazda g...|31.3068...|
+|[4.0,79...|26.0|volkswa...|30.9216...|
+|[4.0,85...|29.0|chevrol...|31.0102...|
+|[4.0,85...|32.0|datsun ...|30.6429...|
+|[4.0,86...|37.2|datsun 310|30.6614...|
+|[4.0,86...|46.6| mazda glc|30.2611...|
 +----------+----+----------+----------+
 only showing top 10 rows
 ```
@@ -3613,16 +3613,16 @@ print("RMSE={} r2={}".format(rmse, r2))
 +----------+----+----------+----------+
 |  features| mpg|   carname|prediction|
 +----------+----+----------+----------+
-|[3.0,70...|23.7|mazda r...|22.2196...|
-|[3.0,80...|21.5|mazda rx-4|22.2807...|
-|[4.0,72...|35.0|datsun ...|33.1445...|
-|[4.0,76...|31.0|toyota ...|34.2902...|
-|[4.0,79...|31.0|datsun ...|33.1127...|
-|[4.0,85...|29.0|chevrol...|37.0429...|
-|[4.0,86...|39.0|plymout...|33.6283...|
-|[4.0,86...|34.1|maxda g...|33.3861...|
-|[4.0,86...|37.2|datsun 310|33.9333...|
-|[4.0,88...|30.0| fiat 124b|30.9591...|
+|[3.0,70...|19.0|mazda r...|21.9691...|
+|[3.0,70...|23.7|mazda r...|22.6734...|
+|[4.0,71...|32.0|toyota ...|31.3890...|
+|[4.0,72...|35.0|datsun ...|31.6086...|
+|[4.0,78...|32.8|mazda g...|33.6092...|
+|[4.0,79...|36.0|renault...|32.4206...|
+|[4.0,79...|30.0|peugeot...|31.6126...|
+|[4.0,85...|31.8|datsun 210|35.9128...|
+|[4.0,85...|33.5|datsun ...|30.8792...|
+|[4.0,85...|39.4|datsun ...|31.8301...|
 +----------+----+----------+----------+
 only showing top 10 rows
 ```
@@ -3675,12 +3675,12 @@ results = predictions.select([label_column, "prediction"])
 |         3|       3.0|
 |         3|       3.0|
 |         3|       3.0|
+|         6|       6.0|
+|         6|       3.0|
 |         3|       3.0|
-|         6|       3.0|
-|         6|       3.0|
-|         6|       3.0|
-|         6|       3.0|
-|         6|       3.0|
+|         6|       6.0|
+|         3|       3.0|
+|         6|       6.0|
 |         6|       3.0|
 +----------+----------+
 only showing top 10 rows
@@ -3757,16 +3757,16 @@ print("RMSE={}".format(rmse))
 +----------+----+----------+
 |   carname| mpg|prediction|
 +----------+----+----------+
-|  hi 1200d| 9.0|15.0577...|
-|chevrol...|11.0|13.8880...|
-|oldsmob...|12.0|13.7361...|
-|dodge m...|12.0|13.3829...|
-|ford mu...|13.0|17.1785...|
-|buick l...|13.0|13.9381...|
-|chrysle...|13.0|13.6444...|
-|ford gr...|14.0|15.7850...|
-|ford gr...|14.0|15.1058...|
-|dodge c...|14.0|14.5838...|
+|  hi 1200d| 9.0|18.4991...|
+|dodge d200|11.0|14.3570...|
+|ford co...|12.0|13.9699...|
+|ford gr...|13.0|14.9220...|
+|chevrol...|13.0|16.0900...|
+|plymout...|13.0|15.3549...|
+|buick c...|13.0|13.8934...|
+|  ford ltd|13.0|14.1603...|
+|plymout...|13.0|13.8463...|
+|ford co...|13.0|13.9699...|
 +----------+----+----------+
 only showing top 10 rows
 ```
@@ -3831,12 +3831,12 @@ for feature, importance in zip(
 ```
 ```
 # Code snippet result:
-manufacturer_encoded contributes 9.956%
-cylinders contributes 13.931%
-displacement contributes 31.824%
-horsepower contributes 11.081%
-weight contributes 30.516%
-acceleration contributes 2.693%
+manufacturer_encoded contributes 14.728%
+cylinders contributes 16.814%
+displacement contributes 18.887%
+horsepower contributes 22.958%
+weight contributes 23.270%
+acceleration contributes 3.343%
 ```
 
 Automatically encode categorical variables
@@ -3891,16 +3891,16 @@ predictions = rf_model.transform(test_df).select("mpg", "prediction")
 +----+----------+
 | mpg|prediction|
 +----+----------+
-|10.0|13.1423...|
-|11.0|13.7024...|
-|11.0|13.6341...|
-|12.0|13.9747...|
-|12.0|13.1697...|
-|13.0|15.6123...|
-|13.0|14.0548...|
+|12.0|13.1992...|
 |13.0|13.6870...|
-|13.0|14.4543...|
-|13.0|14.0745...|
+|13.0|13.1992...|
+|13.0|13.9851...|
+|13.0|13.9634...|
+|13.0|13.5568...|
+|13.0|13.9846...|
+|13.0|13.0994...|
+|13.0|13.0994...|
+|14.0|14.5325...|
 +----+----------+
 only showing top 10 rows
 ```
@@ -3973,7 +3973,7 @@ print("Best model has {} trees.".format(real_model.getNumTrees))
 ```
 ```
 # Code snippet result:
-Best model has 90 trees.
+Best model has 70 trees.
 ```
 
 Plot Hyperparameter tuning metrics
@@ -4164,7 +4164,7 @@ print(spark.sparkContext.version)
 ```
 ```
 # Code snippet result:
-3.0.1
+3.1.1
 ```
 
 Cache a DataFrame
@@ -4382,16 +4382,16 @@ df = (
 +----+---------+------------+----------+------+------------+---------+------+----------+
 | mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
 +----+---------+------------+----------+------+------------+---------+------+----------+
-|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|
-|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|
-|11.0|        8|       318.0|     210.0| 4382.|        13.5|       70|     1|dodge d200|
+|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|
+|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|
+|24.0|        4|       113.0|     95.00| 2372.|        15.0|       70|     3|toyota ...|
+|10.0|        8|       360.0|     215.0| 4615.|        14.0|       70|     1| ford f250|
 |16.0|        6|       225.0|     105.0| 3439.|        15.5|       71|     1|plymout...|
-|19.0|        6|       250.0|     88.00| 3302.|        15.5|       71|     1|ford to...|
-|28.0|        4|       116.0|     90.00| 2123.|        14.0|       71|     2| opel 1900|
-|15.0|        8|       318.0|     150.0| 4135.|        13.5|       72|     1|plymout...|
-|11.0|        8|       429.0|     208.0| 4633.|        11.0|       72|     1|mercury...|
-|28.0|        4|       97.00|     92.00| 2288.|        17.0|       72|     3|datsun ...|
-|23.0|        4|       120.0|     97.00| 2506.|        14.5|       72|     3|toyouta...|
+|14.0|        8|       318.0|     150.0| 4096.|        13.0|       71|     1|plymout...|
+|18.0|        6|       258.0|     110.0| 2962.|        13.5|       71|     1|amc hor...|
+|31.0|        4|       71.00|     65.00| 1773.|        19.0|       71|     3|toyota ...|
+|13.0|        8|       400.0|     190.0| 4422.|        12.5|       72|     1|chrysle...|
+|15.0|        8|       304.0|     150.0| 3892.|        12.5|       72|     1|amc mat...|
 +----+---------+------------+----------+------+------------+---------+------+----------+
 only showing top 10 rows
 ```
@@ -4404,7 +4404,7 @@ print(spark.sparkContext.getConf().getAll())
 ```
 ```
 # Code snippet result:
-[('spark.driver.memory', '2G'), ('spark.driver.port', '37691'), ('spark.rdd.compress', 'True'), ('spark.serializer.objectStreamReset', '100'), ('spark.executor.memory', '2G'), ('spark.master', 'local[*]'), ('spark.submit.pyFiles', ''), ('spark.executor.id', 'driver'), ('spark.submit.deployMode', 'client'), ('spark.app.name', 'cheatsheet'), ('spark.ui.showConsoleProgress', 'true'), ('spark.driver.host', '192.168.1.40'), ('spark.app.id', 'local-1609125277765')]
+[('spark.driver.memory', '2G'), ('spark.driver.host', '192.168.1.97'), ('spark.executor.memory', '2G'), ('spark.executor.id', 'driver'), ('spark.app.startTime', '1615479723244'), ('spark.rdd.compress', 'True'), ('spark.sql.warehouse.dir', 'file:/Users/cshankli/git/pyspark-cheatsheet/spark-warehouse'), ('spark.app.id', 'local-1615479723916'), ('spark.serializer.objectStreamReset', '100'), ('spark.master', 'local[*]'), ('spark.submit.pyFiles', ''), ('spark.submit.deployMode', 'client'), ('spark.app.name', 'cheatsheet'), ('spark.ui.showConsoleProgress', 'true'), ('spark.driver.port', '54909')]
 ```
 
 Set Spark configuration properties
