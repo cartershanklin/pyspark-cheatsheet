@@ -12,6 +12,7 @@ import shutil
 import sys
 import yaml
 from pyspark.sql import SparkSession, SQLContext
+from pyspark.streaming import StreamingContext
 from slugify import slugify
 
 spark = (
@@ -22,6 +23,7 @@ spark = (
     .getOrCreate()
 )
 sqlContext = SQLContext(spark)
+streamingContext = StreamingContext(spark, 1)
 
 
 def getShowString(df, n=10, truncate=True, vertical=False):
@@ -32,6 +34,9 @@ def getShowString(df, n=10, truncate=True, vertical=False):
 
 
 def get_result_text(result, truncate=True):
+    if type(result) == tuple:
+        result_df, options = result
+        return getShowString(result_df, **options)
     if type(result) == pyspark.sql.dataframe.DataFrame:
         return getShowString(result, truncate=truncate)
     elif type(result) == pandas.core.frame.DataFrame:
@@ -666,9 +671,65 @@ class group_filter_less_than_percentile(snippet):
         from pyspark.sql.functions import col, lit
         import pyspark.sql.functions as F
 
-        target_percentile = df.agg(F.expr("percentile(mpg, 0.9)").alias("target_percentile")).first()[0]
+        target_percentile = df.agg(
+            F.expr("percentile(mpg, 0.9)").alias("target_percentile")
+        ).first()[0]
         result = df.filter(col("mpg") > lit(target_percentile))
         return result
+
+
+class group_rollup(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Aggregate and rollup"
+        self.category = "Grouping"
+        self.dataset = "auto-mpg.csv"
+        self.preconvert = True
+        self.priority = 1600
+
+    def snippet(self, df):
+        from pyspark.sql.functions import avg, col, count, desc
+
+        subset = df.filter(col("modelyear") > 79)
+        grouped = (
+            subset.rollup("modelyear", "cylinders")
+            .agg(
+                avg("horsepower").alias("avg_horsepower"),
+                count("modelyear").alias("count"),
+            )
+            .orderBy(desc("modelyear"), desc("cylinders"))
+        )
+        # EXCLUDE
+        options = dict(n=25)
+        # INCLUDE
+        return (grouped, options)
+
+
+class group_cube(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Aggregate and cube"
+        self.category = "Grouping"
+        self.dataset = "auto-mpg.csv"
+        self.preconvert = True
+        self.priority = 1610
+
+    def snippet(self, df):
+        from pyspark.sql.functions import avg, col, count, desc
+
+        subset = df.filter(col("modelyear") > 79)
+        grouped = (
+            subset.cube("modelyear", "cylinders")
+            .agg(
+                avg("horsepower").alias("avg_horsepower"),
+                count("modelyear").alias("count"),
+            )
+            .orderBy(desc("modelyear"), desc("cylinders"))
+        )
+        # EXCLUDE
+        options = dict(n=25)
+        # INCLUDE
+        return (grouped, options)
 
 
 class group_count_unique_after_group(snippet):
@@ -993,7 +1054,9 @@ class sortsearch_in_list_from_df(snippet):
 
         # Alternatively we can register a temporary table and use a SQL expression.
         exclude_keys.registerTempTable("exclude_keys")
-        filtered = df.filter("modelyear not in ( select adjusted_year from exclude_keys )")
+        filtered = df.filter(
+            "modelyear not in ( select adjusted_year from exclude_keys )"
+        )
         return filtered
 
 
@@ -3443,6 +3506,106 @@ class streaming_connect_kafka_sasl_plain(snippet):
         }
         df = spark.readStream.format("kafka").options(**options).load()
         return df
+
+
+class streaming_csv_windowed():
+    def __init__(self):
+        # super().__init__()
+        self.name = "Create a windowed Structured Stream over input CSV files"
+        self.category = "Spark Streaming"
+        self.dataset = "UNUSED"
+        self.priority = 200
+        self.skip_run = True
+
+    def snippet(self, df):
+        from pyspark.sql.types import (
+            StructField,
+            StructType,
+            DoubleType,
+            IntegerType,
+            StringType,
+        )
+
+        input_location = "streaming/input"
+        output_location = "streaming/output"
+        checkpoint_location = "streaming/checkpoints"
+        schema = StructType(
+            [
+                StructField("mpg", DoubleType(), True),
+                StructField("cylinders", IntegerType(), True),
+                StructField("displacement", DoubleType(), True),
+                StructField("horsepower", DoubleType(), True),
+                StructField("weight", DoubleType(), True),
+                StructField("acceleration", DoubleType(), True),
+                StructField("modelyear", IntegerType(), True),
+                StructField("origin", IntegerType(), True),
+                StructField("carname", StringType(), True),
+            ]
+        )
+
+        lines = spark.readStream.csv(path=input_location, schema=schema)
+        model_year_counts = lines.groupBy("modelyear").count().coalesce(10)
+        query = (
+            model_year_counts.writeStream.outputMode("complete")
+            .format("console")
+            .start()
+        )
+
+        query.awaitTermination()
+
+
+class streaming_csv_unwindowed():
+    def __init__(self):
+        # super().__init__()
+        self.name = "Create an unwindowed Structured Stream over input CSV files"
+        self.category = "Spark Streaming"
+        self.dataset = "UNUSED"
+        self.priority = 210
+        self.skip_run = True
+
+    def snippet(self, df):
+        from pyspark.sql.types import (
+            StructField,
+            StructType,
+            DoubleType,
+            IntegerType,
+            StringType,
+        )
+        from pyspark.sql import current_timestamp
+
+        input_location = "/home/carter/git/pyspark-cheatsheet/streaming_input"
+        output_location = "/home/carter/git/pyspark-cheatsheet/streaming_output"
+        checkpoint_location = (
+            "/home/carter/git/pyspark-cheatsheet/streaming_checkpoints"
+        )
+
+        input_location = "streaming/input"
+        output_location = "streaming/output"
+        checkpoint_location = "streaming/checkpoints"
+        schema = StructType(
+            [
+                StructField("mpg", DoubleType(), True),
+                StructField("cylinders", IntegerType(), True),
+                StructField("displacement", DoubleType(), True),
+                StructField("horsepower", DoubleType(), True),
+                StructField("weight", DoubleType(), True),
+                StructField("acceleration", DoubleType(), True),
+                StructField("modelyear", IntegerType(), True),
+                StructField("origin", IntegerType(), True),
+                StructField("carname", StringType(), True),
+            ]
+        )
+        # lines = spark.readStream.csv(path=input_location, schema=schema).withColumn("timestamp", F.current_timestamp())
+        # wordCounts = lines.withWatermark("timestamp", "10 minutes").groupBy("modelyear", "timestamp").count()
+        # query = wordCounts.writeStream.format("csv").option("checkpointLocation", checkpoint_location) \
+        #    .option("path", output_location) \
+        #    .start()
+
+        lines = spark.readStream.csv(path=input_location, schema=schema)
+        wordCounts = lines.groupBy("modelyear").count().coalesce(10)
+        query = wordCounts.writeStream.outputMode("complete").format("console").start()
+
+        query.awaitTermination()
 
 
 class streaming_add_timestamp(snippet):
