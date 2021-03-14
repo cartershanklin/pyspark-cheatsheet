@@ -3022,20 +3022,20 @@ class pandas_pandas_dataframe_to_spark_dataframe(snippet):
 class pandas_udaf(snippet):
     def __init__(self):
         super().__init__()
-        self.name = "Define a UDAF with Pandas"
+        self.name = "Grouped Aggregation with Pandas"
         self.category = "Pandas"
+        self.preconvert = True
         self.priority = 300
         self.dataset = "auto-mpg.csv"
 
     def snippet(self, df):
-        from pyspark.sql.functions import pandas_udf, PandasUDFType
-        from pyspark.sql.functions import col
+        from pyspark.sql.functions import pandas_udf
+        from pandas import DataFrame
 
-        @pandas_udf("double", PandasUDFType.GROUPED_AGG)
-        def mean_udaf(pdf):
+        @pandas_udf("double")
+        def mean_udaf(pdf: DataFrame) -> float:
             return pdf.mean()
 
-        df = df.withColumn("mpg", col("mpg").cast("double"))
         df = df.groupby("cylinders").agg(mean_udaf(df["mpg"]))
         return df
 
@@ -3043,24 +3043,19 @@ class pandas_udaf(snippet):
 class pandas_rescale_column(snippet):
     def __init__(self):
         super().__init__()
-        self.name = "Define a Pandas Grouped Map Function"
+        self.name = "Use a Pandas Grouped Map Function via applyInPandas"
         self.category = "Pandas"
         self.dataset = "auto-mpg.csv"
+        self.preconvert = True
         self.priority = 400
 
     def snippet(self, df):
-        from pyspark.sql.functions import pandas_udf, PandasUDFType
-        from pyspark.sql.functions import col
-
-        df = df.withColumn("horsepower", col("horsepower").cast("double"))
-
-        @pandas_udf(df.schema, PandasUDFType.GROUPED_MAP)
         def rescale(pdf):
             minv = pdf.horsepower.min()
             maxv = pdf.horsepower.max() - minv
             return pdf.assign(horsepower=(pdf.horsepower - minv) / maxv * 100)
 
-        df = df.groupby("cylinders").apply(rescale)
+        df = df.groupby("cylinders").applyInPandas(rescale, df.schema)
         return df
 
 
