@@ -2,7 +2,6 @@
 
 import argparse
 import datetime
-import hashlib
 import inspect
 import logging
 import os
@@ -12,7 +11,6 @@ import shutil
 import sys
 import yaml
 from pyspark.sql import SparkSession, SQLContext
-from pyspark.streaming import StreamingContext
 from slugify import slugify
 
 spark = (
@@ -23,7 +21,6 @@ spark = (
     .getOrCreate()
 )
 sqlContext = SQLContext(spark)
-streamingContext = StreamingContext(spark, 1)
 
 
 def getShowString(df, n=10, truncate=True, vertical=False):
@@ -53,9 +50,9 @@ class snippet:
     def __init__(self):
         self.dataset = None
         self.name = None
-        self.hash = hashlib.md5(str(self.__class__).encode()).hexdigest()
         self.preconvert = False
         self.skip_run = False
+        self.manual_output = None
         self.truncate = True
 
     def load_data(self):
@@ -113,6 +110,12 @@ class snippet:
         assert self.name is not None, "Name not set"
         logging.info("--- {} ---".format(self.name))
         if self.skip_run:
+            if self.manual_output:
+                result_text = self.manual_output
+                if show:
+                    logging.info(result_text)
+                else:
+                    return result_text
             return None
         self.df = self.load_data()
         retval = self.snippet(self.df)
@@ -3503,7 +3506,7 @@ class streaming_connect_kafka_sasl_plain(snippet):
         return df
 
 
-class streaming_csv_windowed():
+class streaming_csv_windowed:
     def __init__(self):
         # super().__init__()
         self.name = "Create a windowed Structured Stream over input CSV files"
@@ -3537,6 +3540,11 @@ class streaming_csv_windowed():
                 StructField("carname", StringType(), True),
             ]
         )
+        # lines = spark.readStream.csv(path=input_location, schema=schema).withColumn("timestamp", F.current_timestamp())
+        # wordCounts = lines.withWatermark("timestamp", "10 minutes").groupBy("modelyear", "timestamp").count()
+        # query = wordCounts.writeStream.format("csv").option("checkpointLocation", checkpoint_location) \
+        #    .option("path", output_location) \
+        #    .start()
 
         lines = spark.readStream.csv(path=input_location, schema=schema)
         model_year_counts = lines.groupBy("modelyear").count().coalesce(10)
@@ -3549,16 +3557,49 @@ class streaming_csv_windowed():
         query.awaitTermination()
 
 
-class streaming_csv_unwindowed():
+class streaming_csv_unwindowed(snippet):
     def __init__(self):
-        # super().__init__()
+        super().__init__()
         self.name = "Create an unwindowed Structured Stream over input CSV files"
         self.category = "Spark Streaming"
         self.dataset = "UNUSED"
         self.priority = 210
         self.skip_run = True
+        self.manual_output = """
+-------------------------------------------
+Batch: 0
+-------------------------------------------
++---------+------------------+-----+
+|modelyear|    avg_horsepower|count|
++---------+------------------+-----+
+|       70|147.82758620689654|   29|
++---------+------------------+-----+
+
+-------------------------------------------
+Batch: 1
+-------------------------------------------
++---------+------------------+-----+
+|modelyear|    avg_horsepower|count|
++---------+------------------+-----+
+|       71|107.03703703703704|   28|
+|       70|147.82758620689654|   29|
++---------+------------------+-----+
+
+-------------------------------------------
+Batch: 2
+-------------------------------------------
++---------+------------------+-----+
+|modelyear|    avg_horsepower|count|
++---------+------------------+-----+
+|       72|120.17857142857143|   28|
+|       71|107.03703703703704|   28|
+|       70|147.82758620689654|   29|
++---------+------------------+-----+
+"""
+
 
     def snippet(self, df):
+        from pyspark.sql.functions import avg, count, desc
         from pyspark.sql.types import (
             StructField,
             StructType,
@@ -3566,17 +3607,8 @@ class streaming_csv_unwindowed():
             IntegerType,
             StringType,
         )
-        from pyspark.sql import current_timestamp
-
-        input_location = "/home/carter/git/pyspark-cheatsheet/streaming_input"
-        output_location = "/home/carter/git/pyspark-cheatsheet/streaming_output"
-        checkpoint_location = (
-            "/home/carter/git/pyspark-cheatsheet/streaming_checkpoints"
-        )
 
         input_location = "streaming/input"
-        output_location = "streaming/output"
-        checkpoint_location = "streaming/checkpoints"
         schema = StructType(
             [
                 StructField("mpg", DoubleType(), True),
@@ -3590,16 +3622,18 @@ class streaming_csv_unwindowed():
                 StructField("carname", StringType(), True),
             ]
         )
-        # lines = spark.readStream.csv(path=input_location, schema=schema).withColumn("timestamp", F.current_timestamp())
-        # wordCounts = lines.withWatermark("timestamp", "10 minutes").groupBy("modelyear", "timestamp").count()
-        # query = wordCounts.writeStream.format("csv").option("checkpointLocation", checkpoint_location) \
-        #    .option("path", output_location) \
-        #    .start()
 
-        lines = spark.readStream.csv(path=input_location, schema=schema)
-        wordCounts = lines.groupBy("modelyear").count().coalesce(10)
-        query = wordCounts.writeStream.outputMode("complete").format("console").start()
-
+        df = spark.readStream.csv(path=input_location, schema=schema)
+        summary = (
+            df.groupBy("modelyear")
+            .agg(
+                avg("horsepower").alias("avg_horsepower"),
+                count("modelyear").alias("count"),
+            )
+            .orderBy(desc("modelyear"))
+            .coalesce(10)
+        )
+        query = summary.writeStream.outputMode("complete").format("console").start()
         query.awaitTermination()
 
 

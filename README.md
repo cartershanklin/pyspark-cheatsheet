@@ -9,7 +9,7 @@ These snippets use DataFrames loaded from various data sources:
 - customer_spend.csv, a generated time series dataset.
 - date_examples.csv, a generated dataset with various date and time formats.
 
-These snippets were tested against the Spark 3.1.1 API. This page was last updated 2021-03-14 04:18:00.
+These snippets were tested against the Spark 3.1.1 API. This page was last updated 2021-03-14 16:31:07.
 
 Make note of these helpful links:
 - [PySpark DataFrame Operations](http://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.DataFrame)
@@ -151,6 +151,7 @@ Table of contents
       * [Identify Outliers in a DataFrame](#identify-outliers-in-a-dataframe)
    * [Spark Streaming](#spark-streaming)
       * [Connect to Kafka using SASL PLAIN authentication](#connect-to-kafka-using-sasl-plain-authentication)
+      * [Create an unwindowed Structured Stream over input CSV files](#create-an-unwindowed-structured-stream-over-input-csv-files)
       * [Add the current timestamp to a DataFrame](#add-the-current-timestamp-to-a-dataframe)
    * [Time Series](#time-series)
       * [Zero fill missing values in a timeseries](#zero-fill-missing-values-in-a-timeseries)
@@ -3257,6 +3258,81 @@ df = spark.readStream.format("kafka").options(**options).load()
 ```
 
 
+Create an unwindowed Structured Stream over input CSV files
+-----------------------------------------------------------
+
+```python
+from pyspark.sql.functions import avg, count, desc
+from pyspark.sql.types import (
+    StructField,
+    StructType,
+    DoubleType,
+    IntegerType,
+    StringType,
+)
+
+input_location = "streaming/input"
+schema = StructType(
+    [
+        StructField("mpg", DoubleType(), True),
+        StructField("cylinders", IntegerType(), True),
+        StructField("displacement", DoubleType(), True),
+        StructField("horsepower", DoubleType(), True),
+        StructField("weight", DoubleType(), True),
+        StructField("acceleration", DoubleType(), True),
+        StructField("modelyear", IntegerType(), True),
+        StructField("origin", IntegerType(), True),
+        StructField("carname", StringType(), True),
+    ]
+)
+
+df = spark.readStream.csv(path=input_location, schema=schema)
+summary = (
+    df.groupBy("modelyear")
+    .agg(
+        avg("horsepower").alias("avg_horsepower"),
+        count("modelyear").alias("count"),
+    )
+    .orderBy(desc("modelyear"))
+    .coalesce(10)
+)
+query = summary.writeStream.outputMode("complete").format("console").start()
+query.awaitTermination()
+```
+```
+# Code snippet result:
+
+-------------------------------------------
+Batch: 0
+-------------------------------------------
++---------+------------------+-----+
+|modelyear|    avg_horsepower|count|
++---------+------------------+-----+
+|       70|147.82758620689654|   29|
++---------+------------------+-----+
+
+-------------------------------------------
+Batch: 1
+-------------------------------------------
++---------+------------------+-----+
+|modelyear|    avg_horsepower|count|
++---------+------------------+-----+
+|       71|107.03703703703704|   28|
+|       70|147.82758620689654|   29|
++---------+------------------+-----+
+
+-------------------------------------------
+Batch: 2
+-------------------------------------------
++---------+------------------+-----+
+|modelyear|    avg_horsepower|count|
++---------+------------------+-----+
+|       72|120.17857142857143|   28|
+|       71|107.03703703703704|   28|
+|       70|147.82758620689654|   29|
++---------+------------------+-----+
+```
+
 Add the current timestamp to a DataFrame
 ----------------------------------------
 
@@ -3559,16 +3635,16 @@ predictions = rf_model.transform(assembled).select(
 +----------+----+----------+
 |   carname| mpg|prediction|
 +----------+----+----------+
-|chevrol...|18.0|17.8630...|
-|buick s...|15.0|14.3082...|
-|plymout...|18.0|16.3619...|
-|amc reb...|16.0|16.3761...|
-|ford to...|17.0|16.8628...|
-|ford ga...|15.0|13.9198...|
-|chevrol...|14.0|13.4131...|
-|plymout...|14.0|14.0989...|
-|pontiac...|14.0|13.4131...|
-|amc amb...|15.0|14.2480...|
+|chevrol...|18.0|17.2603...|
+|buick s...|15.0|15.2392...|
+|plymout...|18.0|16.0520...|
+|amc reb...|16.0|16.0311...|
+|ford to...|17.0|17.7114...|
+|ford ga...|15.0|13.4286...|
+|chevrol...|14.0|13.4286...|
+|plymout...|14.0|13.4286...|
+|pontiac...|14.0|12.6243...|
+|amc amb...|15.0|13.6971...|
 +----------+----+----------+
 only showing top 10 rows
 ```
@@ -3624,16 +3700,16 @@ predictions = lr_model.transform(test_df)
 +----------+----+----------+----------+
 |  features| mpg|   carname|prediction|
 +----------+----+----------+----------+
-|[3.0,70...|19.0|mazda r...|27.3885...|
-|[3.0,80...|21.5|mazda rx-4|24.8352...|
-|[4.0,76...|31.0|toyota ...|32.9701...|
-|[4.0,79...|26.0|volkswa...|30.6727...|
-|[4.0,81...|35.1|honda c...|31.9840...|
-|[4.0,85...|37.0|datsun ...|30.7090...|
-|[4.0,85...|40.8|datsun 210|30.1019...|
-|[4.0,85...|33.5|datsun ...|30.5532...|
-|[4.0,85...|39.4|datsun ...|29.9910...|
-|[4.0,89...|31.9|vw rabb...|30.5676...|
+|[3.0,80...|21.5|mazda rx-4|26.1543...|
+|[4.0,72...|35.0|datsun ...|32.1068...|
+|[4.0,76...|31.0|toyota ...|32.8326...|
+|[4.0,79...|31.0| fiat x1.9|30.7025...|
+|[4.0,83...|32.0|datsun 710|30.9739...|
+|[4.0,85...|40.8|datsun 210|30.3458...|
+|[4.0,85...|39.4|datsun ...|30.2330...|
+|[4.0,86...|34.1|maxda g...|30.8441...|
+|[4.0,90...|25.0|volkswa...|29.5654...|
+|[4.0,91...|33.0|honda c...|32.1093...|
 +----------+----+----------+----------+
 only showing top 10 rows
 ```
@@ -3691,16 +3767,16 @@ print("RMSE={} r2={}".format(rmse, r2))
 +----------+----+----------+----------+
 |  features| mpg|   carname|prediction|
 +----------+----+----------+----------+
-|[3.0,70...|23.7|mazda r...|20.8483...|
-|[4.0,71...|31.0|toyota ...|33.4071...|
-|[4.0,79...|26.0|volkswa...|34.1668...|
-|[4.0,79...|30.0|peugeot...|32.5396...|
-|[4.0,85...|40.8|datsun 210|35.5374...|
-|[4.0,86...|34.1|maxda g...|34.5131...|
-|[4.0,88...|30.0| fiat 124b|33.0305...|
-|[4.0,89...|38.1|toyota ...|34.3388...|
-|[4.0,89...|29.8|vokswag...|34.6231...|
-|[4.0,90...|43.1|volkswa...|35.7242...|
+|[3.0,70...|18.0| maxda rx3|30.5842...|
+|[3.0,70...|19.0|mazda r...|24.4623...|
+|[4.0,78...|32.8|mazda g...|32.3910...|
+|[4.0,79...|39.1|toyota ...|32.9035...|
+|[4.0,79...|36.0|renault...|32.9035...|
+|[4.0,79...|31.0|datsun ...|32.2063...|
+|[4.0,79...|30.0|peugeot...|31.2440...|
+|[4.0,85...|29.0|chevrol...|39.0737...|
+|[4.0,85...|31.8|datsun 210|33.4270...|
+|[4.0,86...|37.2|datsun 310|33.4270...|
 +----------+----+----------+----------+
 only showing top 10 rows
 ```
@@ -3750,15 +3826,15 @@ results = predictions.select([label_column, "prediction"])
 +----------+----------+
 |cover_type|prediction|
 +----------+----------+
-|         6|       3.0|
-|         6|       3.0|
-|         3|       3.0|
-|         6|       6.0|
-|         3|       3.0|
 |         3|       3.0|
 |         6|       3.0|
 |         6|       3.0|
+|         6|       3.0|
+|         6|       3.0|
 |         3|       3.0|
+|         6|       3.0|
+|         6|       3.0|
+|         6|       3.0|
 |         6|       3.0|
 +----------+----------+
 only showing top 10 rows
@@ -3835,16 +3911,16 @@ print("RMSE={}".format(rmse))
 +----------+----+----------+
 |   carname| mpg|prediction|
 +----------+----+----------+
-| ford f250|10.0|13.1333...|
-|dodge d200|11.0|14.6475...|
-|ford co...|12.0|13.2319...|
-|buick e...|12.0|13.1078...|
-|plymout...|13.0|14.9916...|
-|chevrol...|13.0|14.5427...|
-|buick c...|13.0|14.8280...|
-|amc mat...|14.0|14.9149...|
-|plymout...|14.0|14.9166...|
-|plymout...|14.0|14.9916...|
+|dodge d200|11.0|14.6837...|
+|mercury...|11.0|13.1863...|
+|oldsmob...|12.0|13.7031...|
+|buick e...|12.0|13.4900...|
+|chevrol...|13.0|16.9296...|
+|chevrol...|13.0|14.8510...|
+|ford co...|13.0|12.6672...|
+|ford gr...|14.0|15.7577...|
+|ford gr...|14.0|15.0983...|
+|amc mat...|14.0|15.4523...|
 +----------+----+----------+
 only showing top 10 rows
 ```
@@ -3909,12 +3985,12 @@ for feature, importance in zip(
 ```
 ```
 # Code snippet result:
-manufacturer_encoded contributes 8.358%
-cylinders contributes 22.980%
-displacement contributes 25.715%
-horsepower contributes 18.898%
-weight contributes 20.911%
-acceleration contributes 3.137%
+manufacturer_encoded contributes 11.148%
+cylinders contributes 18.995%
+displacement contributes 25.105%
+horsepower contributes 18.126%
+weight contributes 23.674%
+acceleration contributes 2.952%
 ```
 
 Automatically encode categorical variables
@@ -3969,16 +4045,16 @@ predictions = rf_model.transform(test_df).select("mpg", "prediction")
 +----+----------+
 | mpg|prediction|
 +----+----------+
-|13.0|14.7901...|
-|13.0|15.1768...|
-|13.0|14.0909...|
-|13.0|13.4058...|
-|14.0|14.4628...|
-|14.0|13.9761...|
-|14.0|14.4148...|
-|14.0|12.8532...|
-|14.0|13.8225...|
-|14.0|12.9186...|
+|11.0|13.3710...|
+|11.0|12.9977...|
+|12.0|13.1997...|
+|12.0|13.1879...|
+|12.0|12.8605...|
+|13.0|16.3381...|
+|13.0|15.5045...|
+|13.0|15.3948...|
+|13.0|13.6476...|
+|13.0|13.1156...|
 +----+----------+
 only showing top 10 rows
 ```
@@ -4051,7 +4127,7 @@ print("Best model has {} trees.".format(real_model.getNumTrees))
 ```
 ```
 # Code snippet result:
-Best model has 90 trees.
+Best model has 60 trees.
 ```
 
 Plot Hyperparameter tuning metrics
@@ -4460,16 +4536,16 @@ df = (
 +----+---------+------------+----------+------+------------+---------+------+----------+
 | mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
 +----+---------+------------+----------+------+------------+---------+------+----------+
-|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|
-|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|
 |15.0|        8|       383.0|     170.0| 3563.|        10.0|       70|     1|dodge c...|
-|25.0|        4|       104.0|     95.00| 2375.|        17.5|       70|     2|  saab 99e|
+|14.0|        8|       340.0|     160.0| 3609.|         8.0|       70|     1|plymout...|
+|22.0|        6|       198.0|     95.00| 2833.|        15.5|       70|     1|plymout...|
+|26.0|        4|       97.00|     46.00| 1835.|        20.5|       70|     2|volkswa...|
 |26.0|        4|       121.0|     113.0| 2234.|        12.5|       70|     2|  bmw 2002|
-|17.0|        6|       250.0|     100.0| 3329.|        15.5|       71|     1|chevrol...|
-|18.0|        6|       250.0|     88.00| 3139.|        14.5|       71|     1|ford mu...|
-|35.0|        4|       72.00|     69.00| 1613.|        18.0|       71|     3|datsun ...|
-|27.0|        4|       97.00|     60.00| 1834.|        19.0|       71|     2|volkswa...|
-|25.0|        4|       97.50|     80.00| 2126.|        17.0|       72|     1|dodge c...|
+|10.0|        8|       360.0|     215.0| 4615.|        14.0|       70|     1| ford f250|
+|19.0|        6|       232.0|     100.0| 2634.|        13.0|       71|     1|amc gre...|
+|19.0|        6|       250.0|     88.00| 3302.|        15.5|       71|     1|ford to...|
+|18.0|        6|       258.0|     110.0| 2962.|        13.5|       71|     1|amc hor...|
+|30.0|        4|       79.00|     70.00| 2074.|        19.5|       71|     2|peugeot...|
 +----+---------+------------+----------+------+------------+---------+------+----------+
 only showing top 10 rows
 ```
@@ -4482,7 +4558,7 @@ print(spark.sparkContext.getConf().getAll())
 ```
 ```
 # Code snippet result:
-[('spark.driver.memory', '2G'), ('spark.executor.memory', '2G'), ('spark.executor.id', 'driver'), ('spark.app.startTime', '1615720678491'), ('spark.driver.port', '42993'), ('spark.sql.warehouse.dir', 'file:/home/carter/git/pyspark-cheatsheet/spark-warehouse'), ('spark.rdd.compress', 'True'), ('spark.serializer.objectStreamReset', '100'), ('spark.app.id', 'local-1615720679324'), ('spark.master', 'local[*]'), ('spark.submit.pyFiles', ''), ('spark.submit.deployMode', 'client'), ('spark.app.name', 'cheatsheet'), ('spark.ui.showConsoleProgress', 'true'), ('spark.driver.host', '192.168.1.40')]
+[('spark.driver.memory', '2G'), ('spark.driver.port', '46017'), ('spark.executor.memory', '2G'), ('spark.executor.id', 'driver'), ('spark.app.startTime', '1615764665336'), ('spark.sql.warehouse.dir', 'file:/home/carter/git/pyspark-cheatsheet/spark-warehouse'), ('spark.app.id', 'local-1615764666168'), ('spark.rdd.compress', 'True'), ('spark.serializer.objectStreamReset', '100'), ('spark.master', 'local[*]'), ('spark.submit.pyFiles', ''), ('spark.submit.deployMode', 'client'), ('spark.app.name', 'cheatsheet'), ('spark.ui.showConsoleProgress', 'true'), ('spark.driver.host', '192.168.1.40')]
 ```
 
 Set Spark configuration properties
