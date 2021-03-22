@@ -88,7 +88,7 @@ Preamble:
 
         Make note of these helpful links:
 
-        - [PySpark DataFrame Operations](http://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.DataFrame)
+        - [PySpark DataFrame Operations](http://spark.apache.org/docs/latest/api/python/reference/pyspark.sql.html#dataframe-apis)
 
         - [Built-in Spark SQL Functions](https://spark.apache.org/docs/latest/api/sql/index.html)
 
