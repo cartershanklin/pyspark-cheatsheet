@@ -9,10 +9,10 @@ These snippets use DataFrames loaded from various data sources:
 - customer_spend.csv, a generated time series dataset.
 - date_examples.csv, a generated dataset with various date and time formats.
 
-These snippets were tested against the Spark 3.1.1 API. This page was last updated 2021-03-14 16:31:07.
+These snippets were tested against the Spark 3.1.1 API. This page was last updated 2021-03-25 20:34:30.
 
 Make note of these helpful links:
-- [PySpark DataFrame Operations](http://spark.apache.org/docs/latest/api/python/pyspark.sql.html#pyspark.sql.DataFrame)
+- [PySpark DataFrame Operations](http://spark.apache.org/docs/latest/api/python/reference/pyspark.sql.html#dataframe-apis)
 - [Built-in Spark SQL Functions](https://spark.apache.org/docs/latest/api/sql/index.html)
 - [PySpark MLlib Reference](https://spark.apache.org/docs/latest/api/python/pyspark.mllib.html)
 - [PySpark SQL Functions Source](https://spark.apache.org/docs/latest/api/python/_modules/pyspark/sql/functions.html)
@@ -151,6 +151,7 @@ Table of contents
       * [Identify Outliers in a DataFrame](#identify-outliers-in-a-dataframe)
    * [Spark Streaming](#spark-streaming)
       * [Connect to Kafka using SASL PLAIN authentication](#connect-to-kafka-using-sasl-plain-authentication)
+      * [Create a windowed Structured Stream over input CSV files](#create-a-windowed-structured-stream-over-input-csv-files)
       * [Create an unwindowed Structured Stream over input CSV files](#create-an-unwindowed-structured-stream-over-input-csv-files)
       * [Add the current timestamp to a DataFrame](#add-the-current-timestamp-to-a-dataframe)
    * [Time Series](#time-series)
@@ -3258,6 +3259,129 @@ df = spark.readStream.format("kafka").options(**options).load()
 ```
 
 
+Create a windowed Structured Stream over input CSV files
+--------------------------------------------------------
+
+```python
+from pyspark.sql.functions import avg, count, current_timestamp, window
+from pyspark.sql.types import (
+    StructField,
+    StructType,
+    DoubleType,
+    IntegerType,
+    StringType,
+)
+
+input_location = "streaming/input"
+schema = StructType(
+    [
+        StructField("mpg", DoubleType(), True),
+        StructField("cylinders", IntegerType(), True),
+        StructField("displacement", DoubleType(), True),
+        StructField("horsepower", DoubleType(), True),
+        StructField("weight", DoubleType(), True),
+        StructField("acceleration", DoubleType(), True),
+        StructField("modelyear", IntegerType(), True),
+        StructField("origin", IntegerType(), True),
+        StructField("carname", StringType(), True),
+        StructField("manufacturer", StringType(), True),
+    ]
+)
+df = spark.readStream.csv(path=input_location, schema=schema).withColumn(
+    "timestamp", current_timestamp()
+)
+
+aggregated = (
+    df.groupBy(window(df.timestamp, "1 minute"), "manufacturer")
+    .agg(
+        avg("horsepower").alias("avg_horsepower"),
+        avg("timestamp").alias("avg_timestamp"),
+        count("modelyear").alias("count"),
+    )
+    .coalesce(10)
+)
+summary = aggregated.orderBy("window", "manufacturer")
+query = summary.writeStream.outputMode("complete").format("console").option("truncate", False).start()
+query.awaitTermination()
+```
+```
+# Code snippet result:
+
+-------------------------------------------                                     
+Batch: 0
+-------------------------------------------
++------------------------------------------+------------+--------------+----------------+-----+
+|window                                    |manufacturer|avg_horsepower|avg_timestamp   |count|
++------------------------------------------+------------+--------------+----------------+-----+
+|{2021-03-20 05:27:00, 2021-03-20 05:28:00}|amc         |131.75        |1.616243250178E9|4    |
+|{2021-03-20 05:27:00, 2021-03-20 05:28:00}|chevrolet   |175.0         |1.616243250178E9|4    |
+|{2021-03-20 05:27:00, 2021-03-20 05:28:00}|datsun      |88.0          |1.616243250178E9|1    |
+|{2021-03-20 05:27:00, 2021-03-20 05:28:00}|dodge       |190.0         |1.616243250178E9|2    |
+|{2021-03-20 05:27:00, 2021-03-20 05:28:00}|ford        |159.5         |1.616243250178E9|4    |
+|{2021-03-20 05:27:00, 2021-03-20 05:28:00}|plymouth    |155.0         |1.616243250178E9|4    |
+|{2021-03-20 05:27:00, 2021-03-20 05:28:00}|pontiac     |225.0         |1.616243250178E9|1    |
++------------------------------------------+------------+--------------+----------------+-----+
+
+-------------------------------------------                                     
+Batch: 1
+-------------------------------------------
++------------------------------------------+------------+------------------+--------------------+-----+
+|window                                    |manufacturer|avg_horsepower    |avg_timestamp       |count|
++------------------------------------------+------------+------------------+--------------------+-----+
+|{2021-03-20 05:27:00, 2021-03-20 05:28:00}|amc         |119.57142857142857|1.6162432596022856E9|7    |
+|{2021-03-20 05:27:00, 2021-03-20 05:28:00}|chevrolet   |140.875           |1.6162432611729999E9|8    |
+|{2021-03-20 05:27:00, 2021-03-20 05:28:00}|datsun      |81.66666666666667 |1.616243264838E9    |3    |
+|{2021-03-20 05:27:00, 2021-03-20 05:28:00}|dodge       |186.66666666666666|1.6162432575080001E9|3    |
+|{2021-03-20 05:27:00, 2021-03-20 05:28:00}|ford        |142.125           |1.6162432623946667E9|9    |
+|{2021-03-20 05:27:00, 2021-03-20 05:28:00}|plymouth    |135.0             |1.6162432596022856E9|7    |
+|{2021-03-20 05:27:00, 2021-03-20 05:28:00}|pontiac     |168.75            |1.6162432666704998E9|4    |
++------------------------------------------+------------+------------------+--------------------+-----+
+
+-------------------------------------------                                     
+Batch: 2
+-------------------------------------------
++------------------------------------------+------------+------------------+--------------------+-----+
+|window                                    |manufacturer|avg_horsepower    |avg_timestamp       |count|
++------------------------------------------+------------+------------------+--------------------+-----+
+|{2021-03-20 05:27:00, 2021-03-20 05:28:00}|amc         |119.57142857142857|1.6162432596022856E9|7    |
+|{2021-03-20 05:27:00, 2021-03-20 05:28:00}|chevrolet   |140.875           |1.6162432611729999E9|8    |
+|{2021-03-20 05:27:00, 2021-03-20 05:28:00}|datsun      |81.66666666666667 |1.616243264838E9    |3    |
+|{2021-03-20 05:27:00, 2021-03-20 05:28:00}|dodge       |186.66666666666666|1.6162432575080001E9|3    |
+|{2021-03-20 05:27:00, 2021-03-20 05:28:00}|ford        |142.125           |1.6162432623946667E9|9    |
+|{2021-03-20 05:27:00, 2021-03-20 05:28:00}|plymouth    |135.0             |1.6162432596022856E9|7    |
+|{2021-03-20 05:27:00, 2021-03-20 05:28:00}|pontiac     |168.75            |1.6162432666704998E9|4    |
+|{2021-03-20 05:28:00, 2021-03-20 05:29:00}|amc         |150.0             |1.616243297163E9    |2    |
+|{2021-03-20 05:28:00, 2021-03-20 05:29:00}|chevrolet   |128.33333333333334|1.616243297163E9    |3    |
+|{2021-03-20 05:28:00, 2021-03-20 05:29:00}|datsun      |92.0              |1.616243297163E9    |1    |
+|{2021-03-20 05:28:00, 2021-03-20 05:29:00}|dodge       |80.0              |1.616243297163E9    |2    |
+|{2021-03-20 05:28:00, 2021-03-20 05:29:00}|ford        |116.25            |1.616243297163E9    |4    |
+|{2021-03-20 05:28:00, 2021-03-20 05:29:00}|plymouth    |150.0             |1.616243297163E9    |2    |
+|{2021-03-20 05:28:00, 2021-03-20 05:29:00}|pontiac     |175.0             |1.616243297163E9    |1    |
++------------------------------------------+------------+------------------+--------------------+-----+
+
+-------------------------------------------                                     
+Batch: 3
+-------------------------------------------
++------------------------------------------+------------+------------------+--------------------+-----+
+|window                                    |manufacturer|avg_horsepower    |avg_timestamp       |count|
++------------------------------------------+------------+------------------+--------------------+-----+
+|{2021-03-20 05:27:00, 2021-03-20 05:28:00}|amc         |119.57142857142857|1.6162432596022856E9|7    |
+|{2021-03-20 05:27:00, 2021-03-20 05:28:00}|chevrolet   |140.875           |1.6162432611729999E9|8    |
+|{2021-03-20 05:27:00, 2021-03-20 05:28:00}|datsun      |81.66666666666667 |1.616243264838E9    |3    |
+|{2021-03-20 05:27:00, 2021-03-20 05:28:00}|dodge       |186.66666666666666|1.6162432575080001E9|3    |
+|{2021-03-20 05:27:00, 2021-03-20 05:28:00}|ford        |142.125           |1.6162432623946667E9|9    |
+|{2021-03-20 05:27:00, 2021-03-20 05:28:00}|plymouth    |135.0             |1.6162432596022856E9|7    |
+|{2021-03-20 05:27:00, 2021-03-20 05:28:00}|pontiac     |168.75            |1.6162432666704998E9|4    |
+|{2021-03-20 05:28:00, 2021-03-20 05:29:00}|amc         |137.5             |1.616243313837E9    |6    |
+|{2021-03-20 05:28:00, 2021-03-20 05:29:00}|chevrolet   |127.44444444444444|1.6162433138370001E9|9    |
+|{2021-03-20 05:28:00, 2021-03-20 05:29:00}|datsun      |93.0              |1.6162433096685E9   |2    |
+|{2021-03-20 05:28:00, 2021-03-20 05:29:00}|dodge       |115.0             |1.6162433096685E9   |4    |
+|{2021-03-20 05:28:00, 2021-03-20 05:29:00}|ford        |122.22222222222223|1.6162433110579998E9|9    |
+|{2021-03-20 05:28:00, 2021-03-20 05:29:00}|plymouth    |136.66666666666666|1.616243313837E9    |6    |
+|{2021-03-20 05:28:00, 2021-03-20 05:29:00}|pontiac     |202.5             |1.6162433096685E9   |2    |
++------------------------------------------+------------+------------------+--------------------+-----+
+```
+
 Create an unwindowed Structured Stream over input CSV files
 -----------------------------------------------------------
 
@@ -3283,6 +3407,7 @@ schema = StructType(
         StructField("modelyear", IntegerType(), True),
         StructField("origin", IntegerType(), True),
         StructField("carname", StringType(), True),
+        StructField("manufacturer", StringType(), True),
     ]
 )
 
@@ -3635,16 +3760,16 @@ predictions = rf_model.transform(assembled).select(
 +----------+----+----------+
 |   carname| mpg|prediction|
 +----------+----+----------+
-|chevrol...|18.0|17.2603...|
-|buick s...|15.0|15.2392...|
-|plymout...|18.0|16.0520...|
-|amc reb...|16.0|16.0311...|
-|ford to...|17.0|17.7114...|
-|ford ga...|15.0|13.4286...|
-|chevrol...|14.0|13.4286...|
-|plymout...|14.0|13.4286...|
-|pontiac...|14.0|12.6243...|
-|amc amb...|15.0|13.6971...|
+|chevrol...|18.0|16.8137...|
+|buick s...|15.0|14.8455...|
+|plymout...|18.0|16.2170...|
+|amc reb...|16.0|16.1782...|
+|ford to...|17.0|16.7017...|
+|ford ga...|15.0|13.7961...|
+|chevrol...|14.0|13.7961...|
+|plymout...|14.0|13.7961...|
+|pontiac...|14.0|13.5049...|
+|amc amb...|15.0|14.5189...|
 +----------+----+----------+
 only showing top 10 rows
 ```
@@ -3700,16 +3825,16 @@ predictions = lr_model.transform(test_df)
 +----------+----+----------+----------+
 |  features| mpg|   carname|prediction|
 +----------+----+----------+----------+
-|[3.0,80...|21.5|mazda rx-4|26.1543...|
-|[4.0,72...|35.0|datsun ...|32.1068...|
-|[4.0,76...|31.0|toyota ...|32.8326...|
-|[4.0,79...|31.0| fiat x1.9|30.7025...|
-|[4.0,83...|32.0|datsun 710|30.9739...|
-|[4.0,85...|40.8|datsun 210|30.3458...|
-|[4.0,85...|39.4|datsun ...|30.2330...|
-|[4.0,86...|34.1|maxda g...|30.8441...|
-|[4.0,90...|25.0|volkswa...|29.5654...|
-|[4.0,91...|33.0|honda c...|32.1093...|
+|[3.0,70...|19.0|mazda r...|28.5646...|
+|[3.0,80...|21.5|mazda rx-4|26.3723...|
+|[4.0,71...|31.0|toyota ...|31.7379...|
+|[4.0,79...|36.0|renault...|31.7880...|
+|[4.0,79...|30.0|peugeot...|30.2710...|
+|[4.0,85...|29.0|chevrol...|31.1898...|
+|[4.0,86...|37.2|datsun 310|30.6575...|
+|[4.0,88...|30.0| fiat 124b|29.9650...|
+|[4.0,89...|37.7|toyota ...|30.6482...|
+|[4.0,89...|31.9|vw rabb...|30.7312...|
 +----------+----+----------+----------+
 only showing top 10 rows
 ```
@@ -3767,16 +3892,16 @@ print("RMSE={} r2={}".format(rmse, r2))
 +----------+----+----------+----------+
 |  features| mpg|   carname|prediction|
 +----------+----+----------+----------+
-|[3.0,70...|18.0| maxda rx3|30.5842...|
-|[3.0,70...|19.0|mazda r...|24.4623...|
-|[4.0,78...|32.8|mazda g...|32.3910...|
-|[4.0,79...|39.1|toyota ...|32.9035...|
-|[4.0,79...|36.0|renault...|32.9035...|
-|[4.0,79...|31.0|datsun ...|32.2063...|
-|[4.0,79...|30.0|peugeot...|31.2440...|
-|[4.0,85...|29.0|chevrol...|39.0737...|
-|[4.0,85...|31.8|datsun 210|33.4270...|
-|[4.0,86...|37.2|datsun 310|33.4270...|
+|[4.0,72...|35.0|datsun ...|32.6758...|
+|[4.0,76...|31.0|toyota ...|33.7500...|
+|[4.0,78...|32.8|mazda g...|34.4696...|
+|[4.0,79...|36.0|renault...|33.7500...|
+|[4.0,79...|30.0|peugeot...|33.1948...|
+|[4.0,85...|29.0|chevrol...|38.1340...|
+|[4.0,85...|40.8|datsun 210|34.1995...|
+|[4.0,85...|39.4|datsun ...|33.3658...|
+|[4.0,88...|30.0| fiat 124b|32.9837...|
+|[4.0,89...|31.5|volkswa...|32.6664...|
 +----------+----+----------+----------+
 only showing top 10 rows
 ```
@@ -3829,13 +3954,13 @@ results = predictions.select([label_column, "prediction"])
 |         3|       3.0|
 |         6|       3.0|
 |         6|       3.0|
-|         6|       3.0|
-|         6|       3.0|
 |         3|       3.0|
 |         6|       3.0|
+|         6|       6.0|
+|         3|       3.0|
 |         6|       3.0|
-|         6|       3.0|
-|         6|       3.0|
+|         6|       6.0|
+|         3|       3.0|
 +----------+----------+
 only showing top 10 rows
 ```
@@ -3911,16 +4036,16 @@ print("RMSE={}".format(rmse))
 +----------+----+----------+
 |   carname| mpg|prediction|
 +----------+----+----------+
-|dodge d200|11.0|14.6837...|
-|mercury...|11.0|13.1863...|
-|oldsmob...|12.0|13.7031...|
-|buick e...|12.0|13.4900...|
-|chevrol...|13.0|16.9296...|
-|chevrol...|13.0|14.8510...|
-|ford co...|13.0|12.6672...|
-|ford gr...|14.0|15.7577...|
-|ford gr...|14.0|15.0983...|
-|amc mat...|14.0|15.4523...|
+| ford f250|10.0|13.4505...|
+|oldsmob...|12.0|13.4093...|
+|ford gr...|13.0|15.9388...|
+|chevrol...|13.0|16.2765...|
+|chevrol...|13.0|15.2686...|
+|buick l...|13.0|13.5671...|
+|chevrol...|13.0|14.1360...|
+|plymout...|13.0|14.0258...|
+|amc amb...|13.0|14.3979...|
+|ford gr...|14.0|16.1534...|
 +----------+----+----------+
 only showing top 10 rows
 ```
@@ -3985,12 +4110,12 @@ for feature, importance in zip(
 ```
 ```
 # Code snippet result:
-manufacturer_encoded contributes 11.148%
-cylinders contributes 18.995%
-displacement contributes 25.105%
-horsepower contributes 18.126%
-weight contributes 23.674%
-acceleration contributes 2.952%
+manufacturer_encoded contributes 8.203%
+cylinders contributes 12.705%
+displacement contributes 8.437%
+horsepower contributes 27.404%
+weight contributes 39.923%
+acceleration contributes 3.328%
 ```
 
 Automatically encode categorical variables
@@ -4045,16 +4170,16 @@ predictions = rf_model.transform(test_df).select("mpg", "prediction")
 +----+----------+
 | mpg|prediction|
 +----+----------+
-|11.0|13.3710...|
-|11.0|12.9977...|
-|12.0|13.1997...|
-|12.0|13.1879...|
-|12.0|12.8605...|
-|13.0|16.3381...|
-|13.0|15.5045...|
-|13.0|15.3948...|
-|13.0|13.6476...|
-|13.0|13.1156...|
+|10.0|13.3684...|
+|11.0|13.8337...|
+|11.0|13.5767...|
+|12.0|13.6074...|
+|12.0|13.3211...|
+|13.0|18.1431...|
+|13.0|15.1820...|
+|13.0|14.4488...|
+|13.0|13.9731...|
+|13.0|14.0655...|
 +----+----------+
 only showing top 10 rows
 ```
@@ -4127,7 +4252,7 @@ print("Best model has {} trees.".format(real_model.getNumTrees))
 ```
 ```
 # Code snippet result:
-Best model has 60 trees.
+Best model has 80 trees.
 ```
 
 Plot Hyperparameter tuning metrics
@@ -4536,16 +4661,16 @@ df = (
 +----+---------+------------+----------+------+------------+---------+------+----------+
 | mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
 +----+---------+------------+----------+------+------------+---------+------+----------+
-|15.0|        8|       383.0|     170.0| 3563.|        10.0|       70|     1|dodge c...|
-|14.0|        8|       340.0|     160.0| 3609.|         8.0|       70|     1|plymout...|
-|22.0|        6|       198.0|     95.00| 2833.|        15.5|       70|     1|plymout...|
-|26.0|        4|       97.00|     46.00| 1835.|        20.5|       70|     2|volkswa...|
-|26.0|        4|       121.0|     113.0| 2234.|        12.5|       70|     2|  bmw 2002|
-|10.0|        8|       360.0|     215.0| 4615.|        14.0|       70|     1| ford f250|
-|19.0|        6|       232.0|     100.0| 2634.|        13.0|       71|     1|amc gre...|
-|19.0|        6|       250.0|     88.00| 3302.|        15.5|       71|     1|ford to...|
-|18.0|        6|       258.0|     110.0| 2962.|        13.5|       71|     1|amc hor...|
-|30.0|        4|       79.00|     70.00| 2074.|        19.5|       71|     2|peugeot...|
+|21.0|        6|       200.0|     85.00| 2587.|        16.0|       70|     1|ford ma...|
+|30.0|        4|       88.00|     76.00| 2065.|        14.5|       71|     2| fiat 124b|
+|15.0|        8|       318.0|     150.0| 4135.|        13.5|       72|     1|plymout...|
+|12.0|        8|       350.0|     160.0| 4456.|        13.5|       72|     1|oldsmob...|
+|13.0|        8|       351.0|     158.0| 4363.|        13.0|       73|     1|  ford ltd|
+|13.0|        8|       440.0|     215.0| 4735.|        11.0|       73|     1|chrysle...|
+|23.0|        6|       198.0|     95.00| 2904.|        16.0|       73|     1|plymout...|
+|26.0|        4|       97.00|     46.00| 1950.|        21.0|       73|     2|volkswa...|
+|20.0|        4|       97.00|     88.00| 2279.|        19.0|       73|     3|toyota ...|
+|26.0|        4|       122.0|     80.00| 2451.|        16.5|       74|     1|ford pinto|
 +----+---------+------------+----------+------+------------+---------+------+----------+
 only showing top 10 rows
 ```
@@ -4558,7 +4683,7 @@ print(spark.sparkContext.getConf().getAll())
 ```
 ```
 # Code snippet result:
-[('spark.driver.memory', '2G'), ('spark.driver.port', '46017'), ('spark.executor.memory', '2G'), ('spark.executor.id', 'driver'), ('spark.app.startTime', '1615764665336'), ('spark.sql.warehouse.dir', 'file:/home/carter/git/pyspark-cheatsheet/spark-warehouse'), ('spark.app.id', 'local-1615764666168'), ('spark.rdd.compress', 'True'), ('spark.serializer.objectStreamReset', '100'), ('spark.master', 'local[*]'), ('spark.submit.pyFiles', ''), ('spark.submit.deployMode', 'client'), ('spark.app.name', 'cheatsheet'), ('spark.ui.showConsoleProgress', 'true'), ('spark.driver.host', '192.168.1.40')]
+[('spark.driver.memory', '2G'), ('spark.executor.memory', '2G'), ('spark.sql.warehouse.dir', 'file:/home/carter/git/pyspark-cheatsheet/spark-warehouse/'), ('spark.executor.id', 'driver'), ('spark.driver.port', '45313'), ('spark.app.id', 'local-1616729664151'), ('spark.rdd.compress', 'True'), ('spark.serializer.objectStreamReset', '100'), ('spark.master', 'local[*]'), ('spark.submit.pyFiles', ''), ('spark.app.startTime', '1616729658667'), ('spark.submit.deployMode', 'client'), ('spark.app.name', 'cheatsheet'), ('spark.ui.showConsoleProgress', 'true'), ('spark.driver.host', '192.168.1.40')]
 ```
 
 Set Spark configuration properties
