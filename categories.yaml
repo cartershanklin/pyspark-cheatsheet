@@ -92,7 +92,7 @@ Preamble:
 
         - [Built-in Spark SQL Functions](https://spark.apache.org/docs/latest/api/sql/index.html)
 
-        - [PySpark MLlib Reference](https://spark.apache.org/docs/latest/api/python/pyspark.mllib.html)
+        - [MLlib Main Guide](http://spark.apache.org/docs/latest/ml-guide.html)
 
         - [PySpark SQL Functions Source](https://spark.apache.org/docs/latest/api/python/_modules/pyspark/sql/functions.html)
 
