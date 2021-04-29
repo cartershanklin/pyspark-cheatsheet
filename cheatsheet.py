@@ -264,6 +264,28 @@ class dfo_column_to_python_list(snippet):
         return str(names[:10])
 
 
+class dfo_consume_as_dict(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Consume a DataFrame row-wise as Python dictionaries"
+        self.category = "DataFrame Operations"
+        self.dataset = "auto-mpg.csv"
+        self.preconvert = True
+        self.priority = 730
+
+    def snippet(self, df):
+        first_three = df.limit(3)
+        for row in first_three.collect():
+            my_dict = row.asDict()
+            # EXCLUDE
+            return """
+{'mpg': '18.0', 'cylinders': '8', 'displacement': '307.0', 'horsepower': '130.0', 'weight': '3504.', 'acceleration': '12.0', 'modelyear': '70', 'origin': '1', 'carname': 'chevrolet chevelle malibu'}
+{'mpg': '15.0', 'cylinders': '8', 'displacement': '350.0', 'horsepower': '165.0', 'weight': '3693.', 'acceleration': '11.5', 'modelyear': '70', 'origin': '1', 'carname': 'buick skylark 320'}
+{'mpg': '18.0', 'cylinders': '8', 'displacement': '318.0', 'horsepower': '150.0', 'weight': '3436.', 'acceleration': '11.0', 'modelyear': '70', 'origin': '1', 'carname': 'plymouth satellite'}
+"""
+            # INCLUDE
+
+
 class dfo_scalar_query_to_python_variable(snippet):
     def __init__(self):
         super().__init__()
