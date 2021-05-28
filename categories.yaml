@@ -46,6 +46,10 @@ Data Profiling:
     priority: 14
     description: Extracting key statistics out of a body of data.
 
+Data Management:
+    priority: 15
+    description: Upserts, updates and deletes on data.
+
 Spark Streaming:
     priority: 16
     description: Spark Streaming (Focuses on Structured Streaming).

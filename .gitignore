@@ -2,5 +2,6 @@ header.csv
 output.csv
 output.parquet
 single.csv
+delta_tests
 spark-warehouse
 rf_regression.model

@@ -13,13 +13,20 @@ import yaml
 from pyspark.sql import SparkSession, SQLContext
 from slugify import slugify
 
-spark = (
+from delta import *
+
+builder = (
     SparkSession.builder.master("local[*]")
     .config("spark.executor.memory", "2G")
     .config("spark.driver.memory", "2G")
+    .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
+    .config(
+        "spark.sql.catalog.spark_catalog",
+        "org.apache.spark.sql.delta.catalog.DeltaCatalog",
+    )
     .appName("cheatsheet")
-    .getOrCreate()
 )
+spark = configure_spark_with_delta_pip(builder).getOrCreate()
 sqlContext = SQLContext(spark)
 
 
@@ -3506,6 +3513,71 @@ class fileprocessing_transform_images(snippet):
         df.foreach(resize_an_image)
 
 
+class management_update_records(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Update records in a DataFrame using Delta Tables"
+        self.category = "Data Management"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 100
+
+    def snippet(self, df):
+        from pyspark.sql.functions import expr
+
+        output_path = "delta_tests"
+
+        # Currently you have to save/reload to convert from table to DataFrame.
+        df.write.mode("overwrite").format("delta").save(output_path)
+        dt = DeltaTable.forPath(spark, output_path)
+
+        # Run a SQL update operation.
+        dt.update(
+            condition=expr("carname like 'Volks%'"), set={"carname": expr("carname")}
+        )
+
+        # Convert back to a DataFrame.
+        df = dt.toDF()
+        return df
+
+
+class management_merge_tables(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Merge into a Delta table"
+        self.category = "Data Management"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 200
+
+    def snippet(self, df):
+        from pyspark.sql.functions import col, expr
+
+        # Save the original data.
+        output_path = "delta_tests"
+        df.write.mode("overwrite").format("delta").save(output_path)
+
+        # Load data that corrects some car names.
+        corrected_df = (
+            spark.read.format("csv")
+            .option("header", True)
+            .load("data/auto-mpg-fixed.csv")
+        )
+
+        # Merge the corrected data in.
+        dt = DeltaTable.forPath(spark, output_path)
+        ret = dt.alias("original").merge(
+            corrected_df.alias("corrected"),
+            "original.modelyear = corrected.modelyear and original.weight = corrected.weight and original.acceleration = corrected.acceleration",
+        ).whenMatchedUpdate(
+            condition=expr("original.carname <> corrected.carname"),
+            set={"carname": col("corrected.carname")}
+        ).whenNotMatchedInsertAll().execute()
+
+        # Show select table history.
+        history = dt.history().select("version operation operationMetrics".split())
+
+        return (history, dict(truncate=False))
+
+
 class streaming_connect_kafka_sasl_plain(snippet):
     def __init__(self):
         super().__init__()
@@ -3651,7 +3723,12 @@ Batch: 3
             .coalesce(10)
         )
         summary = aggregated.orderBy("window", "manufacturer")
-        query = summary.writeStream.outputMode("complete").format("console").option("truncate", False).start()
+        query = (
+            summary.writeStream.outputMode("complete")
+            .format("console")
+            .option("truncate", False)
+            .start()
+        )
         query.awaitTermination()
 
 
