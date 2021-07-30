@@ -16,15 +16,15 @@ from slugify import slugify
 from delta import *
 
 builder = (
-    SparkSession.builder.master("local[*]")
-    .config("spark.executor.memory", "2G")
-    .config("spark.driver.memory", "2G")
-    .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
-    .config(
-        "spark.sql.catalog.spark_catalog",
-        "org.apache.spark.sql.delta.catalog.DeltaCatalog",
-    )
-    .appName("cheatsheet")
+   SparkSession.builder.master("local[*]")
+   .config("spark.executor.memory", "2G")
+   .config("spark.driver.memory", "2G")
+   .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
+   .config(
+       "spark.sql.catalog.spark_catalog",
+       "org.apache.spark.sql.delta.catalog.DeltaCatalog",
+   )
+   .appName("cheatsheet")
 )
 spark = configure_spark_with_delta_pip(builder).getOrCreate()
 sqlContext = SQLContext(spark)
@@ -1956,6 +1956,65 @@ class loadsave_read_jsonl(snippet):
         return df
 
 
+class loadsave_catalog(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Load a Hive catalog table into a DataFrame."
+        self.category = "Loading and Saving Data"
+        self.dataset = "UNUSED"
+        self.priority = 750
+        self.skip_run = True
+        self.manual_output = """
++----+---------+------------+----------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+----------+------+------------+---------+------+----------+
+|null|     null|        null|      null|  null|        null|     null|origin|   carname|
+|18.0|        8|       307.0|     130.0|3504.0|        12.0|       70|     1|"chevro...|
+|15.0|        8|       350.0|     165.0|3693.0|        11.5|       70|     1|"buick ...|
+|18.0|        8|       318.0|     150.0|3436.0|        11.0|       70|     1|"plymou...|
+|16.0|        8|       304.0|     150.0|3433.0|        12.0|       70|     1|"amc re...|
+|17.0|        8|       302.0|     140.0|3449.0|        10.5|       70|     1|"ford t...|
+|15.0|        8|       429.0|     198.0|4341.0|        10.0|       70|     1|"ford g...|
+|14.0|        8|       454.0|     220.0|4354.0|         9.0|       70|     1|"chevro...|
+|14.0|        8|       440.0|     215.0|4312.0|         8.5|       70|     1|"plymou...|
+|14.0|        8|       455.0|     225.0|4425.0|        10.0|       70|     1|"pontia...|
++----+---------+------------+----------+------+------------+---------+------+----------+
+only showing top 10 rows
+"""
+
+    def snippet(self, df):
+        # We start by copying our own data in.
+        warehouse_path = "file://{}/spark_warehouse".format(os.getcwd())
+        data_file = "file://{}/data/auto-mpg-fixed.csv".format(os.getcwd())
+        hive_enabled_spark = (
+            SparkSession.builder.appName("Python Spark SQL Hive integration example")
+            .config("spark.sql.warehouse.dir", warehouse_path)
+            .enableHiveSupport()
+            .getOrCreate()
+        )
+        hive_enabled_spark.sql("drop table if exists autompg")
+        hive_enabled_spark.sql(
+            """create table autompg (
+                    mpg float,
+                    cylinders int,
+                    displacement float,
+                    horsepower float,
+                    weight float,
+                    acceleration float,
+                    modelyear int,
+                    origin string,
+                    carname string
+                ) row format delimited fields terminated by ','"""
+        )
+        hive_enabled_spark.sql(
+            "load data local inpath '{}' into table autompg".format(data_file)
+        )
+
+        # Load the table.
+        df = hive_enabled_spark.table("default.autompg")
+        return df
+
+
 class loadsave_dynamic_partitioning(snippet):
     def __init__(self):
         super().__init__()
@@ -3564,13 +3623,19 @@ class management_merge_tables(snippet):
 
         # Merge the corrected data in.
         dt = DeltaTable.forPath(spark, output_path)
-        ret = dt.alias("original").merge(
-            corrected_df.alias("corrected"),
-            "original.modelyear = corrected.modelyear and original.weight = corrected.weight and original.acceleration = corrected.acceleration",
-        ).whenMatchedUpdate(
-            condition=expr("original.carname <> corrected.carname"),
-            set={"carname": col("corrected.carname")}
-        ).whenNotMatchedInsertAll().execute()
+        ret = (
+            dt.alias("original")
+            .merge(
+                corrected_df.alias("corrected"),
+                "original.modelyear = corrected.modelyear and original.weight = corrected.weight and original.acceleration = corrected.acceleration",
+            )
+            .whenMatchedUpdate(
+                condition=expr("original.carname <> corrected.carname"),
+                set={"carname": col("corrected.carname")},
+            )
+            .whenNotMatchedInsertAll()
+            .execute()
+        )
 
         # Show select table history.
         history = dt.history().select("version operation operationMetrics".split())
@@ -3989,6 +4054,10 @@ def main():
     parser.add_argument("--dump-priorities", action="store_true")
     parser.add_argument("--test")
     args = parser.parse_args()
+
+    # Set the correct directory.
+    abspath = os.path.abspath(__file__)
+    os.chdir(os.path.dirname(abspath))
 
     # Set up logging.
     format = "%(asctime)s %(levelname)-8s %(message)s"

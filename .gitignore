@@ -5,3 +5,6 @@ single.csv
 delta_tests
 spark-warehouse
 rf_regression.model
+derby.log
+metastore_db
+spark_warehouse
