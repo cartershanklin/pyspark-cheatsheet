@@ -9,7 +9,7 @@ These snippets use DataFrames loaded from various data sources:
 - customer_spend.csv, a generated time series dataset.
 - date_examples.csv, a generated dataset with various date and time formats.
 
-These snippets were tested against the Spark 3.1.2 API. This page was last updated 2021-07-30 12:42:22.
+These snippets were tested against the Spark 3.1.2 API. This page was last updated 2021-09-03 14:20:31.
 
 Make note of these helpful links:
 - [PySpark DataFrame Operations](http://spark.apache.org/docs/latest/api/python/reference/pyspark.sql.html#dataframe-apis)
@@ -24,23 +24,29 @@ Table of contents
 =================
 
 <!--ts-->
-   * [Loading and Saving Data](#loading-and-saving-data)
+   * [Accessing Data Sources](#accessing-data-sources)
       * [Load a DataFrame from CSV](#load-a-dataframe-from-csv)
       * [Load a DataFrame from a Tab Separated Value (TSV) file](#load-a-dataframe-from-a-tab-separated-value-tsv-file)
-      * [Load a CSV file with a money column into a DataFrame](#load-a-csv-file-with-a-money-column-into-a-dataframe)
-      * [Provide the schema when loading a DataFrame from CSV](#provide-the-schema-when-loading-a-dataframe-from-csv)
-      * [Load a DataFrame from JSON Lines (jsonl) Formatted Data](#load-a-dataframe-from-json-lines-jsonl-formatted-data)
-      * [Configure security to read a CSV file from Oracle Cloud Infrastructure Object Storage](#configure-security-to-read-a-csv-file-from-oracle-cloud-infrastructure-object-storage)
-      * [Save a DataFrame in Parquet format](#save-a-dataframe-in-parquet-format)
       * [Save a DataFrame in CSV format](#save-a-dataframe-in-csv-format)
+      * [Load a DataFrame from Parquet](#load-a-dataframe-from-parquet)
+      * [Save a DataFrame in Parquet format](#save-a-dataframe-in-parquet-format)
+      * [Load a DataFrame from JSON Lines (jsonl) Formatted Data](#load-a-dataframe-from-json-lines-jsonl-formatted-data)
+      * [Save a DataFrame into a Hive catalog table](#save-a-dataframe-into-a-hive-catalog-table)
+      * [Load a Hive catalog table into a DataFrame](#load-a-hive-catalog-table-into-a-dataframe)
+      * [Load a CSV file from Amazon S3](#load-a-csv-file-from-amazon-s3)
+      * [Load a CSV file from Oracle Cloud Infrastructure (OCI) Object Storage](#load-a-csv-file-from-oracle-cloud-infrastructure-oci-object-storage)
+      * [Read an Oracle DB table into a DataFrame using a Wallet](#read-an-oracle-db-table-into-a-dataframe-using-a-wallet)
+      * [Write a DataFrame to an Oracle DB table using a Wallet](#write-a-dataframe-to-an-oracle-db-table-using-a-wallet)
+      * [Read a Postgres table into a DataFrame](#read-a-postgres-table-into-a-dataframe)
+      * [Write a DataFrame to a Postgres table](#write-a-dataframe-to-a-postgres-table)
+   * [Data Handling Options](#data-handling-options)
+      * [Provide the schema when loading a DataFrame from CSV](#provide-the-schema-when-loading-a-dataframe-from-csv)
       * [Save a DataFrame to CSV, overwriting existing data](#save-a-dataframe-to-csv-overwriting-existing-data)
       * [Save a DataFrame to CSV with a header](#save-a-dataframe-to-csv-with-a-header)
       * [Save a DataFrame in a single CSV file](#save-a-dataframe-in-a-single-csv-file)
-      * [Load a Hive catalog table into a DataFrame.](#load-a-hive-catalog-table-into-a-dataframe)
       * [Save DataFrame as a dynamic partitioned table](#save-dataframe-as-a-dynamic-partitioned-table)
       * [Overwrite specific partitions](#overwrite-specific-partitions)
-      * [Read an Oracle DB table into a DataFrame using a Wallet](#read-an-oracle-db-table-into-a-dataframe-using-a-wallet)
-      * [Write a DataFrame to an Oracle DB table using a Wallet](#write-a-dataframe-to-an-oracle-db-table-using-a-wallet)
+      * [Load a CSV file with a money column into a DataFrame](#load-a-csv-file-with-a-money-column-into-a-dataframe)
    * [DataFrame Operations](#dataframe-operations)
       * [Add a new column to a DataFrame](#add-a-new-column-to-a-dataframe)
       * [Modify a DataFrame column](#modify-a-dataframe-column)
@@ -194,9 +200,9 @@ Table of contents
 <!--te-->
     
 
-Loading and Saving Data
-=======================
-Loading data into DataFrames from various formats, and saving it out again.
+Accessing Data Sources
+======================
+Loading data stored in filesystems or databases, and saving it.
 
 Load a DataFrame from CSV
 -------------------------
@@ -257,52 +263,249 @@ df = (
 only showing top 10 rows
 ```
 
-Load a CSV file with a money column into a DataFrame
-----------------------------------------------------
+Save a DataFrame in CSV format
+------------------------------
 
 ```python
-from pyspark.sql.functions import udf
-from pyspark.sql.types import DecimalType
-from decimal import Decimal
+# See https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameWriter.html
+# for a list of supported options.
+df.write.csv("output.csv")
+```
 
-# Load the text file.
+
+Load a DataFrame from Parquet
+-----------------------------
+
+```python
 df = (
-    spark.read.format("csv")
-    .option("header", True)
-    .load("data/customer_spend.csv")
+    spark.read.format("parquet").load("data/auto-mpg.parquet")
 )
-
-# Convert with a hardcoded custom UDF.
-money_udf = udf(lambda x: Decimal(x[1:].replace(",", "")), DecimalType(8, 4))
-money1 = df.withColumn("spend_dollars", money_udf(df.spend_dollars))
-
-# Convert with the money_parser library (much safer).
-from money_parser import price_str
-
-money_convert = udf(
-    lambda x: Decimal(price_str(x)) if x is not None else None,
-    DecimalType(8, 4),
-)
-money2 = df.withColumn("spend_dollars", money_convert(df.spend_dollars))
 ```
 ```
 # Code snippet result:
-+----------+-----------+-------------+
-|      date|customer_id|spend_dollars|
-+----------+-----------+-------------+
-|2020-01-31|          0|       0.0700|
-|2020-01-31|          1|       0.9800|
-|2020-01-31|          2|       0.0600|
-|2020-01-31|          3|       0.6500|
-|2020-01-31|          4|       0.5700|
-|2020-02-29|          0|       0.1000|
-|2020-02-29|          2|       4.4000|
-|2020-02-29|          3|       0.3900|
-|2020-02-29|          4|       2.1300|
-|2020-02-29|          5|       0.8200|
-+----------+-----------+-------------+
++----+---------+------------+----------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+----------+------+------------+---------+------+----------+
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|
+|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|
+|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|
+|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|
+|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|
+|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|
+|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|
+|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|
+|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|
+|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|
++----+---------+------------+----------+------+------------+---------+------+----------+
 only showing top 10 rows
 ```
+
+Save a DataFrame in Parquet format
+----------------------------------
+
+```python
+df.write.parquet("output.parquet")
+```
+
+
+Load a DataFrame from JSON Lines (jsonl) Formatted Data
+-------------------------------------------------------
+
+```python
+# JSON Lines / jsonl format uses one JSON document per line.
+# If you have data with mostly regular structure this is better than nesting it in an array.
+# See https://jsonlines.org/
+df = spark.read.json("data/weblog.jsonl")
+```
+```
+# Code snippet result:
++----------+----------+--------+----------+----------+------+
+|    client|   country| session| timestamp|       uri|  user|
++----------+----------+--------+----------+----------+------+
+|{false,...|Bangladesh|55fa8213| 869196249|http://...|dde312|
+|{true, ...|      Niue|2fcd4a83|1031238717|http://...|9d00b9|
+|{true, ...|    Rwanda|013b996e| 628683372|http://...|1339d4|
+|{false,...|   Austria|07e8a71a|1043628668|https:/...|966312|
+|{false,...|    Belize|b23d05d8| 192738669|http://...|2af1e1|
+|{false,...|Lao Peo...|d83dfbae|1066490444|http://...|844395|
+|{false,...|French ...|e77dfaa2|1350920869|https:/...|  null|
+|{false,...|Turks a...|56664269| 280986223|http://...|  null|
+|{false,...|  Ethiopia|628d6059| 881914195|https:/...|8ab45a|
+|{false,...|Saint K...|85f9120c|1065114708|https:/...|  null|
++----------+----------+--------+----------+----------+------+
+only showing top 10 rows
+```
+
+Save a DataFrame into a Hive catalog table
+------------------------------------------
+
+```python
+df.write.mode("overwrite").saveAsTable("autompg")
+```
+
+
+Load a Hive catalog table into a DataFrame
+------------------------------------------
+
+```python
+# Load the table previously saved.
+df = spark.table("autompg")
+```
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+----------+------+------------+---------+------+----------+
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|
+|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|
+|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|
+|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|
+|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|
+|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|
+|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|
+|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|
+|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|
+|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|
++----+---------+------------+----------+------+------------+---------+------+----------+
+only showing top 10 rows
+```
+
+Load a CSV file from Amazon S3
+------------------------------
+
+```python
+import configparser
+
+config = configparser.ConfigParser()
+config.read(os.path.expanduser("~/.aws/credentials"))
+access_key = config.get("default", "aws_access_key_id")
+secret_key = config.get("default", "aws_secret_access_key")
+
+# Requires compatible hadoop-aws and aws-java-sdk-bundle JARs.
+spark.conf.set("fs.s3a.aws.credentials.provider", "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider")
+spark.conf.set("fs.s3a.access.key", access_key)
+spark.conf.set("fs.s3a.secret.key", secret_key)
+
+df = spark.read.format("csv").option("header", True).load("s3a://cheatsheet111/auto-mpg.csv")
+```
+
+
+Load a CSV file from Oracle Cloud Infrastructure (OCI) Object Storage
+---------------------------------------------------------------------
+
+```python
+import oci
+
+oci_config = oci.config.from_file()
+conf = spark.sparkContext.getConf()
+conf.set("fs.oci.client.auth.tenantId", oci_config["tenancy"])
+conf.set("fs.oci.client.auth.userId", oci_config["user"])
+conf.set("fs.oci.client.auth.fingerprint", oci_config["fingerprint"])
+conf.set("fs.oci.client.auth.pemfilepath", oci_config["key_file"])
+conf.set(
+    "fs.oci.client.hostname",
+    "https://objectstorage.{0}.oraclecloud.com".format(oci_config["region"]),
+)
+PATH = "oci://<your_bucket>@<your_namespace/<your_path>"
+df = spark.read.format("csv").option("header", True).load(PATH)
+```
+
+
+Read an Oracle DB table into a DataFrame using a Wallet
+-------------------------------------------------------
+
+```python
+# Key variables you need.
+# Get the tnsname from tnsnames.ora.
+# Wallet path should point to an extracted wallet file.
+password = "my_password"
+table = "source_table"
+tnsname = "my_tns_name"
+user = "ADMIN"
+wallet_path = "/path/to/your/wallet"
+
+properties = {
+    "driver": "oracle.jdbc.driver.OracleDriver",
+    "oracle.net.tns_admin": tnsname,
+    "password": password,
+    "user": user,
+}
+url = f"jdbc:oracle:thin:@{tnsname}?TNS_ADMIN={wallet_path}"
+df = spark.read.jdbc(url=url, table=table, properties=properties)
+```
+
+
+Write a DataFrame to an Oracle DB table using a Wallet
+------------------------------------------------------
+
+```python
+# Key variables you need.
+# Get the tnsname from tnsnames.ora.
+# Wallet path should point to an extracted wallet file.
+password = "my_password"
+table = "target_table"
+tnsname = "my_tns_name"
+user = "ADMIN"
+wallet_path = "/path/to/your/wallet"
+
+properties = {
+    "driver": "oracle.jdbc.driver.OracleDriver",
+    "oracle.net.tns_admin": tnsname,
+    "password": password,
+    "user": user,
+}
+url = f"jdbc:oracle:thin:@{tnsname}?TNS_ADMIN={wallet_path}"
+
+# Possible modes are "Append", "Overwrite", "Ignore", "Error"
+df.write.jdbc(url=url, table=table, mode="Append", properties=properties)
+```
+
+
+Read a Postgres table into a DataFrame
+--------------------------------------
+
+```python
+# You need a compatible postgresql JDBC JAR.
+pg_database = os.environ.get("PGDATABASE")
+pg_host     = os.environ.get("PGHOST")
+pg_password = os.environ.get("PGPASSWORD")
+pg_user     = os.environ.get("PGUSER")
+table = "test"
+
+properties = {
+    "driver": "org.postgresql.Driver",
+    "user": pg_user,
+    "password": pg_password,
+}
+url = f"jdbc:postgresql://{pg_host}:5432/{pg_database}"
+df = spark.read.jdbc(url=url, table=table, properties=properties)
+```
+
+
+Write a DataFrame to a Postgres table
+-------------------------------------
+
+```python
+# You need a compatible postgresql JDBC JAR.
+pg_database = os.environ.get("PGDATABASE")
+pg_host     = os.environ.get("PGHOST")
+pg_password = os.environ.get("PGPASSWORD")
+pg_user     = os.environ.get("PGUSER")
+table = "autompg"
+
+properties = {
+    "driver": "org.postgresql.Driver",
+    "user": pg_user,
+    "password": pg_password,
+}
+url = f"jdbc:postgresql://{pg_host}:5432/{pg_database}"
+df.write.jdbc(url=url, table=table, mode="Append", properties=properties)
+```
+
+
+Data Handling Options
+=====================
+Special data handling scenarios.
 
 Provide the schema when loading a DataFrame from CSV
 ----------------------------------------------------
@@ -357,73 +560,6 @@ df = (
 only showing top 10 rows
 ```
 
-Load a DataFrame from JSON Lines (jsonl) Formatted Data
--------------------------------------------------------
-
-```python
-# JSON Lines / jsonl format uses one JSON document per line.
-# If you have data with mostly regular structure this is better than nesting it in an array.
-# See https://jsonlines.org/
-df = spark.read.json("data/weblog.jsonl")
-```
-```
-# Code snippet result:
-+----------+----------+--------+----------+----------+------+
-|    client|   country| session| timestamp|       uri|  user|
-+----------+----------+--------+----------+----------+------+
-|{false,...|Bangladesh|55fa8213| 869196249|http://...|dde312|
-|{true, ...|      Niue|2fcd4a83|1031238717|http://...|9d00b9|
-|{true, ...|    Rwanda|013b996e| 628683372|http://...|1339d4|
-|{false,...|   Austria|07e8a71a|1043628668|https:/...|966312|
-|{false,...|    Belize|b23d05d8| 192738669|http://...|2af1e1|
-|{false,...|Lao Peo...|d83dfbae|1066490444|http://...|844395|
-|{false,...|French ...|e77dfaa2|1350920869|https:/...|  null|
-|{false,...|Turks a...|56664269| 280986223|http://...|  null|
-|{false,...|  Ethiopia|628d6059| 881914195|https:/...|8ab45a|
-|{false,...|Saint K...|85f9120c|1065114708|https:/...|  null|
-+----------+----------+--------+----------+----------+------+
-only showing top 10 rows
-```
-
-Configure security to read a CSV file from Oracle Cloud Infrastructure Object Storage
--------------------------------------------------------------------------------------
-
-```python
-import oci
-
-oci_config = oci.config.from_file()
-conf = spark.sparkContext.getConf()
-conf.set("fs.oci.client.auth.tenantId", oci_config["tenancy"])
-conf.set("fs.oci.client.auth.userId", oci_config["user"])
-conf.set("fs.oci.client.auth.fingerprint", oci_config["fingerprint"])
-conf.set("fs.oci.client.auth.pemfilepath", oci_config["key_file"])
-conf.set(
-    "fs.oci.client.hostname",
-    "https://objectstorage.{0}.oraclecloud.com".format(oci_config["region"]),
-)
-PATH = "oci://<your_bucket>@<your_namespace/<your_path>"
-df = spark.read.format("csv").option("header", True).load(PATH)
-```
-
-
-Save a DataFrame in Parquet format
-----------------------------------
-
-```python
-df.write.parquet("output.parquet")
-```
-
-
-Save a DataFrame in CSV format
-------------------------------
-
-```python
-# See https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameWriter.html
-# for a list of supported options.
-df.write.csv("output.csv")
-```
-
-
 Save a DataFrame to CSV, overwriting existing data
 --------------------------------------------------
 
@@ -450,66 +586,12 @@ df.coalesce(1).write.csv("single.csv")
 ```
 
 
-Load a Hive catalog table into a DataFrame.
--------------------------------------------
-
-```python
-# We start by copying our own data in.
-warehouse_path = "file://{}/spark_warehouse".format(os.getcwd())
-data_file = "file://{}/data/auto-mpg-fixed.csv".format(os.getcwd())
-hive_enabled_spark = (
-    SparkSession.builder.appName("Python Spark SQL Hive integration example")
-    .config("spark.sql.warehouse.dir", warehouse_path)
-    .enableHiveSupport()
-    .getOrCreate()
-)
-hive_enabled_spark.sql("drop table if exists autompg")
-hive_enabled_spark.sql(
-    """create table autompg (
-            mpg float,
-            cylinders int,
-            displacement float,
-            horsepower float,
-            weight float,
-            acceleration float,
-            modelyear int,
-            origin string,
-            carname string
-        ) row format delimited fields terminated by ','"""
-)
-hive_enabled_spark.sql(
-    "load data local inpath '{}' into table autompg".format(data_file)
-)
-
-# Load the table.
-df = hive_enabled_spark.table("default.autompg")
-```
-```
-# Code snippet result:
-
-+----+---------+------------+----------+------+------------+---------+------+----------+
-| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
-+----+---------+------------+----------+------+------------+---------+------+----------+
-|null|     null|        null|      null|  null|        null|     null|origin|   carname|
-|18.0|        8|       307.0|     130.0|3504.0|        12.0|       70|     1|"chevro...|
-|15.0|        8|       350.0|     165.0|3693.0|        11.5|       70|     1|"buick ...|
-|18.0|        8|       318.0|     150.0|3436.0|        11.0|       70|     1|"plymou...|
-|16.0|        8|       304.0|     150.0|3433.0|        12.0|       70|     1|"amc re...|
-|17.0|        8|       302.0|     140.0|3449.0|        10.5|       70|     1|"ford t...|
-|15.0|        8|       429.0|     198.0|4341.0|        10.0|       70|     1|"ford g...|
-|14.0|        8|       454.0|     220.0|4354.0|         9.0|       70|     1|"chevro...|
-|14.0|        8|       440.0|     215.0|4312.0|         8.5|       70|     1|"plymou...|
-|14.0|        8|       455.0|     225.0|4425.0|        10.0|       70|     1|"pontia...|
-+----+---------+------------+----------+------+------------+---------+------+----------+
-only showing top 10 rows
-```
-
 Save DataFrame as a dynamic partitioned table
 ---------------------------------------------
 
 ```python
 spark.conf.set("spark.sql.sources.partitionOverwriteMode", "dynamic")
-df.write.mode("append").partitionBy("modelyear").saveAsTable("autompg")
+df.write.mode("append").partitionBy("modelyear").saveAsTable("autompg_partitioned")
 ```
 
 
@@ -522,55 +604,52 @@ your_dataframe.write.mode("overwrite").insertInto("your_table")
 ```
 
 
-Read an Oracle DB table into a DataFrame using a Wallet
--------------------------------------------------------
+Load a CSV file with a money column into a DataFrame
+----------------------------------------------------
 
 ```python
-# Key variables you need.
-# Get the tnsname from tnsnames.ora.
-# Wallet path should point to an extracted wallet file.
-password = "my_password"
-table = "source_table"
-tnsname = "my_tns_name"
-user = "ADMIN"
-wallet_path = "/path/to/your/wallet"
+from pyspark.sql.functions import udf
+from pyspark.sql.types import DecimalType
+from decimal import Decimal
 
-properties = {
-    "driver": "oracle.jdbc.driver.OracleDriver",
-    "oracle.net.tns_admin": tnsname,
-    "password": password,
-    "user": user,
-}
-url = f"jdbc:oracle:thin:@{tnsname}?TNS_ADMIN={wallet_path}"
-df = spark.read.jdbc(url=url, table=table, properties=properties)
+# Load the text file.
+df = (
+    spark.read.format("csv")
+    .option("header", True)
+    .load("data/customer_spend.csv")
+)
+
+# Convert with a hardcoded custom UDF.
+money_udf = udf(lambda x: Decimal(x[1:].replace(",", "")), DecimalType(8, 4))
+money1 = df.withColumn("spend_dollars", money_udf(df.spend_dollars))
+
+# Convert with the money_parser library (much safer).
+from money_parser import price_str
+
+money_convert = udf(
+    lambda x: Decimal(price_str(x)) if x is not None else None,
+    DecimalType(8, 4),
+)
+money2 = df.withColumn("spend_dollars", money_convert(df.spend_dollars))
 ```
-
-
-Write a DataFrame to an Oracle DB table using a Wallet
-------------------------------------------------------
-
-```python
-# Key variables you need.
-# Get the tnsname from tnsnames.ora.
-# Wallet path should point to an extracted wallet file.
-password = "my_password"
-table = "target_table"
-tnsname = "my_tns_name"
-user = "ADMIN"
-wallet_path = "/path/to/your/wallet"
-
-properties = {
-    "driver": "oracle.jdbc.driver.OracleDriver",
-    "oracle.net.tns_admin": tnsname,
-    "password": password,
-    "user": user,
-}
-url = f"jdbc:oracle:thin:@{tnsname}?TNS_ADMIN={wallet_path}"
-
-# Possible modes are "Append", "Overwrite", "Ignore", "Error"
-df.write.jdbc(url=url, table=table, mode="Append", properties=properties)
 ```
-
+# Code snippet result:
++----------+-----------+-------------+
+|      date|customer_id|spend_dollars|
++----------+-----------+-------------+
+|2020-01-31|          0|       0.0700|
+|2020-01-31|          1|       0.9800|
+|2020-01-31|          2|       0.0600|
+|2020-01-31|          3|       0.6500|
+|2020-01-31|          4|       0.5700|
+|2020-02-29|          0|       0.1000|
+|2020-02-29|          2|       4.4000|
+|2020-02-29|          3|       0.3900|
+|2020-02-29|          4|       2.1300|
+|2020-02-29|          5|       0.8200|
++----------+-----------+-------------+
+only showing top 10 rows
+```
 
 DataFrame Operations
 ====================
@@ -2536,7 +2615,7 @@ only showing top 10 rows
 
 File Processing
 ===============
-Loading File Metadata and Processing Files
+Loading File Metadata and Processing Files.
 
 Load Local File Details into a DataFrame
 ----------------------------------------
@@ -2596,7 +2675,7 @@ df = spark.createDataFrame(entries, schema)
 |auto_ma...|/etc/au...|  195|2020-08...|
 | csh.login|/etc/cs...|  121|2020-06...|
 |syslog....|/etc/sy...|  133|2020-12...|
-|krb5.ke...|/etc/kr...| 1946|2021-06...|
+|krb5.ke...|/etc/kr...| 1946|2021-08...|
 |    nanorc|/etc/na...|   11|2020-06...|
 |csh.logout|/etc/cs...|   39|2020-06...|
 |aliases.db|/etc/al...|16384|2020-06...|
@@ -3027,18 +3106,18 @@ pandas_df = df.toPandas()
 ```
 ```
 # Code snippet result:
-      mpg cylinders displacement horsepower weight acceleration modelyear origin                    carname
-0    18.0         8        307.0      130.0  3504.         12.0        70      1  chevrolet chevelle malibu
-1    15.0         8        350.0      165.0  3693.         11.5        70      1          buick skylark 320
-2    18.0         8        318.0      150.0  3436.         11.0        70      1         plymouth satellite
-3    16.0         8        304.0      150.0  3433.         12.0        70      1              amc rebel sst
-4    17.0         8        302.0      140.0  3449.         10.5        70      1                ford torino
-..    ...       ...          ...        ...    ...          ...       ...    ...                        ...
-393  27.0         4        140.0      86.00  2790.         15.6        82      1            ford mustang gl
-394  44.0         4        97.00      52.00  2130.         24.6        82      2                  vw pickup
-395  32.0         4        135.0      84.00  2295.         11.6        82      1              dodge rampage
-396  28.0         4        120.0      79.00  2625.         18.6        82      1                ford ranger
-397  31.0         4        119.0      82.00  2720.         19.4        82      1                 chevy s-10
+      mpg cylinders displacement  ... modelyear origin                    carname
+0    18.0         8        307.0  ...        70      1  chevrolet chevelle malibu
+1    15.0         8        350.0  ...        70      1          buick skylark 320
+2    18.0         8        318.0  ...        70      1         plymouth satellite
+3    16.0         8        304.0  ...        70      1              amc rebel sst
+4    17.0         8        302.0  ...        70      1                ford torino
+..    ...       ...          ...  ...       ...    ...                        ...
+393  27.0         4        140.0  ...        82      1            ford mustang gl
+394  44.0         4        97.00  ...        82      2                  vw pickup
+395  32.0         4        135.0  ...        82      1              dodge rampage
+396  28.0         4        120.0  ...        82      1                ford ranger
+397  31.0         4        119.0  ...        82      1                 chevy s-10
 
 [398 rows x 9 columns]
 ```
@@ -3084,17 +3163,19 @@ pdf = df.limit(N).toPandas()
 ```
 ```
 # Code snippet result:
-    mpg cylinders displacement horsepower weight acceleration modelyear origin                    carname
-0  18.0         8        307.0      130.0  3504.         12.0        70      1  chevrolet chevelle malibu
-1  15.0         8        350.0      165.0  3693.         11.5        70      1          buick skylark 320
-2  18.0         8        318.0      150.0  3436.         11.0        70      1         plymouth satellite
-3  16.0         8        304.0      150.0  3433.         12.0        70      1              amc rebel sst
-4  17.0         8        302.0      140.0  3449.         10.5        70      1                ford torino
-5  15.0         8        429.0      198.0  4341.         10.0        70      1           ford galaxie 500
-6  14.0         8        454.0      220.0  4354.          9.0        70      1           chevrolet impala
-7  14.0         8        440.0      215.0  4312.          8.5        70      1          plymouth fury iii
-8  14.0         8        455.0      225.0  4425.         10.0        70      1           pontiac catalina
-9  15.0         8        390.0      190.0  3850.          8.5        70      1         amc ambassador dpl
+    mpg cylinders displacement  ... modelyear origin                    carname
+0  18.0         8        307.0  ...        70      1  chevrolet chevelle malibu
+1  15.0         8        350.0  ...        70      1          buick skylark 320
+2  18.0         8        318.0  ...        70      1         plymouth satellite
+3  16.0         8        304.0  ...        70      1              amc rebel sst
+4  17.0         8        302.0  ...        70      1                ford torino
+5  15.0         8        429.0  ...        70      1           ford galaxie 500
+6  14.0         8        454.0  ...        70      1           chevrolet impala
+7  14.0         8        440.0  ...        70      1          plymouth fury iii
+8  14.0         8        455.0  ...        70      1           pontiac catalina
+9  15.0         8        390.0  ...        70      1         amc ambassador dpl
+
+[10 rows x 9 columns]
 ```
 
 Grouped Aggregation with Pandas
@@ -3396,19 +3477,21 @@ history = dt.history().select("version operation operationMetrics".split())
 ```
 ```
 # Code snippet result:
-+-------+---------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-|version|operation|operationMetrics                                                                                                                                                                                                                                                                       |
-+-------+---------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-|11     |MERGE    |{numTargetRowsCopied -> 373, numTargetRowsDeleted -> 0, numTargetFilesAdded -> 175, executionTimeMs -> 8465, numTargetRowsInserted -> 0, scanTimeMs -> 4395, numTargetRowsUpdated -> 25, numOutputRows -> 398, numSourceRows -> 398, numTargetFilesRemoved -> 1, rewriteTimeMs -> 4066}|
-|10     |WRITE    |{numFiles -> 1, numOutputBytes -> 11582, numOutputRows -> 398}                                                                                                                                                                                                                         |
-|9      |WRITE    |{numFiles -> 1, numOutputBytes -> 11582, numOutputRows -> 398}                                                                                                                                                                                                                         |
-|8      |MERGE    |{numTargetRowsCopied -> 373, numTargetRowsDeleted -> 0, numTargetFilesAdded -> 175, executionTimeMs -> 6766, numTargetRowsInserted -> 0, scanTimeMs -> 3084, numTargetRowsUpdated -> 25, numOutputRows -> 398, numSourceRows -> 398, numTargetFilesRemoved -> 1, rewriteTimeMs -> 3679}|
-|7      |WRITE    |{numFiles -> 1, numOutputBytes -> 11582, numOutputRows -> 398}                                                                                                                                                                                                                         |
-|6      |WRITE    |{numFiles -> 1, numOutputBytes -> 11582, numOutputRows -> 398}                                                                                                                                                                                                                         |
-|5      |MERGE    |{numTargetRowsCopied -> 373, numTargetRowsDeleted -> 0, numTargetFilesAdded -> 175, executionTimeMs -> 8430, numTargetRowsInserted -> 0, scanTimeMs -> 4327, numTargetRowsUpdated -> 25, numOutputRows -> 398, numSourceRows -> 398, numTargetFilesRemoved -> 1, rewriteTimeMs -> 4100}|
-|4      |WRITE    |{numFiles -> 1, numOutputBytes -> 11582, numOutputRows -> 398}                                                                                                                                                                                                                         |
-|3      |WRITE    |{numFiles -> 1, numOutputBytes -> 11582, numOutputRows -> 398}                                                                                                                                                                                                                         |
-+-------+---------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
++-------+---------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|version|operation|operationMetrics                                                                                                                                                                                                                                                                        |
++-------+---------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|17     |MERGE    |{numTargetRowsCopied -> 373, numTargetRowsDeleted -> 0, numTargetFilesAdded -> 175, executionTimeMs -> 10798, numTargetRowsInserted -> 0, scanTimeMs -> 5350, numTargetRowsUpdated -> 25, numOutputRows -> 398, numSourceRows -> 398, numTargetFilesRemoved -> 1, rewriteTimeMs -> 5443}|
+|16     |WRITE    |{numFiles -> 1, numOutputBytes -> 11582, numOutputRows -> 398}                                                                                                                                                                                                                          |
+|15     |WRITE    |{numFiles -> 1, numOutputBytes -> 11582, numOutputRows -> 398}                                                                                                                                                                                                                          |
+|14     |MERGE    |{numTargetRowsCopied -> 373, numTargetRowsDeleted -> 0, numTargetFilesAdded -> 175, executionTimeMs -> 7199, numTargetRowsInserted -> 0, scanTimeMs -> 3172, numTargetRowsUpdated -> 25, numOutputRows -> 398, numSourceRows -> 398, numTargetFilesRemoved -> 1, rewriteTimeMs -> 4023} |
+|13     |WRITE    |{numFiles -> 1, numOutputBytes -> 11582, numOutputRows -> 398}                                                                                                                                                                                                                          |
+|12     |WRITE    |{numFiles -> 1, numOutputBytes -> 11582, numOutputRows -> 398}                                                                                                                                                                                                                          |
+|11     |MERGE    |{numTargetRowsCopied -> 373, numTargetRowsDeleted -> 0, numTargetFilesAdded -> 175, executionTimeMs -> 8465, numTargetRowsInserted -> 0, scanTimeMs -> 4395, numTargetRowsUpdated -> 25, numOutputRows -> 398, numSourceRows -> 398, numTargetFilesRemoved -> 1, rewriteTimeMs -> 4066} |
+|10     |WRITE    |{numFiles -> 1, numOutputBytes -> 11582, numOutputRows -> 398}                                                                                                                                                                                                                          |
+|9      |WRITE    |{numFiles -> 1, numOutputBytes -> 11582, numOutputRows -> 398}                                                                                                                                                                                                                          |
+|8      |MERGE    |{numTargetRowsCopied -> 373, numTargetRowsDeleted -> 0, numTargetFilesAdded -> 175, executionTimeMs -> 6766, numTargetRowsInserted -> 0, scanTimeMs -> 3084, numTargetRowsUpdated -> 25, numOutputRows -> 398, numSourceRows -> 398, numTargetFilesRemoved -> 1, rewriteTimeMs -> 3679} |
++-------+---------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+only showing top 10 rows
 ```
 
 Spark Streaming
@@ -3648,16 +3731,16 @@ df = df.withColumn("timestamp", current_timestamp())
 +----+---------+------------+----------+------+------------+---------+------+----------+----------+
 | mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname| timestamp|
 +----+---------+------------+----------+------+------------+---------+------+----------+----------+
-|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|2021-07...|
-|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|2021-07...|
-|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|2021-07...|
-|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|2021-07...|
-|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|2021-07...|
-|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|2021-07...|
-|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|2021-07...|
-|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|2021-07...|
-|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|2021-07...|
-|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|2021-07...|
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|2021-09...|
+|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|2021-09...|
+|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|2021-09...|
+|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|2021-09...|
+|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|2021-09...|
+|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|2021-09...|
+|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|2021-09...|
+|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|2021-09...|
+|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|2021-09...|
+|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|2021-09...|
 +----+---------+------------+----------+------+------------+---------+------+----------+----------+
 only showing top 10 rows
 ```
@@ -3937,16 +4020,16 @@ predictions = rf_model.transform(assembled).select(
 +----------+----+----------+
 |   carname| mpg|prediction|
 +----------+----+----------+
-|chevrol...|18.0|16.8381...|
-|buick s...|15.0|14.8579...|
-|plymout...|18.0|15.7448...|
-|amc reb...|16.0|16.0609...|
-|ford to...|17.0|16.8494...|
-|ford ga...|15.0|12.7967...|
-|chevrol...|14.0|12.7967...|
-|plymout...|14.0|12.7967...|
-|pontiac...|14.0|12.7967...|
-|amc amb...|15.0|14.2383...|
+|chevrol...|18.0|17.2741...|
+|buick s...|15.0|15.1640...|
+|plymout...|18.0|16.3667...|
+|amc reb...|16.0|16.2606...|
+|ford to...|17.0|17.2151...|
+|ford ga...|15.0|14.3816...|
+|chevrol...|14.0|14.3816...|
+|plymout...|14.0|14.3816...|
+|pontiac...|14.0|13.4232...|
+|amc amb...|15.0|14.6402...|
 +----------+----+----------+
 only showing top 10 rows
 ```
@@ -4002,16 +4085,16 @@ predictions = lr_model.transform(test_df)
 +----------+----+----------+----------+
 |  features| mpg|   carname|prediction|
 +----------+----+----------+----------+
-|[3.0,70...|18.0| maxda rx3|29.9932...|
-|[3.0,80...|21.5|mazda rx-4|26.5781...|
-|[4.0,71...|32.0|toyota ...|31.7149...|
-|[4.0,72...|35.0|datsun ...|32.6004...|
-|[4.0,79...|31.0|datsun ...|31.0608...|
-|[4.0,79...|26.0|volkswa...|31.0016...|
-|[4.0,79...|31.0| fiat x1.9|30.8330...|
-|[4.0,81...|35.1|honda c...|32.1205...|
-|[4.0,85...|29.0|chevrol...|31.0732...|
-|[4.0,85...|40.8|datsun 210|30.3370...|
+|[4.0,71...|31.0|toyota ...|31.3498...|
+|[4.0,76...|31.0|toyota ...|32.1648...|
+|[4.0,83...|32.0|datsun 710|30.4888...|
+|[4.0,85...|29.0|chevrol...|30.6520...|
+|[4.0,85...|31.8|datsun 210|30.2627...|
+|[4.0,85...|33.5|datsun ...|30.3609...|
+|[4.0,85...|39.4|datsun ...|29.9131...|
+|[4.0,86...|39.0|plymout...|30.8017...|
+|[4.0,86...|37.2|datsun 310|30.2518...|
+|[4.0,90...|43.1|volkswa...|30.8952...|
 +----------+----+----------+----------+
 only showing top 10 rows
 ```
@@ -4069,16 +4152,16 @@ print("RMSE={} r2={}".format(rmse, r2))
 +----------+----+----------+----------+
 |  features| mpg|   carname|prediction|
 +----------+----+----------+----------+
-|[3.0,70...|19.0|mazda r...|23.5068...|
-|[4.0,71...|32.0|toyota ...|33.4092...|
-|[4.0,72...|35.0|datsun ...|32.9926...|
-|[4.0,78...|32.8|mazda g...|36.0827...|
-|[4.0,79...|31.0| fiat x1.9|33.4432...|
-|[4.0,83...|32.0|datsun 710|37.0377...|
-|[4.0,85...|29.0|chevrol...|39.8337...|
-|[4.0,85...|31.8|datsun 210|36.8193...|
-|[4.0,85...|40.8|datsun 210|37.1282...|
-|[4.0,85...|33.5|datsun ...|32.7906...|
+|[3.0,70...|19.0|mazda r...|24.8344...|
+|[4.0,71...|31.0|toyota ...|32.8749...|
+|[4.0,71...|32.0|toyota ...|33.2013...|
+|[4.0,78...|32.8|mazda g...|33.2214...|
+|[4.0,79...|39.1|toyota ...|33.2573...|
+|[4.0,81...|35.1|honda c...|34.5568...|
+|[4.0,83...|32.0|datsun 710|34.5682...|
+|[4.0,86...|37.2|datsun 310|34.1947...|
+|[4.0,86...|46.6| mazda glc|34.7690...|
+|[4.0,89...|38.1|toyota ...|34.0990...|
 +----------+----+----------+----------+
 only showing top 10 rows
 ```
@@ -4129,15 +4212,15 @@ results = predictions.select([label_column, "prediction"])
 |cover_type|prediction|
 +----------+----------+
 |         3|       3.0|
-|         6|       3.0|
 |         3|       3.0|
+|         6|       6.0|
+|         3|       3.0|
+|         3|       3.0|
+|         3|       3.0|
+|         6|       6.0|
+|         6|       6.0|
 |         6|       3.0|
-|         6|       3.0|
-|         6|       3.0|
-|         6|       3.0|
-|         6|       3.0|
-|         6|       3.0|
-|         6|       3.0|
+|         6|       6.0|
 +----------+----------+
 only showing top 10 rows
 ```
@@ -4213,16 +4296,16 @@ print("RMSE={}".format(rmse))
 +----------+----+----------+
 |   carname| mpg|prediction|
 +----------+----+----------+
-|chevrol...|10.0|14.2574...|
-|ford co...|12.0|12.9905...|
-|ford mu...|13.0|18.2599...|
-|chevrol...|13.0|14.9531...|
-|chevrol...|13.0|14.2504...|
-|plymout...|13.0|13.1032...|
-|ford co...|13.0|13.1655...|
-|pontiac...|13.0|13.3954...|
-|dodge c...|14.0|14.0403...|
-|  ford ltd|14.0|14.0382...|
+|chevrol...|10.0|13.6711...|
+|oldsmob...|12.0|13.0878...|
+|dodge m...|12.0|13.5042...|
+| ford f108|13.0|16.1286...|
+|ford gr...|13.0|14.4684...|
+|chevrol...|13.0|16.1248...|
+|dodge d100|13.0|15.0328...|
+|chevrol...|13.0|14.8465...|
+|chevrol...|13.0|13.6027...|
+|ford co...|13.0|13.3417...|
 +----------+----+----------+
 only showing top 10 rows
 ```
@@ -4287,12 +4370,12 @@ for feature, importance in zip(
 ```
 ```
 # Code snippet result:
-manufacturer_encoded contributes 13.842%
-cylinders contributes 14.153%
-displacement contributes 37.125%
-horsepower contributes 10.315%
-weight contributes 20.875%
-acceleration contributes 3.690%
+manufacturer_encoded contributes 5.589%
+cylinders contributes 8.920%
+displacement contributes 27.820%
+horsepower contributes 23.499%
+weight contributes 31.229%
+acceleration contributes 2.944%
 ```
 
 Automatically encode categorical variables
@@ -4347,16 +4430,16 @@ predictions = rf_model.transform(test_df).select("mpg", "prediction")
 +----+----------+
 | mpg|prediction|
 +----+----------+
-|10.0|12.1004...|
-|11.0|13.3145...|
-|11.0|13.0365...|
-|12.0|12.8940...|
-|13.0|16.0973...|
-|13.0|15.4415...|
-|13.0|13.3212...|
-|13.0|13.5157...|
-|13.0|13.0066...|
-|13.0|13.0435...|
+| 9.0|13.4075...|
+|11.0|15.2570...|
+|12.0|13.2448...|
+|12.0|13.0404...|
+|12.0|13.1712...|
+|13.0|16.2509...|
+|13.0|15.3789...|
+|13.0|14.6230...|
+|13.0|14.3115...|
+|13.0|13.2955...|
 +----+----------+
 only showing top 10 rows
 ```
@@ -4429,7 +4512,7 @@ print("Best model has {} trees.".format(real_model.getNumTrees))
 ```
 ```
 # Code snippet result:
-Best model has 90 trees.
+Best model has 80 trees.
 ```
 
 Plot Hyperparameter tuning metrics
@@ -4598,14 +4681,16 @@ pdf = pandas.DataFrame(
 ```
 ```
 # Code snippet result:
-              cylinders  displacement  horsepower    weight  acceleration  modelyear    origin
-cylinders      1.000000      0.950823    0.842983  0.897527     -0.504683  -0.345647 -0.568932
-displacement   0.950823      1.000000    0.897257  0.932994     -0.543800  -0.369855 -0.614535
-horsepower     0.842983      0.897257    1.000000  0.864538     -0.689196  -0.416361 -0.455171
-weight         0.897527      0.932994    0.864538  1.000000     -0.416839  -0.309120 -0.585005
-acceleration  -0.504683     -0.543800   -0.689196 -0.416839      1.000000   0.290316  0.212746
-modelyear     -0.345647     -0.369855   -0.416361 -0.309120      0.290316   1.000000  0.181528
-origin        -0.568932     -0.614535   -0.455171 -0.585005      0.212746   0.181528  1.000000
+              cylinders  displacement  horsepower  ...  acceleration  modelyear    origin
+cylinders      1.000000      0.950823    0.842983  ...     -0.504683  -0.345647 -0.568932
+displacement   0.950823      1.000000    0.897257  ...     -0.543800  -0.369855 -0.614535
+horsepower     0.842983      0.897257    1.000000  ...     -0.689196  -0.416361 -0.455171
+weight         0.897527      0.932994    0.864538  ...     -0.416839  -0.309120 -0.585005
+acceleration  -0.504683     -0.543800   -0.689196  ...      1.000000   0.290316  0.212746
+modelyear     -0.345647     -0.369855   -0.416361  ...      0.290316   1.000000  0.181528
+origin        -0.568932     -0.614535   -0.455171  ...      0.212746   0.181528  1.000000
+
+[7 rows x 7 columns]
 ```
 
 Performance
@@ -4838,16 +4923,16 @@ df = (
 +----+---------+------------+----------+------+------------+---------+------+----------+
 | mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
 +----+---------+------------+----------+------+------------+---------+------+----------+
-|15.0|        8|       383.0|     170.0| 3563.|        10.0|       70|     1|dodge c...|
-|24.0|        4|       107.0|     90.00| 2430.|        14.5|       70|     2|audi 10...|
-|10.0|        8|       360.0|     215.0| 4615.|        14.0|       70|     1| ford f250|
-|25.0|        4|       98.00|      null| 2046.|        19.0|       71|     1|ford pinto|
-|17.0|        6|       250.0|     100.0| 3329.|        15.5|       71|     1|chevrol...|
-|14.0|        8|       400.0|     175.0| 4464.|        11.5|       71|     1|pontiac...|
-|22.0|        4|       140.0|     72.00| 2408.|        19.0|       71|     1|chevrol...|
-|35.0|        4|       72.00|     69.00| 1613.|        18.0|       71|     3|datsun ...|
+|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|
+|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|
+|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|
+|14.0|        8|       455.0|     225.0| 3086.|        10.0|       70|     1|buick e...|
+|24.0|        4|       113.0|     95.00| 2372.|        15.0|       70|     3|toyota ...|
+|21.0|        6|       200.0|     85.00| 2587.|        16.0|       70|     1|ford ma...|
+|19.0|        6|       250.0|     88.00| 3302.|        15.5|       71|     1|ford to...|
+|23.0|        4|       122.0|     86.00| 2220.|        14.0|       71|     1|mercury...|
+|30.0|        4|       79.00|     70.00| 2074.|        19.5|       71|     2|peugeot...|
 |25.0|        4|       97.50|     80.00| 2126.|        17.0|       72|     1|dodge c...|
-|15.0|        8|       318.0|     150.0| 4135.|        13.5|       72|     1|plymout...|
 +----+---------+------------+----------+------+------------+---------+------+----------+
 only showing top 10 rows
 ```
@@ -4860,7 +4945,7 @@ print(spark.sparkContext.getConf().getAll())
 ```
 ```
 # Code snippet result:
-[('spark.driver.memory', '2G'), ('spark.app.id', 'local-1627674141209'), ('spark.files', 'file:///Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_ST4-4.0.8.jar,file:///Users/cshankli/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,file:///Users/cshankli/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,file:///Users/cshankli/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar'), ('spark.jars', 'file:///Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_ST4-4.0.8.jar,file:///Users/cshankli/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,file:///Users/cshankli/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,file:///Users/cshankli/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar'), ('spark.driver.port', '52942'), ('spark.executor.memory', '2G'), ('spark.repl.local.jars', 'file:///Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_ST4-4.0.8.jar,file:///Users/cshankli/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,file:///Users/cshankli/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,file:///Users/cshankli/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar'), ('spark.executor.id', 'driver'), ('spark.submit.pyFiles', '/Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,/Users/cshankli/.ivy2/jars/org.antlr_antlr4-4.7.jar,/Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,/Users/cshankli/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,/Users/cshankli/.ivy2/jars/org.antlr_ST4-4.0.8.jar,/Users/cshankli/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,/Users/cshankli/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,/Users/cshankli/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar'), ('spark.app.startTime', '1627674140466'), ('spark.sql.extensions', 'io.delta.sql.DeltaSparkSessionExtension'), ('spark.driver.host', '192.168.1.45'), ('spark.rdd.compress', 'True'), ('spark.app.initial.file.urls', 'file:///Users/cshankli/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,file:///Users/cshankli/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,file:///Users/cshankli/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-4.7.jar,file:///Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_ST4-4.0.8.jar'), ('spark.serializer.objectStreamReset', '100'), ('spark.sql.warehouse.dir', 'file:/Users/cshankli/git/pyspark-cheatsheet/spark-warehouse/'), ('spark.master', 'local[*]'), ('spark.submit.deployMode', 'client'), ('spark.app.initial.jar.urls', 'spark://192.168.1.45:52942/jars/org.antlr_antlr4-4.7.jar,spark://192.168.1.45:52942/jars/com.ibm.icu_icu4j-58.2.jar,spark://192.168.1.45:52942/jars/org.glassfish_javax.json-1.0.4.jar,spark://192.168.1.45:52942/jars/org.antlr_antlr-runtime-3.5.2.jar,spark://192.168.1.45:52942/jars/org.antlr_ST4-4.0.8.jar,spark://192.168.1.45:52942/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,spark://192.168.1.45:52942/jars/io.delta_delta-core_2.12-1.0.0.jar,spark://192.168.1.45:52942/jars/org.antlr_antlr4-runtime-4.7.jar'), ('spark.app.name', 'cheatsheet'), ('spark.ui.showConsoleProgress', 'true'), ('spark.jars.packages', 'io.delta:delta-core_2.12:1.0.0'), ('spark.sql.catalog.spark_catalog', 'org.apache.spark.sql.delta.catalog.DeltaCatalog')]
+[('spark.driver.memory', '2G'), ('spark.files', 'file:///Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_ST4-4.0.8.jar,file:///Users/cshankli/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,file:///Users/cshankli/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,file:///Users/cshankli/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar'), ('spark.jars', 'file:///Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_ST4-4.0.8.jar,file:///Users/cshankli/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,file:///Users/cshankli/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,file:///Users/cshankli/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar'), ('spark.driver.port', '60367'), ('spark.executor.memory', '2G'), ('spark.repl.local.jars', 'file:///Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_ST4-4.0.8.jar,file:///Users/cshankli/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,file:///Users/cshankli/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,file:///Users/cshankli/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar'), ('spark.executor.id', 'driver'), ('spark.app.startTime', '1630704028858'), ('spark.submit.pyFiles', '/Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,/Users/cshankli/.ivy2/jars/org.antlr_antlr4-4.7.jar,/Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,/Users/cshankli/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,/Users/cshankli/.ivy2/jars/org.antlr_ST4-4.0.8.jar,/Users/cshankli/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,/Users/cshankli/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,/Users/cshankli/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar'), ('spark.sql.extensions', 'io.delta.sql.DeltaSparkSessionExtension'), ('spark.rdd.compress', 'True'), ('spark.app.initial.file.urls', 'file:///Users/cshankli/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,file:///Users/cshankli/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,file:///Users/cshankli/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-4.7.jar,file:///Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_ST4-4.0.8.jar'), ('spark.serializer.objectStreamReset', '100'), ('spark.master', 'local[*]'), ('spark.submit.deployMode', 'client'), ('spark.app.id', 'local-1630704029931'), ('spark.app.initial.jar.urls', 'spark://192.168.1.197:60367/jars/io.delta_delta-core_2.12-1.0.0.jar,spark://192.168.1.197:60367/jars/org.antlr_antlr-runtime-3.5.2.jar,spark://192.168.1.197:60367/jars/com.ibm.icu_icu4j-58.2.jar,spark://192.168.1.197:60367/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,spark://192.168.1.197:60367/jars/org.antlr_antlr4-4.7.jar,spark://192.168.1.197:60367/jars/org.glassfish_javax.json-1.0.4.jar,spark://192.168.1.197:60367/jars/org.antlr_antlr4-runtime-4.7.jar,spark://192.168.1.197:60367/jars/org.antlr_ST4-4.0.8.jar'), ('spark.driver.host', '192.168.1.197'), ('spark.app.name', 'cheatsheet'), ('spark.ui.showConsoleProgress', 'true'), ('spark.sql.warehouse.dir', 'file:///Users/cshankli/git/pyspark-cheatsheet/spark_warehouse'), ('spark.jars.packages', 'io.delta:delta-core_2.12:1.0.0'), ('spark.sql.catalog.spark_catalog', 'org.apache.spark.sql.delta.catalog.DeltaCatalog')]
 ```
 
 Set Spark configuration properties
