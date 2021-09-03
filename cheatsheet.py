@@ -15,16 +15,18 @@ from slugify import slugify
 
 from delta import *
 
+warehouse_path = "file://{}/spark_warehouse".format(os.getcwd())
 builder = (
-   SparkSession.builder.master("local[*]")
-   .config("spark.executor.memory", "2G")
-   .config("spark.driver.memory", "2G")
-   .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
-   .config(
-       "spark.sql.catalog.spark_catalog",
-       "org.apache.spark.sql.delta.catalog.DeltaCatalog",
-   )
-   .appName("cheatsheet")
+    SparkSession.builder.master("local[*]")
+    .config("spark.executor.memory", "2G")
+    .config("spark.driver.memory", "2G")
+    .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
+    .config(
+        "spark.sql.catalog.spark_catalog",
+        "org.apache.spark.sql.delta.catalog.DeltaCatalog",
+    )
+    .config("spark.sql.warehouse.dir", warehouse_path)
+    .appName("cheatsheet")
 )
 spark = configure_spark_with_delta_pip(builder).getOrCreate()
 sqlContext = SQLContext(spark)
@@ -132,6 +134,429 @@ class snippet:
                 logging.info(result_text)
         else:
             return retval
+
+
+class loadsave_dataframe_from_csv(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Load a DataFrame from CSV"
+        self.category = "Accessing Data Sources"
+        self.dataset = "UNUSED"
+        self.priority = 100
+
+    def snippet(self, df):
+        # See https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameReader.html
+        # for a list of supported options.
+        df = spark.read.format("csv").option("header", True).load("data/auto-mpg.csv")
+        return df
+
+
+class loadsave_dataframe_from_csv_delimiter(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Load a DataFrame from a Tab Separated Value (TSV) file"
+        self.category = "Accessing Data Sources"
+        self.dataset = "UNUSED"
+        self.priority = 110
+
+    def snippet(self, df):
+        # See https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameReader.html
+        # for a list of supported options.
+        df = (
+            spark.read.format("csv")
+            .option("header", True)
+            .option("sep", "\t")
+            .load("data/auto-mpg.tsv")
+        )
+        return df
+
+
+class loadsave_save_csv(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Save a DataFrame in CSV format"
+        self.category = "Accessing Data Sources"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 120
+
+    def snippet(self, df):
+        # See https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameWriter.html
+        # for a list of supported options.
+        df.write.csv("output.csv")
+
+
+class loadsave_load_parquet(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Load a DataFrame from Parquet"
+        self.category = "Accessing Data Sources"
+        self.dataset = "UNUSED"
+        self.priority = 200
+
+    def snippet(self, df):
+        df = (
+            spark.read.format("parquet").load("data/auto-mpg.parquet")
+        )
+        return df
+
+
+class loadsave_save_parquet(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Save a DataFrame in Parquet format"
+        self.category = "Accessing Data Sources"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 210
+
+    def snippet(self, df):
+        df.write.parquet("output.parquet")
+
+
+class loadsave_read_jsonl(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Load a DataFrame from JSON Lines (jsonl) Formatted Data"
+        self.category = "Accessing Data Sources"
+        self.dataset = "UNUSED"
+        self.priority = 300
+
+    def snippet(self, df):
+        # JSON Lines / jsonl format uses one JSON document per line.
+        # If you have data with mostly regular structure this is better than nesting it in an array.
+        # See https://jsonlines.org/
+        df = spark.read.json("data/weblog.jsonl")
+        return df
+
+
+class loadsave_save_catalog(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Save a DataFrame into a Hive catalog table"
+        self.category = "Accessing Data Sources"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 500
+
+    def snippet(self, df):
+        df.write.mode("overwrite").saveAsTable("autompg")
+
+class loadsave_load_catalog(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Load a Hive catalog table into a DataFrame"
+        self.category = "Accessing Data Sources"
+        self.dataset = "UNUSED"
+        self.priority = 510
+
+    def snippet(self, df):
+        # Load the table previously saved.
+        df = spark.table("autompg")
+        return df
+
+class loadsave_read_from_s3(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Load a CSV file from Amazon S3"
+        self.category = "Accessing Data Sources"
+        self.dataset = "UNUSED"
+        self.priority = 1000
+        self.skip_run = True
+
+    def snippet(self, df):
+        import configparser
+
+        config = configparser.ConfigParser()
+        config.read(os.path.expanduser("~/.aws/credentials"))
+        access_key = config.get("default", "aws_access_key_id")
+        secret_key = config.get("default", "aws_secret_access_key")
+
+        # Requires compatible hadoop-aws and aws-java-sdk-bundle JARs.
+        spark.conf.set("fs.s3a.aws.credentials.provider", "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider")
+        spark.conf.set("fs.s3a.access.key", access_key)
+        spark.conf.set("fs.s3a.secret.key", secret_key)
+
+        df = spark.read.format("csv").option("header", True).load("s3a://cheatsheet111/auto-mpg.csv")
+        return df
+
+class loadsave_read_from_oci(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Load a CSV file from Oracle Cloud Infrastructure (OCI) Object Storage"
+        self.category = "Accessing Data Sources"
+        self.dataset = "UNUSED"
+        self.priority = 1300
+        self.skip_run = True
+
+    def snippet(self, df):
+        import oci
+
+        oci_config = oci.config.from_file()
+        conf = spark.sparkContext.getConf()
+        conf.set("fs.oci.client.auth.tenantId", oci_config["tenancy"])
+        conf.set("fs.oci.client.auth.userId", oci_config["user"])
+        conf.set("fs.oci.client.auth.fingerprint", oci_config["fingerprint"])
+        conf.set("fs.oci.client.auth.pemfilepath", oci_config["key_file"])
+        conf.set(
+            "fs.oci.client.hostname",
+            "https://objectstorage.{0}.oraclecloud.com".format(oci_config["region"]),
+        )
+        PATH = "oci://<your_bucket>@<your_namespace/<your_path>"
+        df = spark.read.format("csv").option("header", True).load(PATH)
+        return df
+
+
+class loadsave_read_oracle(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Read an Oracle DB table into a DataFrame using a Wallet"
+        self.category = "Accessing Data Sources"
+        self.dataset = "UNUSED"
+        self.priority = 10000
+        self.skip_run = True
+
+    def snippet(self, df):
+        # Key variables you need.
+        # Get the tnsname from tnsnames.ora.
+        # Wallet path should point to an extracted wallet file.
+        password = "my_password"
+        table = "source_table"
+        tnsname = "my_tns_name"
+        user = "ADMIN"
+        wallet_path = "/path/to/your/wallet"
+
+        properties = {
+            "driver": "oracle.jdbc.driver.OracleDriver",
+            "oracle.net.tns_admin": tnsname,
+            "password": password,
+            "user": user,
+        }
+        url = f"jdbc:oracle:thin:@{tnsname}?TNS_ADMIN={wallet_path}"
+        df = spark.read.jdbc(url=url, table=table, properties=properties)
+        return df
+
+
+class loadsave_write_oracle(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Write a DataFrame to an Oracle DB table using a Wallet"
+        self.category = "Accessing Data Sources"
+        self.dataset = "UNUSED"
+        self.priority = 10100
+        self.skip_run = True
+
+    def snippet(self, df):
+        # Key variables you need.
+        # Get the tnsname from tnsnames.ora.
+        # Wallet path should point to an extracted wallet file.
+        password = "my_password"
+        table = "target_table"
+        tnsname = "my_tns_name"
+        user = "ADMIN"
+        wallet_path = "/path/to/your/wallet"
+
+        properties = {
+            "driver": "oracle.jdbc.driver.OracleDriver",
+            "oracle.net.tns_admin": tnsname,
+            "password": password,
+            "user": user,
+        }
+        url = f"jdbc:oracle:thin:@{tnsname}?TNS_ADMIN={wallet_path}"
+
+        # Possible modes are "Append", "Overwrite", "Ignore", "Error"
+        df.write.jdbc(url=url, table=table, mode="Append", properties=properties)
+
+
+class loadsave_read_postgres(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Read a Postgres table into a DataFrame"
+        self.category = "Accessing Data Sources"
+        self.dataset = "UNUSED"
+        self.priority = 11000
+        self.skip_run = True
+
+    def snippet(self, df):
+        # You need a compatible postgresql JDBC JAR.
+        pg_database = os.environ.get("PGDATABASE")
+        pg_host     = os.environ.get("PGHOST")
+        pg_password = os.environ.get("PGPASSWORD")
+        pg_user     = os.environ.get("PGUSER")
+        table = "test"
+
+        properties = {
+            "driver": "org.postgresql.Driver",
+            "user": pg_user,
+            "password": pg_password,
+        }
+        url = f"jdbc:postgresql://{pg_host}:5432/{pg_database}"
+        df = spark.read.jdbc(url=url, table=table, properties=properties)
+        return df
+
+
+class loadsave_write_postgres(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Write a DataFrame to a Postgres table"
+        self.category = "Accessing Data Sources"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 11100
+        self.skip_run = True
+
+    def snippet(self, df):
+        # You need a compatible postgresql JDBC JAR.
+        pg_database = os.environ.get("PGDATABASE")
+        pg_host     = os.environ.get("PGHOST")
+        pg_password = os.environ.get("PGPASSWORD")
+        pg_user     = os.environ.get("PGUSER")
+        table = "autompg"
+
+        properties = {
+            "driver": "org.postgresql.Driver",
+            "user": pg_user,
+            "password": pg_password,
+        }
+        url = f"jdbc:postgresql://{pg_host}:5432/{pg_database}"
+        df.write.jdbc(url=url, table=table, mode="Append", properties=properties)
+
+
+class loadsave_dataframe_from_csv_provide_schema(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Provide the schema when loading a DataFrame from CSV"
+        self.category = "Data Handling Options"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 100
+
+    def snippet(self, df):
+        # See https://spark.apache.org/docs/latest/api/python/_modules/pyspark/sql/types.html
+        # for a list of types.
+        from pyspark.sql.types import (
+            DoubleType,
+            IntegerType,
+            StringType,
+            StructField,
+            StructType,
+        )
+
+        schema = StructType(
+            [
+                StructField("mpg", DoubleType(), True),
+                StructField("cylinders", IntegerType(), True),
+                StructField("displacement", DoubleType(), True),
+                StructField("horsepower", DoubleType(), True),
+                StructField("weight", DoubleType(), True),
+                StructField("acceleration", DoubleType(), True),
+                StructField("modelyear", IntegerType(), True),
+                StructField("origin", IntegerType(), True),
+                StructField("carname", StringType(), True),
+            ]
+        )
+        df = (
+            spark.read.format("csv")
+            .option("header", "true")
+            .schema(schema)
+            .load("data/auto-mpg.csv")
+        )
+        return df
+
+
+class loadsave_overwrite_output_directory(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Save a DataFrame to CSV, overwriting existing data"
+        self.category = "Data Handling Options"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 200
+
+    def snippet(self, df):
+        df.write.mode("overwrite").csv("output.csv")
+
+
+class loadsave_csv_with_header(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Save a DataFrame to CSV with a header"
+        self.category = "Data Handling Options"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 300
+
+    def snippet(self, df):
+        # See https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameWriter.html
+        # for a list of supported options.
+        df.coalesce(1).write.csv("header.csv", header="true")
+
+
+class loadsave_single_output_file(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Save a DataFrame in a single CSV file"
+        self.category = "Data Handling Options"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 400
+
+    def snippet(self, df):
+        df.coalesce(1).write.csv("single.csv")
+
+
+class loadsave_dynamic_partitioning(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Save DataFrame as a dynamic partitioned table"
+        self.category = "Data Handling Options"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 500
+
+    def snippet(self, df):
+        spark.conf.set("spark.sql.sources.partitionOverwriteMode", "dynamic")
+        df.write.mode("append").partitionBy("modelyear").saveAsTable("autompg_partitioned")
+
+
+class loadsave_overwrite_specific_partitions(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Overwrite specific partitions"
+        self.category = "Data Handling Options"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 501
+        self.skip_run = True
+
+    def snippet(self, df):
+        spark.conf.set("spark.sql.sources.partitionOverwriteMode", "dynamic")
+        your_dataframe.write.mode("overwrite").insertInto("your_table")
+
+
+class loadsave_money(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Load a CSV file with a money column into a DataFrame"
+        self.category = "Data Handling Options"
+        self.dataset = "UNUSED"
+        self.priority = 600
+
+    def snippet(self, df):
+        from pyspark.sql.functions import udf
+        from pyspark.sql.types import DecimalType
+        from decimal import Decimal
+
+        # Load the text file.
+        df = (
+            spark.read.format("csv")
+            .option("header", True)
+            .load("data/customer_spend.csv")
+        )
+
+        # Convert with a hardcoded custom UDF.
+        money_udf = udf(lambda x: Decimal(x[1:].replace(",", "")), DecimalType(8, 4))
+        money1 = df.withColumn("spend_dollars", money_udf(df.spend_dollars))
+
+        # Convert with the money_parser library (much safer).
+        from money_parser import price_str
+
+        money_convert = udf(
+            lambda x: Decimal(price_str(x)) if x is not None else None,
+            DecimalType(8, 4),
+        )
+        money2 = df.withColumn("spend_dollars", money_convert(df.spend_dollars))
+        return money2
 
 
 class dfo_modify_column(snippet):
@@ -1196,81 +1621,6 @@ class sortsearch_filtering_basic(snippet):
         return filtered
 
 
-class loadsave_overwrite_specific_partitions(snippet):
-    def __init__(self):
-        super().__init__()
-        self.name = "Overwrite specific partitions"
-        self.category = "Loading and Saving Data"
-        self.dataset = "auto-mpg.csv"
-        self.priority = 900
-        self.skip_run = True
-
-    def snippet(self, df):
-        spark.conf.set("spark.sql.sources.partitionOverwriteMode", "dynamic")
-        your_dataframe.write.mode("overwrite").insertInto("your_table")
-
-
-class loadsave_read_oracle(snippet):
-    def __init__(self):
-        super().__init__()
-        self.name = "Read an Oracle DB table into a DataFrame using a Wallet"
-        self.category = "Loading and Saving Data"
-        self.dataset = "UNUSED"
-        self.priority = 1000
-        self.skip_run = True
-
-    def snippet(self, df):
-        # Key variables you need.
-        # Get the tnsname from tnsnames.ora.
-        # Wallet path should point to an extracted wallet file.
-        password = "my_password"
-        table = "source_table"
-        tnsname = "my_tns_name"
-        user = "ADMIN"
-        wallet_path = "/path/to/your/wallet"
-
-        properties = {
-            "driver": "oracle.jdbc.driver.OracleDriver",
-            "oracle.net.tns_admin": tnsname,
-            "password": password,
-            "user": user,
-        }
-        url = f"jdbc:oracle:thin:@{tnsname}?TNS_ADMIN={wallet_path}"
-        df = spark.read.jdbc(url=url, table=table, properties=properties)
-        return df
-
-
-class loadsave_write_oracle(snippet):
-    def __init__(self):
-        super().__init__()
-        self.name = "Write a DataFrame to an Oracle DB table using a Wallet"
-        self.category = "Loading and Saving Data"
-        self.dataset = "UNUSED"
-        self.priority = 1100
-        self.skip_run = True
-
-    def snippet(self, df):
-        # Key variables you need.
-        # Get the tnsname from tnsnames.ora.
-        # Wallet path should point to an extracted wallet file.
-        password = "my_password"
-        table = "target_table"
-        tnsname = "my_tns_name"
-        user = "ADMIN"
-        wallet_path = "/path/to/your/wallet"
-
-        properties = {
-            "driver": "oracle.jdbc.driver.OracleDriver",
-            "oracle.net.tns_admin": tnsname,
-            "password": password,
-            "user": user,
-        }
-        url = f"jdbc:oracle:thin:@{tnsname}?TNS_ADMIN={wallet_path}"
-
-        # Possible modes are "Append", "Overwrite", "Ignore", "Error"
-        df.write.jdbc(url=url, table=table, mode="Append", properties=properties)
-
-
 class transform_regexp_extract(snippet):
     def __init__(self):
         super().__init__()
@@ -1762,296 +2112,6 @@ class unstructured_json_unnest_complex_array(snippet):
         df = selected.select("symbol", explode("balanceSheetStatements")).select(
             target_json_fields
         )
-        return df
-
-
-class loadsave_to_parquet(snippet):
-    def __init__(self):
-        super().__init__()
-        self.name = "Save a DataFrame in Parquet format"
-        self.category = "Loading and Saving Data"
-        self.dataset = "auto-mpg.csv"
-        self.priority = 400
-
-    def snippet(self, df):
-        df.write.parquet("output.parquet")
-
-
-class loadsave_dataframe_from_csv(snippet):
-    def __init__(self):
-        super().__init__()
-        self.name = "Load a DataFrame from CSV"
-        self.category = "Loading and Saving Data"
-        self.dataset = "UNUSED"
-        self.priority = 100
-
-    def snippet(self, df):
-        # See https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameReader.html
-        # for a list of supported options.
-        df = spark.read.format("csv").option("header", True).load("data/auto-mpg.csv")
-        return df
-
-
-class loadsave_dataframe_from_csv_delimiter(snippet):
-    def __init__(self):
-        super().__init__()
-        self.name = "Load a DataFrame from a Tab Separated Value (TSV) file"
-        self.category = "Loading and Saving Data"
-        self.dataset = "UNUSED"
-        self.priority = 110
-
-    def snippet(self, df):
-        # See https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameReader.html
-        # for a list of supported options.
-        df = (
-            spark.read.format("csv")
-            .option("header", True)
-            .option("sep", "\t")
-            .load("data/auto-mpg.tsv")
-        )
-        return df
-
-
-class loadsave_money(snippet):
-    def __init__(self):
-        super().__init__()
-        self.name = "Load a CSV file with a money column into a DataFrame"
-        self.category = "Loading and Saving Data"
-        self.dataset = "UNUSED"
-        self.priority = 120
-
-    def snippet(self, df):
-        from pyspark.sql.functions import udf
-        from pyspark.sql.types import DecimalType
-        from decimal import Decimal
-
-        # Load the text file.
-        df = (
-            spark.read.format("csv")
-            .option("header", True)
-            .load("data/customer_spend.csv")
-        )
-
-        # Convert with a hardcoded custom UDF.
-        money_udf = udf(lambda x: Decimal(x[1:].replace(",", "")), DecimalType(8, 4))
-        money1 = df.withColumn("spend_dollars", money_udf(df.spend_dollars))
-
-        # Convert with the money_parser library (much safer).
-        from money_parser import price_str
-
-        money_convert = udf(
-            lambda x: Decimal(price_str(x)) if x is not None else None,
-            DecimalType(8, 4),
-        )
-        money2 = df.withColumn("spend_dollars", money_convert(df.spend_dollars))
-        return money2
-
-
-class loadsave_export_to_csv(snippet):
-    def __init__(self):
-        super().__init__()
-        self.name = "Save a DataFrame in CSV format"
-        self.category = "Loading and Saving Data"
-        self.dataset = "auto-mpg.csv"
-        self.priority = 500
-
-    def snippet(self, df):
-        # See https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameWriter.html
-        # for a list of supported options.
-        df.write.csv("output.csv")
-
-
-class loadsave_single_output_file(snippet):
-    def __init__(self):
-        super().__init__()
-        self.name = "Save a DataFrame in a single CSV file"
-        self.category = "Loading and Saving Data"
-        self.dataset = "auto-mpg.csv"
-        self.priority = 700
-
-    def snippet(self, df):
-        df.coalesce(1).write.csv("single.csv")
-
-
-class loadsave_csv_with_header(snippet):
-    def __init__(self):
-        super().__init__()
-        self.name = "Save a DataFrame to CSV with a header"
-        self.category = "Loading and Saving Data"
-        self.dataset = "auto-mpg.csv"
-        self.priority = 600
-
-    def snippet(self, df):
-        # See https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameWriter.html
-        # for a list of supported options.
-        df.coalesce(1).write.csv("header.csv", header="true")
-
-
-class loadsave_overwrite_output_directory(snippet):
-    def __init__(self):
-        super().__init__()
-        self.name = "Save a DataFrame to CSV, overwriting existing data"
-        self.category = "Loading and Saving Data"
-        self.dataset = "auto-mpg.csv"
-        self.priority = 501
-
-    def snippet(self, df):
-        df.write.mode("overwrite").csv("output.csv")
-
-
-class loadsave_dataframe_from_csv_provide_schema(snippet):
-    def __init__(self):
-        super().__init__()
-        self.name = "Provide the schema when loading a DataFrame from CSV"
-        self.category = "Loading and Saving Data"
-        self.dataset = "auto-mpg.csv"
-        self.priority = 200
-
-    def snippet(self, df):
-        # See https://spark.apache.org/docs/latest/api/python/_modules/pyspark/sql/types.html
-        # for a list of types.
-        from pyspark.sql.types import (
-            DoubleType,
-            IntegerType,
-            StringType,
-            StructField,
-            StructType,
-        )
-
-        schema = StructType(
-            [
-                StructField("mpg", DoubleType(), True),
-                StructField("cylinders", IntegerType(), True),
-                StructField("displacement", DoubleType(), True),
-                StructField("horsepower", DoubleType(), True),
-                StructField("weight", DoubleType(), True),
-                StructField("acceleration", DoubleType(), True),
-                StructField("modelyear", IntegerType(), True),
-                StructField("origin", IntegerType(), True),
-                StructField("carname", StringType(), True),
-            ]
-        )
-        df = (
-            spark.read.format("csv")
-            .option("header", "true")
-            .schema(schema)
-            .load("data/auto-mpg.csv")
-        )
-        return df
-
-
-class loadsave_read_jsonl(snippet):
-    def __init__(self):
-        super().__init__()
-        self.name = "Load a DataFrame from JSON Lines (jsonl) Formatted Data"
-        self.category = "Loading and Saving Data"
-        self.dataset = "UNUSED"
-        self.priority = 210
-
-    def snippet(self, df):
-        # JSON Lines / jsonl format uses one JSON document per line.
-        # If you have data with mostly regular structure this is better than nesting it in an array.
-        # See https://jsonlines.org/
-        df = spark.read.json("data/weblog.jsonl")
-        return df
-
-
-class loadsave_catalog(snippet):
-    def __init__(self):
-        super().__init__()
-        self.name = "Load a Hive catalog table into a DataFrame."
-        self.category = "Loading and Saving Data"
-        self.dataset = "UNUSED"
-        self.priority = 750
-        self.skip_run = True
-        self.manual_output = """
-+----+---------+------------+----------+------+------------+---------+------+----------+
-| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
-+----+---------+------------+----------+------+------------+---------+------+----------+
-|null|     null|        null|      null|  null|        null|     null|origin|   carname|
-|18.0|        8|       307.0|     130.0|3504.0|        12.0|       70|     1|"chevro...|
-|15.0|        8|       350.0|     165.0|3693.0|        11.5|       70|     1|"buick ...|
-|18.0|        8|       318.0|     150.0|3436.0|        11.0|       70|     1|"plymou...|
-|16.0|        8|       304.0|     150.0|3433.0|        12.0|       70|     1|"amc re...|
-|17.0|        8|       302.0|     140.0|3449.0|        10.5|       70|     1|"ford t...|
-|15.0|        8|       429.0|     198.0|4341.0|        10.0|       70|     1|"ford g...|
-|14.0|        8|       454.0|     220.0|4354.0|         9.0|       70|     1|"chevro...|
-|14.0|        8|       440.0|     215.0|4312.0|         8.5|       70|     1|"plymou...|
-|14.0|        8|       455.0|     225.0|4425.0|        10.0|       70|     1|"pontia...|
-+----+---------+------------+----------+------+------------+---------+------+----------+
-only showing top 10 rows
-"""
-
-    def snippet(self, df):
-        # We start by copying our own data in.
-        warehouse_path = "file://{}/spark_warehouse".format(os.getcwd())
-        data_file = "file://{}/data/auto-mpg-fixed.csv".format(os.getcwd())
-        hive_enabled_spark = (
-            SparkSession.builder.appName("Python Spark SQL Hive integration example")
-            .config("spark.sql.warehouse.dir", warehouse_path)
-            .enableHiveSupport()
-            .getOrCreate()
-        )
-        hive_enabled_spark.sql("drop table if exists autompg")
-        hive_enabled_spark.sql(
-            """create table autompg (
-                    mpg float,
-                    cylinders int,
-                    displacement float,
-                    horsepower float,
-                    weight float,
-                    acceleration float,
-                    modelyear int,
-                    origin string,
-                    carname string
-                ) row format delimited fields terminated by ','"""
-        )
-        hive_enabled_spark.sql(
-            "load data local inpath '{}' into table autompg".format(data_file)
-        )
-
-        # Load the table.
-        df = hive_enabled_spark.table("default.autompg")
-        return df
-
-
-class loadsave_dynamic_partitioning(snippet):
-    def __init__(self):
-        super().__init__()
-        self.name = "Save DataFrame as a dynamic partitioned table"
-        self.category = "Loading and Saving Data"
-        self.dataset = "auto-mpg.csv"
-        self.priority = 800
-
-    def snippet(self, df):
-        spark.conf.set("spark.sql.sources.partitionOverwriteMode", "dynamic")
-        df.write.mode("append").partitionBy("modelyear").saveAsTable("autompg")
-
-
-class loadsave_read_from_oci(snippet):
-    def __init__(self):
-        super().__init__()
-        self.name = "Configure security to read a CSV file from Oracle Cloud Infrastructure Object Storage"
-        self.category = "Loading and Saving Data"
-        self.dataset = "auto-mpg.csv"
-        self.priority = 300
-        self.skip_run = True
-
-    def snippet(self, df):
-        import oci
-
-        oci_config = oci.config.from_file()
-        conf = spark.sparkContext.getConf()
-        conf.set("fs.oci.client.auth.tenantId", oci_config["tenancy"])
-        conf.set("fs.oci.client.auth.userId", oci_config["user"])
-        conf.set("fs.oci.client.auth.fingerprint", oci_config["fingerprint"])
-        conf.set("fs.oci.client.auth.pemfilepath", oci_config["key_file"])
-        conf.set(
-            "fs.oci.client.hostname",
-            "https://objectstorage.{0}.oraclecloud.com".format(oci_config["region"]),
-        )
-        PATH = "oci://<your_bucket>@<your_namespace/<your_path>"
-        df = spark.read.format("csv").option("header", True).load(PATH)
         return df
 
 
@@ -4014,7 +4074,7 @@ def test(test_name):
             snippet = get_code_snippet(source)
             print("-- SNIPPET --")
             print(snippet)
-            sys.exit(0)
+            return
     print("No test named " + test_name)
     for cheat in cheat_sheet:
         print("{},{}".format(cheat.category, cheat.name))
@@ -4052,7 +4112,7 @@ def main():
     parser.add_argument("--category")
     parser.add_argument("--debug", action="store_true")
     parser.add_argument("--dump-priorities", action="store_true")
-    parser.add_argument("--test")
+    parser.add_argument("--test", action="append")
     args = parser.parse_args()
 
     # Set the correct directory.
@@ -4072,12 +4132,13 @@ def main():
         "output.csv",
         "output.parquet",
         "single.csv",
-        "spark-warehouse",
+        "spark_warehouse",
     ]
     for directory in directories:
         try:
             shutil.rmtree(directory)
-        except:
+        except Exception as e:
+            print(e)
             pass
 
     if args.all_tests or args.category:
@@ -4085,7 +4146,8 @@ def main():
     elif args.dump_priorities:
         dump_priorities()
     elif args.test:
-        test(args.test)
+        for this_test in args.test:
+            test(this_test)
     else:
         generate_cheatsheet()
 

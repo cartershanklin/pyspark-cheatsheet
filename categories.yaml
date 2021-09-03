@@ -1,69 +1,73 @@
-Loading and Saving Data:
-    priority: 1
-    description: Loading data into DataFrames from various formats, and saving it out again.
+Accessing Data Sources:
+    priority: 0
+    description: Loading data stored in filesystems or databases, and saving it.
+
+Data Handling Options:
+    priority: 2
+    description: Special data handling scenarios.
 
 DataFrame Operations:
-    priority: 2
+    priority: 4
     description: Adding, removing and modifying DataFrame columns.
 
 Transforming Data:
-    priority: 3
+    priority: 6
     description: Data conversions and other modifications.
 
 Sorting and Searching:
-    priority: 4
+    priority: 8
     description: Filtering, sorting, removing duplicates and more.
 
 Grouping:
-    priority: 5
+    priority: 10
     description: Group DataFrame data by key to perform aggregates like counting, sums, averages, etc.
 
 Joining DataFrames:
-    priority: 6
+    priority: 12
     description: Joining and stacking DataFrames.
 
 File Processing:
-    priority: 7
-    description: Loading File Metadata and Processing Files
+    priority: 14
+    description: Loading File Metadata and Processing Files.
 
 Handling Missing Data:
-    priority: 8
+    priority: 16
     description: Dealing with NULLs and NaNs in DataFrames.
 
 Dealing with Dates:
-    priority: 9
+    priority: 18
     description: Parsing and processing dates and times.
 
 Unstructured Analytics:
-    priority: 10
+    priority: 20
     description: Analyzing unstructured data like JSON, XML, etc.
 
 Pandas:
-    priority: 12
+    priority: 22
     description: Using Python's Pandas library to augment Spark. Some operations require the pyarrow library.
 
 Data Profiling:
-    priority: 14
+    priority: 24
     description: Extracting key statistics out of a body of data.
 
 Data Management:
-    priority: 15
+    priority: 26
     description: Upserts, updates and deletes on data.
 
 Spark Streaming:
-    priority: 16
+    priority: 28
     description: Spark Streaming (Focuses on Structured Streaming).
 
 Time Series:
-    priority: 18
+    priority: 30
     description: Techniques for dealing with time series data.
 
 Machine Learning:
-    priority: 20
+    priority: 32
     description: Machine Learning
 
 Performance:
-    priority: 22
+    priority: 34
     description: A few performance tips and tricks.
 
 Preamble:
