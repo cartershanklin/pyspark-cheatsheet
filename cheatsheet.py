@@ -194,9 +194,7 @@ class loadsave_load_parquet(snippet):
         self.priority = 200
 
     def snippet(self, df):
-        df = (
-            spark.read.format("parquet").load("data/auto-mpg.parquet")
-        )
+        df = spark.read.format("parquet").load("data/auto-mpg.parquet")
         return df
 
 
@@ -239,6 +237,7 @@ class loadsave_save_catalog(snippet):
     def snippet(self, df):
         df.write.mode("overwrite").saveAsTable("autompg")
 
+
 class loadsave_load_catalog(snippet):
     def __init__(self):
         super().__init__()
@@ -251,6 +250,7 @@ class loadsave_load_catalog(snippet):
         # Load the table previously saved.
         df = spark.table("autompg")
         return df
+
 
 class loadsave_read_from_s3(snippet):
     def __init__(self):
@@ -270,17 +270,27 @@ class loadsave_read_from_s3(snippet):
         secret_key = config.get("default", "aws_secret_access_key")
 
         # Requires compatible hadoop-aws and aws-java-sdk-bundle JARs.
-        spark.conf.set("fs.s3a.aws.credentials.provider", "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider")
+        spark.conf.set(
+            "fs.s3a.aws.credentials.provider",
+            "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider",
+        )
         spark.conf.set("fs.s3a.access.key", access_key)
         spark.conf.set("fs.s3a.secret.key", secret_key)
 
-        df = spark.read.format("csv").option("header", True).load("s3a://cheatsheet111/auto-mpg.csv")
+        df = (
+            spark.read.format("csv")
+            .option("header", True)
+            .load("s3a://cheatsheet111/auto-mpg.csv")
+        )
         return df
+
 
 class loadsave_read_from_oci(snippet):
     def __init__(self):
         super().__init__()
-        self.name = "Load a CSV file from Oracle Cloud Infrastructure (OCI) Object Storage"
+        self.name = (
+            "Load a CSV file from Oracle Cloud Infrastructure (OCI) Object Storage"
+        )
         self.category = "Accessing Data Sources"
         self.dataset = "UNUSED"
         self.priority = 1300
@@ -377,9 +387,9 @@ class loadsave_read_postgres(snippet):
     def snippet(self, df):
         # You need a compatible postgresql JDBC JAR.
         pg_database = os.environ.get("PGDATABASE")
-        pg_host     = os.environ.get("PGHOST")
+        pg_host = os.environ.get("PGHOST")
         pg_password = os.environ.get("PGPASSWORD")
-        pg_user     = os.environ.get("PGUSER")
+        pg_user = os.environ.get("PGUSER")
         table = "test"
 
         properties = {
@@ -404,9 +414,9 @@ class loadsave_write_postgres(snippet):
     def snippet(self, df):
         # You need a compatible postgresql JDBC JAR.
         pg_database = os.environ.get("PGDATABASE")
-        pg_host     = os.environ.get("PGHOST")
+        pg_host = os.environ.get("PGHOST")
         pg_password = os.environ.get("PGPASSWORD")
-        pg_user     = os.environ.get("PGUSER")
+        pg_user = os.environ.get("PGUSER")
         table = "autompg"
 
         properties = {
@@ -507,7 +517,9 @@ class loadsave_dynamic_partitioning(snippet):
 
     def snippet(self, df):
         spark.conf.set("spark.sql.sources.partitionOverwriteMode", "dynamic")
-        df.write.mode("append").partitionBy("modelyear").saveAsTable("autompg_partitioned")
+        df.write.mode("append").partitionBy("modelyear").saveAsTable(
+            "autompg_partitioned"
+        )
 
 
 class loadsave_overwrite_specific_partitions(snippet):
@@ -738,17 +750,23 @@ class dfo_dataframe_from_rdd(snippet):
         self.name = "Convert an RDD to Data Frame"
         self.category = "DataFrame Operations"
         self.dataset = "auto-mpg.csv"
+        self.preconvert = True
         self.priority = 1500
 
-    def load_data(self):
-        return spark.sparkContext.textFile(os.path.join("data", self.dataset))
-
-    def snippet(self, rdd):
+    def snippet(self, df):
         from pyspark.sql import Row
 
-        row = Row("val")
-        df = rdd.map(row).toDF()
-        return df
+        # First, get the RDD from the DataFrame.
+        rdd = df.rdd
+
+        # This converts it back to an RDD with no changes.
+        df = rdd.map(lambda x: Row(**x.asDict())).toDF()
+
+        # This changes the rows before creating the DataFrame.
+        df2 = rdd.map(
+            lambda x: Row(**{k: v * 2 for (k, v) in x.asDict().items()})
+        ).toDF()
+        return df2
 
 
 class dfo_empty_dataframe(snippet):
