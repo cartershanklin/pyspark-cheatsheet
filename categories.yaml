@@ -105,5 +105,23 @@ Preamble:
         - [PySpark SQL Functions Source](https://spark.apache.org/docs/latest/api/python/_modules/pyspark/sql/functions.html)
 
 
+        Try in a Notebook
+
+        -----------------
+
+        See the [Notebook How-To](notebook.md) for instructions on running in a Jupyter notebook.
+
+
+        Generate the Cheatsheet
+
+        -----------------------
+
+        You can generate the cheatsheet by running `cheatsheet.py` in your PySpark environment as follows:
+
+        - Install dependencies: `pip3 install -r requirements.txt`
+
+        - Generate README.md: `python3 cheatsheet.py`
+
+
 Postscript:
     description:
