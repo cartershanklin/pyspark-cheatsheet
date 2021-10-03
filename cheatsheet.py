@@ -2688,6 +2688,7 @@ class ml_hyperparameter_tuning_plot(snippet):
         model = crossval.fit(encoded_df)
 
         # Plot results using matplotlib.
+        import pandas
         import matplotlib
 
         parameter_grid = [
