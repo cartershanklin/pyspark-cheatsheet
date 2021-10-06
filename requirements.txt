@@ -1,4 +1,5 @@
 dateparser
+delta-spark
 matplotlib
 money_parser
 oci
