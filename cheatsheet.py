@@ -567,8 +567,8 @@ class loadsave_money(snippet):
             lambda x: Decimal(price_str(x)) if x is not None else None,
             DecimalType(8, 4),
         )
-        money2 = df.withColumn("spend_dollars", money_convert(df.spend_dollars))
-        return money2
+        df = df.withColumn("spend_dollars", money_convert(df.spend_dollars))
+        return df
 
 
 class dfo_modify_column(snippet):
@@ -705,6 +705,7 @@ class dfo_column_to_python_list(snippet):
 
     def snippet(self, auto_df):
         names = auto_df.select("carname").rdd.flatMap(lambda x: x).collect()
+        print(str(names[:10]))
         return str(names[:10])
 
 
@@ -721,6 +722,7 @@ class dfo_consume_as_dict(snippet):
         first_three = auto_df.limit(3)
         for row in first_three.collect():
             my_dict = row.asDict()
+            print(my_dict)
             # EXCLUDE
             return """
 {'mpg': '18.0', 'cylinders': '8', 'displacement': '307.0', 'horsepower': '130.0', 'weight': '3504.', 'acceleration': '12.0', 'modelyear': '70', 'origin': '1', 'carname': 'chevrolet chevelle malibu'}
@@ -740,7 +742,7 @@ class dfo_scalar_query_to_python_variable(snippet):
 
     def snippet(self, auto_df):
         average = auto_df.agg(dict(mpg="avg")).first()[0]
-        print(average)
+        print(str(average))
         return str(average)
 
 
@@ -763,10 +765,10 @@ class dfo_dataframe_from_rdd(snippet):
         df = rdd.map(lambda x: Row(**x.asDict())).toDF()
 
         # This changes the rows before creating the DataFrame.
-        df2 = rdd.map(
+        df = rdd.map(
             lambda x: Row(**{k: v * 2 for (k, v) in x.asDict().items()})
         ).toDF()
-        return df2
+        return df
 
 
 class dfo_empty_dataframe(snippet):
@@ -1035,8 +1037,8 @@ class group_max_value(snippet):
     def snippet(self, auto_df):
         from pyspark.sql.functions import col, max
 
-        grouped = auto_df.select(max(col("horsepower")).alias("max_horsepower"))
-        return grouped
+        df = auto_df.select(max(col("horsepower")).alias("max_horsepower"))
+        return df
 
 
 class group_filter_on_count(snippet):
@@ -1050,8 +1052,8 @@ class group_filter_on_count(snippet):
     def snippet(self, auto_df):
         from pyspark.sql.functions import col
 
-        grouped = auto_df.groupBy("cylinders").count().where(col("count") > 100)
-        return grouped
+        df = auto_df.groupBy("cylinders").count().where(col("count") > 100)
+        return df
 
 
 class group_topn_per_group(snippet):
@@ -1069,13 +1071,13 @@ class group_topn_per_group(snippet):
         # To get the maximum per group, set n=1.
         n = 5
         w = Window().partitionBy("cylinders").orderBy(col("horsepower").desc())
-        result = (
+        df = (
             auto_df.withColumn("horsepower", col("horsepower").cast("double"))
             .withColumn("rn", row_number().over(w))
             .where(col("rn") <= n)
             .select("*")
         )
-        return result
+        return df
 
 
 class group_basic_ntile(snippet):
@@ -1092,8 +1094,8 @@ class group_basic_ntile(snippet):
         from pyspark.sql.window import Window
 
         w = Window().orderBy(col("mpg").desc())
-        result = auto_df.withColumn("ntile4", ntile(4).over(w))
-        return result
+        df = auto_df.withColumn("ntile4", ntile(4).over(w))
+        return df
 
 
 class group_ntile_partition(snippet):
@@ -1110,8 +1112,8 @@ class group_ntile_partition(snippet):
         from pyspark.sql.window import Window
 
         w = Window().partitionBy("cylinders").orderBy(col("mpg").desc())
-        result = auto_df.withColumn("ntile4", ntile(4).over(w))
-        return result
+        df = auto_df.withColumn("ntile4", ntile(4).over(w))
+        return df
 
 
 class group_ntile_after_aggregate(snippet):
@@ -1129,8 +1131,8 @@ class group_ntile_after_aggregate(snippet):
 
         grouped = auto_df.groupBy("modelyear").count()
         w = Window().orderBy(col("count").desc())
-        result = grouped.withColumn("ntile4", ntile(4).over(w))
-        return result
+        df = grouped.withColumn("ntile4", ntile(4).over(w))
+        return df
 
 
 class group_filter_less_than_percentile(snippet):
@@ -1149,8 +1151,8 @@ class group_filter_less_than_percentile(snippet):
         target_percentile = auto_df.agg(
             F.expr("percentile(mpg, 0.9)").alias("target_percentile")
         ).first()[0]
-        result = auto_df.filter(col("mpg") > lit(target_percentile))
-        return result
+        df = auto_df.filter(col("mpg") > lit(target_percentile))
+        return df
 
 
 class group_rollup(snippet):
@@ -1166,7 +1168,7 @@ class group_rollup(snippet):
         from pyspark.sql.functions import avg, col, count, desc
 
         subset = auto_df.filter(col("modelyear") > 79)
-        grouped = (
+        df = (
             subset.rollup("modelyear", "cylinders")
             .agg(
                 avg("horsepower").alias("avg_horsepower"),
@@ -1177,7 +1179,7 @@ class group_rollup(snippet):
         # EXCLUDE
         options = dict(n=25)
         # INCLUDE
-        return (grouped, options)
+        return (df, options)
 
 
 class group_cube(snippet):
@@ -1193,7 +1195,7 @@ class group_cube(snippet):
         from pyspark.sql.functions import avg, col, count, desc
 
         subset = auto_df.filter(col("modelyear") > 79)
-        grouped = (
+        df = (
             subset.cube("modelyear", "cylinders")
             .agg(
                 avg("horsepower").alias("avg_horsepower"),
@@ -1204,7 +1206,7 @@ class group_cube(snippet):
         # EXCLUDE
         options = dict(n=25)
         # INCLUDE
-        return (grouped, options)
+        return (df, options)
 
 
 class group_count_unique_after_group(snippet):
@@ -1218,8 +1220,8 @@ class group_count_unique_after_group(snippet):
     def snippet(self, auto_df):
         from pyspark.sql.functions import countDistinct
 
-        grouped = auto_df.groupBy("cylinders").agg(countDistinct("mpg"))
-        return grouped
+        df = auto_df.groupBy("cylinders").agg(countDistinct("mpg"))
+        return df
 
 
 class group_sum_column(snippet):
@@ -1233,8 +1235,8 @@ class group_sum_column(snippet):
     def snippet(self, auto_df):
         from pyspark.sql.functions import sum
 
-        grouped = auto_df.groupBy("cylinders").agg(sum("weight").alias("total_weight"))
-        return grouped
+        df = auto_df.groupBy("cylinders").agg(sum("weight").alias("total_weight"))
+        return df
 
 
 class group_sum_columns_no_group(snippet):
@@ -1247,8 +1249,8 @@ class group_sum_columns_no_group(snippet):
 
     def snippet(self, auto_df):
         exprs = {x: "sum" for x in ("weight", "cylinders", "mpg")}
-        summed = auto_df.agg(exprs)
-        return summed
+        df = auto_df.agg(exprs)
+        return df
 
 
 class group_histogram(snippet):
@@ -1283,10 +1285,10 @@ class group_key_value_to_key_list(snippet):
     def snippet(self, auto_df):
         from pyspark.sql.functions import col, collect_list
 
-        collected = auto_df.groupBy("cylinders").agg(
+        df = auto_df.groupBy("cylinders").agg(
             collect_list(col("carname")).alias("models")
         )
-        return collected
+        return df
 
 
 class group_group_and_count(snippet):
@@ -1301,11 +1303,11 @@ class group_group_and_count(snippet):
         from pyspark.sql.functions import desc
 
         # No sorting.
-        grouped1 = auto_df.groupBy("cylinders").count()
+        df = auto_df.groupBy("cylinders").count()
 
         # With sorting.
-        grouped2 = auto_df.groupBy("cylinders").count().orderBy(desc("count"))
-        return grouped2
+        df = auto_df.groupBy("cylinders").count().orderBy(desc("count"))
+        return df
 
 
 class group_group_and_sort(snippet):
@@ -1319,12 +1321,12 @@ class group_group_and_sort(snippet):
     def snippet(self, auto_df):
         from pyspark.sql.functions import avg, desc
 
-        grouped = (
+        df = (
             auto_df.groupBy("cylinders")
             .agg(avg("horsepower").alias("avg_horsepower"))
             .orderBy(desc("avg_horsepower"))
         )
-        return grouped
+        return df
 
 
 class group_group_having(snippet):
@@ -1340,13 +1342,13 @@ class group_group_having(snippet):
     def snippet(self, auto_df):
         from pyspark.sql.functions import col, desc
 
-        grouped = (
+        df = (
             auto_df.groupBy("cylinders")
             .count()
             .orderBy(desc("count"))
             .filter(col("count") > 100)
         )
-        return grouped
+        return df
 
 
 class group_multiple_columns(snippet):
@@ -1360,12 +1362,12 @@ class group_multiple_columns(snippet):
     def snippet(self, auto_df):
         from pyspark.sql.functions import avg, desc
 
-        grouped = (
+        df = (
             auto_df.groupBy(["modelyear", "cylinders"])
             .agg(avg("horsepower").alias("avg_horsepower"))
             .orderBy(desc("avg_horsepower"))
         )
-        return grouped
+        return df
 
 
 class group_agg_multiple_columns(snippet):
@@ -1378,8 +1380,8 @@ class group_agg_multiple_columns(snippet):
 
     def snippet(self, auto_df):
         expressions = dict(horsepower="avg", weight="max", displacement="max")
-        grouped = auto_df.groupBy("modelyear").agg(expressions)
-        return grouped
+        df = auto_df.groupBy("modelyear").agg(expressions)
+        return df
 
 
 class group_order_multiple_columns(snippet):
@@ -1399,8 +1401,8 @@ class group_order_multiple_columns(snippet):
             desc_nulls_last("avg(horsepower)"),
             asc("max(weight)"),
         ]
-        grouped = auto_df.groupBy("modelyear").agg(expressions).orderBy(*orderings)
-        return grouped
+        df = auto_df.groupBy("modelyear").agg(expressions).orderBy(*orderings)
+        return df
 
 
 class group_distinct_all_columns(snippet):
@@ -1414,8 +1416,8 @@ class group_distinct_all_columns(snippet):
     def snippet(self, auto_df):
         from pyspark.sql.functions import countDistinct
 
-        grouped = auto_df.agg(*(countDistinct(c) for c in auto_df.columns))
-        return grouped
+        df = auto_df.agg(*(countDistinct(c) for c in auto_df.columns))
+        return df
 
 
 class group_aggregate_all_numerics(snippet):
@@ -1427,11 +1429,11 @@ class group_aggregate_all_numerics(snippet):
         self.preconvert = True
         self.priority = 800
 
-    def snippet(self, auto_df):
+    def snippet(self, auto_df_fixed):
         numerics = set(["decimal", "double", "float", "integer", "long", "short"])
-        exprs = {x[0]: "sum" for x in auto_df.dtypes if x[1] in numerics}
-        summed = auto_df.agg(exprs)
-        return summed
+        exprs = {x[0]: "sum" for x in auto_df_fixed.dtypes if x[1] in numerics}
+        df = auto_df_fixed.agg(exprs)
+        return df
 
 
 class sortsearch_distinct_values(snippet):
@@ -1443,8 +1445,8 @@ class sortsearch_distinct_values(snippet):
         self.priority = 1000
 
     def snippet(self, auto_df):
-        distinct = auto_df.select("cylinders").distinct()
-        return distinct
+        df = auto_df.select("cylinders").distinct()
+        return df
 
 
 class sortsearch_string_match(snippet):
@@ -1456,8 +1458,8 @@ class sortsearch_string_match(snippet):
         self.priority = 500
 
     def snippet(self, auto_df):
-        filtered = auto_df.where(auto_df.carname.contains("custom"))
-        return filtered
+        df = auto_df.where(auto_df.carname.contains("custom"))
+        return df
 
 
 class sortsearch_string_contents(snippet):
@@ -1471,8 +1473,8 @@ class sortsearch_string_contents(snippet):
     def snippet(self, auto_df):
         from pyspark.sql.functions import col
 
-        filtered = auto_df.where(col("carname").like("%custom%"))
-        return filtered
+        df = auto_df.where(col("carname").like("%custom%"))
+        return df
 
 
 class sortsearch_in_list(snippet):
@@ -1486,8 +1488,8 @@ class sortsearch_in_list(snippet):
     def snippet(self, auto_df):
         from pyspark.sql.functions import col
 
-        filtered = auto_df.where(col("cylinders").isin(["4", "6"]))
-        return filtered
+        df = auto_df.where(col("cylinders").isin(["4", "6"]))
+        return df
 
 
 class sortsearch_not_in_list(snippet):
@@ -1501,8 +1503,8 @@ class sortsearch_not_in_list(snippet):
     def snippet(self, auto_df):
         from pyspark.sql.functions import col
 
-        filtered = auto_df.where(~col("cylinders").isin(["4", "6"]))
-        return filtered
+        df = auto_df.where(~col("cylinders").isin(["4", "6"]))
+        return df
 
 
 class sortsearch_in_list_from_df(snippet):
@@ -1531,10 +1533,10 @@ class sortsearch_in_list_from_df(snippet):
 
         # Alternatively we can register a temporary table and use a SQL expression.
         exclude_keys.registerTempTable("exclude_keys")
-        filtered = auto_df.filter(
+        df = auto_df.filter(
             "modelyear not in ( select adjusted_year from exclude_keys )"
         )
-        return filtered
+        return df
 
 
 class sortsearch_column_length(snippet):
@@ -1548,8 +1550,8 @@ class sortsearch_column_length(snippet):
     def snippet(self, auto_df):
         from pyspark.sql.functions import col, length
 
-        filtered = auto_df.where(length(col("carname")) < 12)
-        return filtered
+        df = auto_df.where(length(col("carname")) < 12)
+        return df
 
 
 class sortsearch_equality(snippet):
@@ -1563,8 +1565,8 @@ class sortsearch_equality(snippet):
     def snippet(self, auto_df):
         from pyspark.sql.functions import col
 
-        filtered = auto_df.where(col("cylinders") == "8")
-        return filtered
+        df = auto_df.where(col("cylinders") == "8")
+        return df
 
 
 class sortsearch_sort_descending(snippet):
@@ -1578,9 +1580,9 @@ class sortsearch_sort_descending(snippet):
     def snippet(self, auto_df):
         from pyspark.sql.functions import col
 
-        ascending = auto_df.orderBy("carname")
-        descending = auto_df.orderBy(col("carname").desc())
-        return descending
+        df = auto_df.orderBy("carname")
+        df = auto_df.orderBy(col("carname").desc())
+        return df
 
 
 class sortsearch_first_1k_rows(snippet):
@@ -1593,8 +1595,8 @@ class sortsearch_first_1k_rows(snippet):
 
     def snippet(self, auto_df):
         n = 10
-        reduced = auto_df.limit(n)
-        return reduced
+        df = auto_df.limit(n)
+        return df
 
 
 class sortsearch_multi_filter(snippet):
@@ -1608,13 +1610,15 @@ class sortsearch_multi_filter(snippet):
     def snippet(self, auto_df):
         from pyspark.sql.functions import col
 
-        or_conditions = auto_df.filter(
+        # OR
+        df = auto_df.filter(
             (col("mpg") > "30") | (col("acceleration") < "10")
         )
-        and_conditions = auto_df.filter(
+        # AND
+        df = auto_df.filter(
             (col("mpg") > "30") & (col("acceleration") < "13")
         )
-        return and_conditions
+        return df
 
 
 class sortsearch_remove_duplicates(snippet):
@@ -1626,8 +1630,8 @@ class sortsearch_remove_duplicates(snippet):
         self.priority = 1100
 
     def snippet(self, auto_df):
-        filtered = auto_df.dropDuplicates(["carname"])
-        return filtered
+        df = auto_df.dropDuplicates(["carname"])
+        return df
 
 
 class sortsearch_filtering_basic(snippet):
@@ -1641,8 +1645,8 @@ class sortsearch_filtering_basic(snippet):
     def snippet(self, auto_df):
         from pyspark.sql.functions import col
 
-        filtered = auto_df.filter(col("mpg") > "30")
-        return filtered
+        df = auto_df.filter(col("mpg") > "30")
+        return df
 
 
 class transform_regexp_extract(snippet):
@@ -1683,8 +1687,8 @@ class transform_fillna_specific_columns(snippet):
         self.priority = 120
 
     def snippet(self, auto_df):
-        auto_df.fillna({"horsepower": 0})
-        return auto_df
+        df = auto_df.fillna({"horsepower": 0})
+        return df
 
 
 class transform_fillna_col_avg(snippet):
@@ -1698,8 +1702,8 @@ class transform_fillna_col_avg(snippet):
     def snippet(self, auto_df):
         from pyspark.sql.functions import avg
 
-        auto_df.fillna({"horsepower": auto_df.agg(avg("horsepower")).first()[0]})
-        return auto_df
+        df = auto_df.fillna({"horsepower": auto_df.agg(avg("horsepower")).first()[0]})
+        return df
 
 
 class transform_fillna_group_avg(snippet):
@@ -1755,13 +1759,13 @@ class transform_query_json_column(snippet):
         source = spark.sparkContext.parallelize(
             [["1", '{ "a" : 10, "b" : 11 }'], ["2", '{ "a" : 20, "b" : 21 }']]
         ).toDF(["id", "json"])
-        filtered = (
+        df = (
             source.select("id", json_tuple(col("json"), "a", "b"))
             .withColumnRenamed("c0", "a")
             .withColumnRenamed("c1", "b")
             .where(col("b") > 15)
         )
-        return filtered
+        return df
 
 
 class join_concatenate(snippet):
@@ -1803,8 +1807,8 @@ class join_basic(snippet):
         df = auto_df.withColumn("manufacturer", first_word_udf(auto_df.carname))
 
         # The actual join.
-        joined = df.join(countries, "manufacturer")
-        return joined
+        df = df.join(countries, "manufacturer")
+        return df
 
 
 class join_basic2(snippet):
@@ -1831,8 +1835,8 @@ class join_basic2(snippet):
         df = auto_df.withColumn("manufacturer", first_word_udf(auto_df.carname))
 
         # The actual join.
-        joined = df.join(countries, df.manufacturer == countries.manufacturer)
-        return joined
+        df = df.join(countries, df.manufacturer == countries.manufacturer)
+        return df
 
 
 class join_multiple_files_single_dataframe(snippet):
@@ -1880,12 +1884,12 @@ class join_multiple_conditions(snippet):
         df = auto_df.withColumn("manufacturer", first_word_udf(auto_df.carname))
 
         # The actual join.
-        joined = df.join(
+        df = df.join(
             countries,
             (df.manufacturer == countries.manufacturer)
             | (df.mpg == countries.manufacturer),
         )
-        return joined
+        return df
 
 
 class join_subtract_dataframes(snippet):
@@ -1899,8 +1903,8 @@ class join_subtract_dataframes(snippet):
     def snippet(self, auto_df):
         from pyspark.sql.functions import col
 
-        reduced = auto_df.subtract(auto_df.where(col("mpg") < "25"))
-        return reduced
+        df = auto_df.subtract(auto_df.where(col("mpg") < "25"))
+        return df
 
 
 class join_different_types(snippet):
@@ -1928,8 +1932,8 @@ class join_different_types(snippet):
         joined = auto_df.join(auto_df, "carname", "full")
 
         # Cross join.
-        joined = auto_df.crossJoin(auto_df)
-        return joined
+        df = auto_df.crossJoin(auto_df)
+        return df
 
 
 class dates_string_to_date(snippet):
@@ -2150,9 +2154,9 @@ class missing_filter_none_value(snippet):
     def snippet(self, auto_df):
         from pyspark.sql.functions import col
 
-        filtered = auto_df.where(col("horsepower").isNull())
-        filtered = auto_df.where(col("horsepower").isNotNull())
-        return filtered
+        df = auto_df.where(col("horsepower").isNull())
+        df = auto_df.where(col("horsepower").isNotNull())
+        return df
 
 
 class missing_filter_null_value(snippet):
@@ -2167,6 +2171,7 @@ class missing_filter_null_value(snippet):
         # thresh controls the number of nulls before the row gets dropped.
         # subset controls the columns to consider.
         df = auto_df.na.drop(thresh=2, subset=("horsepower",))
+        return df
 
 
 class missing_count_of_null_nan(snippet):
@@ -2180,13 +2185,13 @@ class missing_count_of_null_nan(snippet):
     def snippet(self, auto_df):
         from pyspark.sql.functions import col, count, isnan, when
 
-        result = auto_df.select(
+        df = auto_df.select(
             [count(when(isnan(c), c)).alias(c) for c in auto_df.columns]
         )
-        result = auto_df.select(
+        df = auto_df.select(
             [count(when(col(c).isNull(), c)).alias(c) for c in auto_df.columns]
         )
-        return result
+        return df
 
 
 class ml_linear_regression(snippet):
@@ -2198,7 +2203,7 @@ class ml_linear_regression(snippet):
         self.priority = 100
         self.preconvert = True
 
-    def snippet(self, auto_df):
+    def snippet(self, auto_df_fixed):
         from pyspark.ml.feature import VectorAssembler
         from pyspark.ml.regression import LinearRegression
 
@@ -2213,7 +2218,7 @@ class ml_linear_regression(snippet):
             outputCol="features",
             handleInvalid="skip",
         )
-        assembled = vectorAssembler.transform(auto_df)
+        assembled = vectorAssembler.transform(auto_df_fixed)
         assembled = assembled.select(["features", "mpg", "carname"])
 
         # Random test/train split.
@@ -2239,8 +2244,8 @@ class ml_linear_regression(snippet):
         )
 
         # Make predictions.
-        predictions = lr_model.transform(test_df)
-        return predictions
+        df = lr_model.transform(test_df)
+        return df
 
 
 class ml_random_forest_regression(snippet):
@@ -2252,7 +2257,7 @@ class ml_random_forest_regression(snippet):
         self.priority = 110
         self.preconvert = True
 
-    def snippet(self, auto_df):
+    def snippet(self, auto_df_fixed):
         from pyspark.ml.feature import VectorAssembler
         from pyspark.ml.regression import RandomForestRegressor
         from pyspark.ml.evaluation import RegressionEvaluator
@@ -2268,7 +2273,7 @@ class ml_random_forest_regression(snippet):
             outputCol="features",
             handleInvalid="skip",
         )
-        assembled = vectorAssembler.transform(auto_df)
+        assembled = vectorAssembler.transform(auto_df_fixed)
         assembled = assembled.select(["features", "mpg", "carname"])
 
         # Random test/train split.
@@ -2285,18 +2290,18 @@ class ml_random_forest_regression(snippet):
         rf_model = rf.fit(train_df)
 
         # Make predictions.
-        predictions = rf_model.transform(test_df)
+        df = rf_model.transform(test_df)
 
         # Evaluate the model.
         r2 = RegressionEvaluator(
             labelCol="mpg", predictionCol="prediction", metricName="r2"
-        ).evaluate(predictions)
+        ).evaluate(df)
         rmse = RegressionEvaluator(
             labelCol="mpg", predictionCol="prediction", metricName="rmse"
-        ).evaluate(predictions)
+        ).evaluate(df)
         print("RMSE={} r2={}".format(rmse, r2))
 
-        return predictions
+        return df
 
 
 class ml_random_forest_classification(snippet):
@@ -2342,8 +2347,8 @@ class ml_random_forest_classification(snippet):
         )
         accuracy = evaluator.evaluate(predictions)
         print("Test Error = %g" % (1.0 - accuracy))
-        results = predictions.select([label_column, "prediction"])
-        return results
+        df = predictions.select([label_column, "prediction"])
+        return df
 
 
 class ml_string_encode(snippet):
@@ -2355,7 +2360,7 @@ class ml_string_encode(snippet):
         self.priority = 300
         self.preconvert = True
 
-    def snippet(self, auto_fixed_df):
+    def snippet(self, auto_df_fixed):
         from pyspark.ml import Pipeline
         from pyspark.ml.feature import StringIndexer, VectorAssembler
         from pyspark.ml.regression import RandomForestRegressor
@@ -2365,8 +2370,8 @@ class ml_string_encode(snippet):
 
         # Add manufacturer name we will use as a string column.
         first_word_udf = udf(lambda x: x.split()[0], StringType())
-        df = auto_fixed_df.withColumn(
-            "manufacturer", first_word_udf(auto_fixed_df.carname)
+        df = auto_df_fixed.withColumn(
+            "manufacturer", first_word_udf(auto_df_fixed.carname)
         )
 
         # Strings must be indexed or we will get:
@@ -2411,15 +2416,15 @@ class ml_string_encode(snippet):
         model = pipeline.fit(train_df)
 
         # Make predictions.
-        predictions = model.transform(test_df).select("carname", "mpg", "prediction")
+        df = model.transform(test_df).select("carname", "mpg", "prediction")
 
         # Select (prediction, true label) and compute test error
         rmse = RegressionEvaluator(
             labelCol="mpg", predictionCol="prediction", metricName="rmse"
-        ).evaluate(predictions)
+        ).evaluate(df)
         print("RMSE={}".format(rmse))
 
-        return predictions
+        return df
 
 
 class ml_feature_importances(snippet):
@@ -2431,7 +2436,7 @@ class ml_feature_importances(snippet):
         self.priority = 310
         self.preconvert = True
 
-    def snippet(self, auto_fixed_df):
+    def snippet(self, auto_df_fixed):
         from pyspark.ml import Pipeline
         from pyspark.ml.feature import StringIndexer, VectorAssembler
         from pyspark.ml.regression import RandomForestRegressor
@@ -2440,8 +2445,8 @@ class ml_feature_importances(snippet):
 
         # Add manufacturer name we will use as a string column.
         first_word_udf = udf(lambda x: x.split()[0], StringType())
-        df = auto_fixed_df.withColumn(
-            "manufacturer", first_word_udf(auto_fixed_df.carname)
+        df = auto_df_fixed.withColumn(
+            "manufacturer", first_word_udf(auto_df_fixed.carname)
         )
         manufacturer_encoded = StringIndexer(
             inputCol="manufacturer", outputCol="manufacturer_encoded"
@@ -2493,6 +2498,7 @@ class ml_feature_importances(snippet):
             columns_to_assemble, real_model.featureImportances
         ):
             retval.append("{} contributes {:0.3f}%".format(feature, importance * 100))
+        print(retval)
         return retval
         # INCLUDE
 
@@ -2506,13 +2512,13 @@ class ml_automated_feature_vectorization(snippet):
         self.priority = 400
         self.preconvert = True
 
-    def snippet(self, auto_fixed_df):
+    def snippet(self, auto_df_fixed):
         from pyspark.ml.feature import VectorAssembler, VectorIndexer
         from pyspark.ml.regression import RandomForestRegressor
         from pyspark.sql.functions import countDistinct
 
         # Remove non-numeric columns.
-        df = auto_fixed_df.drop("carname")
+        df = auto_df_fixed.drop("carname")
 
         # Profile this DataFrame to get a good value for maxCategories.
         grouped = df.agg(*(countDistinct(c) for c in df.columns))
@@ -2548,8 +2554,8 @@ class ml_automated_feature_vectorization(snippet):
             print("{} contributes {:0.3f}%".format(feature, importance * 100))
 
         # Make predictions.
-        predictions = rf_model.transform(test_df).select("mpg", "prediction")
-        return predictions
+        df = rf_model.transform(test_df).select("mpg", "prediction")
+        return df
 
 
 class ml_hyperparameter_tuning(snippet):
@@ -2561,7 +2567,7 @@ class ml_hyperparameter_tuning(snippet):
         self.priority = 410
         self.preconvert = True
 
-    def snippet(self, auto_fixed_df):
+    def snippet(self, auto_df_fixed):
         from pyspark.ml import Pipeline
         from pyspark.ml.evaluation import RegressionEvaluator
         from pyspark.ml.feature import StringIndexer, VectorAssembler
@@ -2572,8 +2578,8 @@ class ml_hyperparameter_tuning(snippet):
 
         # Add manufacturer name we will use as a string column.
         first_word_udf = udf(lambda x: x.split()[0], StringType())
-        df = auto_fixed_df.withColumn(
-            "manufacturer", first_word_udf(auto_fixed_df.carname)
+        df = auto_df_fixed.withColumn(
+            "manufacturer", first_word_udf(auto_df_fixed.carname)
         )
         manufacturer_encoded = StringIndexer(
             inputCol="manufacturer", outputCol="manufacturer_encoded"
@@ -2628,6 +2634,7 @@ class ml_hyperparameter_tuning(snippet):
         # EXCLUDE
         retval = []
         retval.append("Best model has {} trees.".format(real_model.getNumTrees))
+        print(retval)
         return retval
         # INCLUDE
 
@@ -2641,7 +2648,7 @@ class ml_hyperparameter_tuning_plot(snippet):
         self.priority = 415
         self.preconvert = True
 
-    def snippet(self, auto_fixed_df):
+    def snippet(self, auto_df_fixed):
         from pyspark.ml import Pipeline
         from pyspark.ml.evaluation import RegressionEvaluator
         from pyspark.ml.feature import StringIndexer, VectorAssembler
@@ -2652,8 +2659,8 @@ class ml_hyperparameter_tuning_plot(snippet):
 
         # Add manufacturer name we will use as a string column.
         first_word_udf = udf(lambda x: x.split()[0], StringType())
-        df = auto_fixed_df.withColumn(
-            "manufacturer", first_word_udf(auto_fixed_df.carname)
+        df = auto_df_fixed.withColumn(
+            "manufacturer", first_word_udf(auto_df_fixed.carname)
         )
         manufacturer_encoded = StringIndexer(
             inputCol="manufacturer", outputCol="manufacturer_encoded"
@@ -2785,12 +2792,12 @@ class ml_covariance(snippet):
         self.priority = 600
         self.preconvert = True
 
-    def snippet(self, auto_fixed_df):
+    def snippet(self, auto_df_fixed):
         from pyspark.ml.feature import VectorAssembler
         from pyspark.ml.stat import Correlation
 
         # Remove non-numeric columns.
-        df = auto_fixed_df.drop("carname")
+        df = auto_df_fixed.drop("carname")
 
         # Assemble all columns except mpg into a vector.
         feature_columns = list(df.columns)
@@ -2823,7 +2830,7 @@ class ml_save_model(snippet):
         self.priority = 10
         self.preconvert = True
 
-    def snippet(self, auto_fixed_df):
+    def snippet(self, auto_df_fixed):
         from pyspark.ml.feature import VectorAssembler
         from pyspark.ml.regression import RandomForestRegressor
 
@@ -2838,7 +2845,7 @@ class ml_save_model(snippet):
             outputCol="features",
             handleInvalid="skip",
         )
-        assembled = vectorAssembler.transform(auto_fixed_df)
+        assembled = vectorAssembler.transform(auto_df_fixed)
 
         # Random test/train split.
         train_df, test_df = assembled.randomSplit([0.7, 0.3])
@@ -2864,7 +2871,7 @@ class ml_load_model(snippet):
         self.priority = 20
         self.preconvert = True
 
-    def snippet(self, auto_fixed_df):
+    def snippet(self, auto_df_fixed):
         from pyspark.ml.feature import VectorAssembler
         from pyspark.ml.regression import RandomForestRegressionModel
 
@@ -2881,7 +2888,7 @@ class ml_load_model(snippet):
             outputCol="features",
             handleInvalid="skip",
         )
-        assembled = vectorAssembler.transform(auto_fixed_df)
+        assembled = vectorAssembler.transform(auto_df_fixed)
 
         predictions = rf_model.transform(assembled).select(
             "carname", "mpg", "prediction"
@@ -3270,10 +3277,10 @@ class profile_number_nulls(snippet):
     def snippet(self, auto_df):
         from pyspark.sql.functions import col, count, when
 
-        result = auto_df.select(
+        df = auto_df.select(
             [count(when(col(c).isNull(), c)).alias(c) for c in auto_df.columns]
         )
-        return result
+        return df
 
 
 class profile_numeric_averages(snippet):
@@ -3285,11 +3292,11 @@ class profile_numeric_averages(snippet):
         self.priority = 200
         self.preconvert = True
 
-    def snippet(self, auto_df):
+    def snippet(self, auto_df_fixed):
         numerics = set(["decimal", "double", "float", "integer", "long", "short"])
-        exprs = {x[0]: "avg" for x in auto_df.dtypes if x[1] in numerics}
-        result = auto_df.agg(exprs)
-        return result
+        exprs = {x[0]: "avg" for x in auto_df_fixed.dtypes if x[1] in numerics}
+        df = auto_df_fixed.agg(exprs)
+        return df
 
 
 class profile_numeric_min(snippet):
@@ -3301,11 +3308,11 @@ class profile_numeric_min(snippet):
         self.priority = 300
         self.preconvert = True
 
-    def snippet(self, auto_df):
+    def snippet(self, auto_df_fixed):
         numerics = set(["decimal", "double", "float", "integer", "long", "short"])
-        exprs = {x[0]: "min" for x in auto_df.dtypes if x[1] in numerics}
-        result = auto_df.agg(exprs)
-        return result
+        exprs = {x[0]: "min" for x in auto_df_fixed.dtypes if x[1] in numerics}
+        df = auto_df_fixed.agg(exprs)
+        return df
 
 
 class profile_numeric_max(snippet):
@@ -3317,11 +3324,11 @@ class profile_numeric_max(snippet):
         self.priority = 400
         self.preconvert = True
 
-    def snippet(self, auto_df):
+    def snippet(self, auto_df_fixed):
         numerics = set(["decimal", "double", "float", "integer", "long", "short"])
-        exprs = {x[0]: "max" for x in auto_df.dtypes if x[1] in numerics}
-        result = auto_df.agg(exprs)
-        return result
+        exprs = {x[0]: "max" for x in auto_df_fixed.dtypes if x[1] in numerics}
+        df = auto_df_fixed.agg(exprs)
+        return df
 
 
 class profile_numeric_median(snippet):
@@ -3333,12 +3340,12 @@ class profile_numeric_median(snippet):
         self.priority = 500
         self.preconvert = True
 
-    def snippet(self, auto_df):
+    def snippet(self, auto_df_fixed):
         import pyspark.sql.functions as F
 
         numerics = set(["decimal", "double", "float", "integer", "long", "short"])
         aggregates = []
-        for name, dtype in auto_df.dtypes:
+        for name, dtype in auto_df_fixed.dtypes:
             if dtype not in numerics:
                 continue
             aggregates.append(
@@ -3346,9 +3353,9 @@ class profile_numeric_median(snippet):
                     "{}_median".format(name)
                 )
             )
-        profiled = auto_df.agg(*aggregates)
+        df = auto_df_fixed.agg(*aggregates)
 
-        return profiled
+        return df
 
 
 class profile_outliers(snippet):
@@ -3397,8 +3404,8 @@ class profile_outliers(snippet):
             )
         )
 
-        df_outliers = df.where(col("zscore") > z_score_threshold)
-        return df_outliers
+        df = df.where(col("zscore") > z_score_threshold)
+        return df
 
 
 class timeseries_zero_fill(snippet):
@@ -3415,14 +3422,14 @@ class timeseries_zero_fill(snippet):
 
         # Use distinct values of customer and date from the dataset itself.
         # In general it's safer to use known reference tables for IDs and dates.
-        filled = spend_df.join(
+        df = spend_df.join(
             spend_df.select("customer_id")
             .distinct()
             .crossJoin(spend_df.select("date").distinct()),
             ["date", "customer_id"],
             "right",
         ).select("date", "customer_id", coalesce("spend_dollars", lit(0)))
-        return filled
+        return df
 
 
 class timeseries_first_seen(snippet):
@@ -3735,9 +3742,9 @@ class management_merge_tables(snippet):
         )
 
         # Show select table history.
-        history = dt.history().select("version operation operationMetrics".split())
+        df = dt.history().select("version operation operationMetrics".split())
 
-        return (history, dict(truncate=False))
+        return (df, dict(truncate=False))
 
 
 class streaming_connect_kafka_sasl_plain(snippet):
@@ -3997,17 +4004,16 @@ for name, clazz in clsmembers:
     if "<class '__main__.snippet'>" in classes:
         cheat_sheet.append(clazz())
 
-
-def generate_cheatsheet():
+def generate(type):
     # Gather up all the categories and snippets.
     snippets = dict()
     for cheat in cheat_sheet:
         if cheat.category not in snippets:
             snippets[cheat.category] = []
-        source = inspect.getsource(cheat.snippet)
-        cleaned_source = get_code_snippet(source)
+        raw_source = inspect.getsource(cheat.snippet)
+        cleaned_source = get_code_snippet(raw_source)
         snippets[cheat.category].append(
-            (cheat.name, cheat.priority, cleaned_source, cheat)
+            (cheat.name, cheat.priority, cleaned_source, raw_source, cheat)
         )
 
     # Sort by priority.
@@ -4015,6 +4021,54 @@ def generate_cheatsheet():
         list = sorted(list, key=lambda x: x[1])
         snippets[category] = list
 
+    # Get info about our categories.
+    with open("categories.yaml") as file:
+        category_spec = yaml.safe_load(file)
+
+    sorted_categories = sorted(
+        snippets.keys(), key=lambda x: category_spec[x]["priority"]
+    )
+
+    if type == "markdown":
+        return generate_cheatsheet(snippets, sorted_categories, category_spec)
+    else:
+        return generate_notebook(snippets, sorted_categories, category_spec)
+
+def generate_notebook(snippets, sorted_categories, category_spec):
+    import nbformat as nbf
+
+    nb = nbf.v4.new_notebook()
+    cells = []
+    target_file = 'cheatsheet.ipynb'
+
+    header_format = "## {}"
+    name_format = "**{}**"
+
+    # Info to get the user started.
+    preamble = "Run This Code First! This creates the Spark session and loads data."
+    preamble = header_format.format(preamble)
+    cells.append(nbf.v4.new_markdown_cell(preamble))
+    fd = open("notebook_initialization_code.py")
+    preamble_code = fd.read()
+    cells.append(nbf.v4.new_code_cell(preamble_code))
+
+    for category in sorted_categories:
+        list = snippets[category]
+        cells.append(nbf.v4.new_markdown_cell(header_format.format(category_spec[category]["description"])))
+        for name, priority, source, raw_source, cheat in list:
+            if cheat.skip_run:
+                continue
+            result = cheat.run(show=False)
+            if type(result) in (pyspark.sql.dataframe.DataFrame, tuple):
+                source += "\ndf.show()"
+            cells.append(nbf.v4.new_markdown_cell(name_format.format(name)))
+            cells.append(nbf.v4.new_code_cell(source))
+
+    nb["cells"] = cells
+    with open(target_file, 'w') as f:
+        nbf.write(nb, f)
+
+def generate_cheatsheet(snippets, sorted_categories, category_spec):
     # TOC Template
     toc_template = """
 Table of contents
@@ -4037,21 +4091,13 @@ Table of contents
 ```
 """
 
-    # Get info about our categories.
-    with open("categories.yaml") as file:
-        category_spec = yaml.safe_load(file)
-
-    sorted_categories = sorted(
-        snippets.keys(), key=lambda x: category_spec[x]["priority"]
-    )
-
     # Generate our markdown.
     toc_content_list = []
     for category in sorted_categories:
         list = snippets[category]
         category_slug = slugify(category)
         toc_content_list.append("   * [{}](#{})".format(category, category_slug))
-        for name, priority, source, cheat in list:
+        for name, priority, source, raw_source, cheat in list:
             name_slug = slugify(name)
             toc_content_list.append("      * [{}](#{})".format(name, name_slug))
     toc_contents = "\n".join(toc_content_list)
@@ -4072,7 +4118,7 @@ Table of contents
             fd.write(header_text)
             fd.write(category_spec[category]["description"])
             toc_content_list.append("   * [{}](#{})".format(category, category_slug))
-            for name, priority, source, cheat in list:
+            for name, priority, source, raw_source, cheat in list:
                 header_text = header.format(name, "-" * len(name))
                 fd.write(header_text)
                 fd.write(snippet_template.format(code=source))
@@ -4149,6 +4195,7 @@ def main():
     parser.add_argument("--category")
     parser.add_argument("--debug", action="store_true")
     parser.add_argument("--dump-priorities", action="store_true")
+    parser.add_argument("--notebook", action="store_true")
     parser.add_argument("--test", action="append")
     args = parser.parse_args()
 
@@ -4185,8 +4232,10 @@ def main():
     elif args.test:
         for this_test in args.test:
             test(this_test)
+    elif args.notebook:
+        generate("notebook")
     else:
-        generate_cheatsheet()
+        generate("markdown")
 
 
 if __name__ == "__main__":
