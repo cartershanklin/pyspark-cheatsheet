@@ -816,10 +816,8 @@ class dfo_print_contents_rdd(snippet):
         self.dataset = "auto-mpg.csv"
         self.priority = 1600
 
-    def load_data(self):
-        return spark.sparkContext.textFile(os.path.join("data", self.dataset))
-
-    def snippet(self, rdd):
+    def snippet(self, auto_df):
+        rdd = auto_df.rdd
         print(rdd.take(10))
         return str(rdd.take(10))
 

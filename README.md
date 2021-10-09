@@ -9,7 +9,7 @@ These snippets use DataFrames loaded from various data sources:
 - customer_spend.csv, a generated time series dataset.
 - date_examples.csv, a generated dataset with various date and time formats.
 
-These snippets were tested against the Spark 3.1.2 API. This page was last updated 2021-10-03 15:03:15.
+These snippets were tested against the Spark 3.1.2 API. This page was last updated 2021-10-08 08:40:28.
 
 Make note of these helpful links:
 - [PySpark DataFrame Operations](http://spark.apache.org/docs/latest/api/python/reference/pyspark.sql.html#dataframe-apis)
@@ -277,7 +277,7 @@ Save a DataFrame in CSV format
 ```python
 # See https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameWriter.html
 # for a list of supported options.
-df.write.csv("output.csv")
+auto_df.write.csv("output.csv")
 ```
 
 
@@ -310,7 +310,7 @@ Save a DataFrame in Parquet format
 ----------------------------------
 
 ```python
-df.write.parquet("output.parquet")
+auto_df.write.parquet("output.parquet")
 ```
 
 
@@ -346,7 +346,7 @@ Save a DataFrame into a Hive catalog table
 ------------------------------------------
 
 ```python
-df.write.mode("overwrite").saveAsTable("autompg")
+auto_df.write.mode("overwrite").saveAsTable("autompg")
 ```
 
 
@@ -512,7 +512,7 @@ properties = {
     "password": pg_password,
 }
 url = f"jdbc:postgresql://{pg_host}:5432/{pg_database}"
-df.write.jdbc(url=url, table=table, mode="Append", properties=properties)
+auto_df.write.jdbc(url=url, table=table, mode="Append", properties=properties)
 ```
 
 
@@ -577,7 +577,7 @@ Save a DataFrame to CSV, overwriting existing data
 --------------------------------------------------
 
 ```python
-df.write.mode("overwrite").csv("output.csv")
+auto_df.write.mode("overwrite").csv("output.csv")
 ```
 
 
@@ -587,7 +587,7 @@ Save a DataFrame to CSV with a header
 ```python
 # See https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameWriter.html
 # for a list of supported options.
-df.coalesce(1).write.csv("header.csv", header="true")
+auto_df.coalesce(1).write.csv("header.csv", header="true")
 ```
 
 
@@ -595,7 +595,7 @@ Save a DataFrame in a single CSV file
 -------------------------------------
 
 ```python
-df.coalesce(1).write.csv("single.csv")
+auto_df.coalesce(1).write.csv("single.csv")
 ```
 
 
@@ -604,7 +604,7 @@ Save DataFrame as a dynamic partitioned table
 
 ```python
 spark.conf.set("spark.sql.sources.partitionOverwriteMode", "dynamic")
-df.write.mode("append").partitionBy("modelyear").saveAsTable(
+auto_df.write.mode("append").partitionBy("modelyear").saveAsTable(
     "autompg_partitioned"
 )
 ```
@@ -645,7 +645,7 @@ money_convert = udf(
     lambda x: Decimal(price_str(x)) if x is not None else None,
     DecimalType(8, 4),
 )
-money2 = df.withColumn("spend_dollars", money_convert(df.spend_dollars))
+df = df.withColumn("spend_dollars", money_convert(df.spend_dollars))
 ```
 ```
 # Code snippet result:
@@ -676,8 +676,8 @@ Add a new column to a DataFrame
 ```python
 from pyspark.sql.functions import upper, lower
 
-df = df.withColumn("upper", upper(df.carname)).withColumn(
-    "lower", lower(df.carname)
+df = auto_df.withColumn("upper", upper(auto_df.carname)).withColumn(
+    "lower", lower(auto_df.carname)
 )
 ```
 ```
@@ -705,7 +705,7 @@ Modify a DataFrame column
 ```python
 from pyspark.sql.functions import col, concat, lit
 
-df = df.withColumn("modelyear", concat(lit("19"), col("modelyear")))
+df = auto_df.withColumn("modelyear", concat(lit("19"), col("modelyear")))
 ```
 ```
 # Code snippet result:
@@ -732,7 +732,7 @@ Add a column with multiple conditions
 ```python
 from pyspark.sql.functions import col, when
 
-df = df.withColumn(
+df = auto_df.withColumn(
     "mpg_class",
     when(col("mpg") <= 20, "low")
     .when(col("mpg") <= 30, "mid")
@@ -765,7 +765,7 @@ Add a constant column
 ```python
 from pyspark.sql.functions import lit
 
-df = df.withColumn("one", lit(1))
+df = auto_df.withColumn("one", lit(1))
 ```
 ```
 # Code snippet result:
@@ -792,7 +792,7 @@ Concatenate columns
 ```python
 from pyspark.sql.functions import concat, col, lit
 
-df = df.withColumn(
+df = auto_df.withColumn(
     "concatenated", concat(col("cylinders"), lit("_"), col("mpg"))
 )
 ```
@@ -819,7 +819,7 @@ Drop a column
 -------------
 
 ```python
-df = df.drop("horsepower")
+df = auto_df.drop("horsepower")
 ```
 ```
 # Code snippet result:
@@ -844,7 +844,7 @@ Change a column name
 --------------------
 
 ```python
-df = df.withColumnRenamed("horsepower", "horses")
+df = auto_df.withColumnRenamed("horsepower", "horses")
 ```
 ```
 # Code snippet result:
@@ -869,7 +869,7 @@ Change multiple column names
 ----------------------------
 
 ```python
-df = df.withColumnRenamed("horsepower", "horses").withColumnRenamed(
+df = auto_df.withColumnRenamed("horsepower", "horses").withColumnRenamed(
     "modelyear", "year"
 )
 ```
@@ -896,7 +896,8 @@ Convert a DataFrame column to a Python list
 -------------------------------------------
 
 ```python
-names = df.select("carname").rdd.flatMap(lambda x: x).collect()
+names = auto_df.select("carname").rdd.flatMap(lambda x: x).collect()
+print(str(names[:10]))
 ```
 ```
 # Code snippet result:
@@ -907,8 +908,8 @@ Convert a scalar query to a Python value
 ----------------------------------------
 
 ```python
-average = df.agg(dict(mpg="avg")).first()[0]
-print(average)
+average = auto_df.agg(dict(mpg="avg")).first()[0]
+print(str(average))
 ```
 ```
 # Code snippet result:
@@ -919,9 +920,10 @@ Consume a DataFrame row-wise as Python dictionaries
 ---------------------------------------------------
 
 ```python
-first_three = df.limit(3)
+first_three = auto_df.limit(3)
 for row in first_three.collect():
     my_dict = row.asDict()
+    print(my_dict)
 ```
 ```
 # Code snippet result:
@@ -935,7 +937,7 @@ Select particular columns from a DataFrame
 ------------------------------------------
 
 ```python
-df = df.select(["mpg", "cylinders", "displacement"])
+df = auto_df.select(["mpg", "cylinders", "displacement"])
 ```
 ```
 # Code snippet result:
@@ -1022,7 +1024,7 @@ Convert String to Double
 ```python
 from pyspark.sql.functions import col
 
-df = df.withColumn("horsepower", col("horsepower").cast("double"))
+df = auto_df.withColumn("horsepower", col("horsepower").cast("double"))
 ```
 ```
 # Code snippet result:
@@ -1049,7 +1051,7 @@ Convert String to Integer
 ```python
 from pyspark.sql.functions import col
 
-df = df.withColumn("horsepower", col("horsepower").cast("int"))
+df = auto_df.withColumn("horsepower", col("horsepower").cast("int"))
 ```
 ```
 # Code snippet result:
@@ -1074,8 +1076,8 @@ Get the size of a DataFrame
 ---------------------------
 
 ```python
-print("{} rows".format(df.count()))
-print("{} columns".format(len(df.columns)))
+print("{} rows".format(auto_df.count()))
+print("{} columns".format(len(auto_df.columns)))
 ```
 ```
 # Code snippet result:
@@ -1087,7 +1089,7 @@ Get a DataFrame's number of partitions
 --------------------------------------
 
 ```python
-print("{} partition(s)".format(df.rdd.getNumPartitions()))
+print("{} partition(s)".format(auto_df.rdd.getNumPartitions()))
 ```
 ```
 # Code snippet result:
@@ -1098,7 +1100,7 @@ Get data types of a DataFrame's columns
 ---------------------------------------
 
 ```python
-print(df.dtypes)
+print(auto_df.dtypes)
 ```
 ```
 # Code snippet result:
@@ -1112,13 +1114,13 @@ Convert an RDD to Data Frame
 from pyspark.sql import Row
 
 # First, get the RDD from the DataFrame.
-rdd = df.rdd
+rdd = auto_df.rdd
 
 # This converts it back to an RDD with no changes.
 df = rdd.map(lambda x: Row(**x.asDict())).toDF()
 
 # This changes the rows before creating the DataFrame.
-df2 = rdd.map(
+df = rdd.map(
     lambda x: Row(**{k: v * 2 for (k, v) in x.asDict().items()})
 ).toDF()
 ```
@@ -1145,18 +1147,19 @@ Print the contents of an RDD
 ----------------------------
 
 ```python
+rdd = auto_df.rdd
 print(rdd.take(10))
 ```
 ```
 # Code snippet result:
-['mpg,cylinders,displacement,horsepower,weight,acceleration,modelyear,origin,carname', '18.0,8,307.0,130.0,3504.,12.0,70,1,"chevrolet chevelle malibu"', '15.0,8,350.0,165.0,3693.,11.5,70,1,"buick skylark 320"', '18.0,8,318.0,150.0,3436.,11.0,70,1,"plymouth satellite"', '16.0,8,304.0,150.0,3433.,12.0,70,1,"amc rebel sst"', '17.0,8,302.0,140.0,3449.,10.5,70,1,"ford torino"', '15.0,8,429.0,198.0,4341.,10.0,70,1,"ford galaxie 500"', '14.0,8,454.0,220.0,4354.,9.0,70,1,"chevrolet impala"', '14.0,8,440.0,215.0,4312.,8.5,70,1,"plymouth fury iii"', '14.0,8,455.0,225.0,4425.,10.0,70,1,"pontiac catalina"']
+[Row(mpg='18.0', cylinders='8', displacement='307.0', horsepower='130.0', weight='3504.', acceleration='12.0', modelyear='70', origin='1', carname='chevrolet chevelle malibu'), Row(mpg='15.0', cylinders='8', displacement='350.0', horsepower='165.0', weight='3693.', acceleration='11.5', modelyear='70', origin='1', carname='buick skylark 320'), Row(mpg='18.0', cylinders='8', displacement='318.0', horsepower='150.0', weight='3436.', acceleration='11.0', modelyear='70', origin='1', carname='plymouth satellite'), Row(mpg='16.0', cylinders='8', displacement='304.0', horsepower='150.0', weight='3433.', acceleration='12.0', modelyear='70', origin='1', carname='amc rebel sst'), Row(mpg='17.0', cylinders='8', displacement='302.0', horsepower='140.0', weight='3449.', acceleration='10.5', modelyear='70', origin='1', carname='ford torino'), Row(mpg='15.0', cylinders='8', displacement='429.0', horsepower='198.0', weight='4341.', acceleration='10.0', modelyear='70', origin='1', carname='ford galaxie 500'), Row(mpg='14.0', cylinders='8', displacement='454.0', horsepower='220.0', weight='4354.', acceleration='9.0', modelyear='70', origin='1', carname='chevrolet impala'), Row(mpg='14.0', cylinders='8', displacement='440.0', horsepower='215.0', weight='4312.', acceleration='8.5', modelyear='70', origin='1', carname='plymouth fury iii'), Row(mpg='14.0', cylinders='8', displacement='455.0', horsepower='225.0', weight='4425.', acceleration='10.0', modelyear='70', origin='1', carname='pontiac catalina'), Row(mpg='15.0', cylinders='8', displacement='390.0', horsepower='190.0', weight='3850.', acceleration='8.5', modelyear='70', origin='1', carname='amc ambassador dpl')]
 ```
 
 Print the contents of a DataFrame
 ---------------------------------
 
 ```python
-df.show(10)
+auto_df.show(10)
 ```
 ```
 # Code snippet result:
@@ -1187,7 +1190,7 @@ def foreach_function(row):
     if row.horsepower is not None:
         os.system("echo " + row.horsepower)
 
-df.foreach(foreach_function)
+auto_df.foreach(foreach_function)
 ```
 
 
@@ -1201,7 +1204,7 @@ def map_function(row):
     else:
         return [None]
 
-df = df.rdd.map(map_function).toDF()
+df = auto_df.rdd.map(map_function).toDF()
 ```
 ```
 # Code snippet result:
@@ -1234,7 +1237,7 @@ def flatmap_function(row):
     else:
         return [None]
 
-rdd = df.rdd.flatMap(flatmap_function)
+rdd = auto_df.rdd.flatMap(flatmap_function)
 row = Row("val")
 df = rdd.map(row).toDF()
 ```
@@ -1265,7 +1268,7 @@ from pyspark.sql.functions import udf
 from pyspark.sql.types import StringType
 
 first_word_udf = udf(lambda x: x.split()[0], StringType())
-df = df.withColumn("manufacturer", first_word_udf(df.carname))
+df = auto_df.withColumn("manufacturer", first_word_udf(auto_df.carname))
 ```
 ```
 # Code snippet result:
@@ -1298,7 +1301,7 @@ from pyspark.sql.functions import col, regexp_extract
 
 group = 0
 df = (
-    df.withColumn(
+    auto_df.withColumn(
         "identifier", regexp_extract(col("carname"), "(\S?\d+)", group)
     )
     .drop("acceleration")
@@ -1334,7 +1337,7 @@ Fill NULL values in specific columns
 ------------------------------------
 
 ```python
-df.fillna({"horsepower": 0})
+df = auto_df.fillna({"horsepower": 0})
 ```
 ```
 # Code snippet result:
@@ -1361,7 +1364,7 @@ Fill NULL values with column average
 ```python
 from pyspark.sql.functions import avg
 
-df.fillna({"horsepower": df.agg(avg("horsepower")).first()[0]})
+df = auto_df.fillna({"horsepower": auto_df.agg(avg("horsepower")).first()[0]})
 ```
 ```
 # Code snippet result:
@@ -1388,10 +1391,10 @@ Fill NULL values with group average
 ```python
 from pyspark.sql.functions import coalesce
 
-unmodified_columns = df.columns
+unmodified_columns = auto_df.columns
 unmodified_columns.remove("horsepower")
-manufacturer_avg = df.groupBy("cylinders").agg({"horsepower": "avg"})
-df = df.join(manufacturer_avg, "cylinders").select(
+manufacturer_avg = auto_df.groupBy("cylinders").agg({"horsepower": "avg"})
+df = auto_df.join(manufacturer_avg, "cylinders").select(
     *unmodified_columns,
     coalesce("horsepower", "avg(horsepower)").alias("horsepower"),
 )
@@ -1445,7 +1448,7 @@ from pyspark.sql.functions import col, json_tuple
 source = spark.sparkContext.parallelize(
     [["1", '{ "a" : 10, "b" : 11 }'], ["2", '{ "a" : 20, "b" : 21 }']]
 ).toDF(["id", "json"])
-filtered = (
+df = (
     source.select("id", json_tuple(col("json"), "a", "b"))
     .withColumnRenamed("c0", "a")
     .withColumnRenamed("c1", "b")
@@ -1471,7 +1474,7 @@ Filter a column using a condition
 ```python
 from pyspark.sql.functions import col
 
-filtered = df.filter(col("mpg") > "30")
+df = auto_df.filter(col("mpg") > "30")
 ```
 ```
 # Code snippet result:
@@ -1498,7 +1501,7 @@ Filter based on a specific column value
 ```python
 from pyspark.sql.functions import col
 
-filtered = df.where(col("cylinders") == "8")
+df = auto_df.where(col("cylinders") == "8")
 ```
 ```
 # Code snippet result:
@@ -1525,7 +1528,7 @@ Filter based on an IN list
 ```python
 from pyspark.sql.functions import col
 
-filtered = df.where(col("cylinders").isin(["4", "6"]))
+df = auto_df.where(col("cylinders").isin(["4", "6"]))
 ```
 ```
 # Code snippet result:
@@ -1552,7 +1555,7 @@ Filter based on a NOT IN list
 ```python
 from pyspark.sql.functions import col
 
-filtered = df.where(~col("cylinders").isin(["4", "6"]))
+df = auto_df.where(~col("cylinders").isin(["4", "6"]))
 ```
 ```
 # Code snippet result:
@@ -1580,18 +1583,20 @@ Filter values based on keys in another DataFrame
 from pyspark.sql.functions import col
 
 # Our DataFrame of keys to exclude.
-exclude_keys = df.select(
+exclude_keys = auto_df.select(
     (col("modelyear") + 1).alias("adjusted_year")
 ).distinct()
 
 # The anti join returns only keys with no matches.
-filtered = df.join(
-    exclude_keys, how="left_anti", on=df.modelyear == exclude_keys.adjusted_year
+filtered = auto_df.join(
+    exclude_keys,
+    how="left_anti",
+    on=auto_df.modelyear == exclude_keys.adjusted_year,
 )
 
 # Alternatively we can register a temporary table and use a SQL expression.
 exclude_keys.registerTempTable("exclude_keys")
-filtered = df.filter(
+df = auto_df.filter(
     "modelyear not in ( select adjusted_year from exclude_keys )"
 )
 ```
@@ -1618,7 +1623,7 @@ Get Dataframe rows that match a substring
 -----------------------------------------
 
 ```python
-filtered = df.where(df.carname.contains("custom"))
+df = auto_df.where(auto_df.carname.contains("custom"))
 ```
 ```
 # Code snippet result:
@@ -1645,7 +1650,7 @@ Filter a Dataframe based on a custom substring search
 ```python
 from pyspark.sql.functions import col
 
-filtered = df.where(col("carname").like("%custom%"))
+df = auto_df.where(col("carname").like("%custom%"))
 ```
 ```
 # Code snippet result:
@@ -1672,7 +1677,7 @@ Filter based on a column's length
 ```python
 from pyspark.sql.functions import col, length
 
-filtered = df.where(length(col("carname")) < 12)
+df = auto_df.where(length(col("carname")) < 12)
 ```
 ```
 # Code snippet result:
@@ -1699,8 +1704,14 @@ Multiple filter conditions
 ```python
 from pyspark.sql.functions import col
 
-or_conditions = df.filter((col("mpg") > "30") | (col("acceleration") < "10"))
-and_conditions = df.filter((col("mpg") > "30") & (col("acceleration") < "13"))
+# OR
+df = auto_df.filter(
+    (col("mpg") > "30") | (col("acceleration") < "10")
+)
+# AND
+df = auto_df.filter(
+    (col("mpg") > "30") & (col("acceleration") < "13")
+)
 ```
 ```
 # Code snippet result:
@@ -1719,8 +1730,8 @@ Sort DataFrame by a column
 ```python
 from pyspark.sql.functions import col
 
-ascending = df.orderBy("carname")
-descending = df.orderBy(col("carname").desc())
+df = auto_df.orderBy("carname")
+df = auto_df.orderBy(col("carname").desc())
 ```
 ```
 # Code snippet result:
@@ -1746,7 +1757,7 @@ Take the first N rows of a DataFrame
 
 ```python
 n = 10
-reduced = df.limit(n)
+df = auto_df.limit(n)
 ```
 ```
 # Code snippet result:
@@ -1770,7 +1781,7 @@ Get distinct values of a column
 -------------------------------
 
 ```python
-distinct = df.select("cylinders").distinct()
+df = auto_df.select("cylinders").distinct()
 ```
 ```
 # Code snippet result:
@@ -1789,7 +1800,7 @@ Remove duplicates
 -----------------
 
 ```python
-filtered = df.dropDuplicates(["carname"])
+df = auto_df.dropDuplicates(["carname"])
 ```
 ```
 # Code snippet result:
@@ -1821,10 +1832,10 @@ count(*) on a particular column
 from pyspark.sql.functions import desc
 
 # No sorting.
-grouped1 = df.groupBy("cylinders").count()
+df = auto_df.groupBy("cylinders").count()
 
 # With sorting.
-grouped2 = df.groupBy("cylinders").count().orderBy(desc("count"))
+df = auto_df.groupBy("cylinders").count().orderBy(desc("count"))
 ```
 ```
 # Code snippet result:
@@ -1845,8 +1856,8 @@ Group and sort
 ```python
 from pyspark.sql.functions import avg, desc
 
-grouped = (
-    df.groupBy("cylinders")
+df = (
+    auto_df.groupBy("cylinders")
     .agg(avg("horsepower").alias("avg_horsepower"))
     .orderBy(desc("avg_horsepower"))
 )
@@ -1870,8 +1881,8 @@ Filter groups based on an aggregate value, equivalent to SQL HAVING clause
 ```python
 from pyspark.sql.functions import col, desc
 
-grouped = (
-    df.groupBy("cylinders")
+df = (
+    auto_df.groupBy("cylinders")
     .count()
     .orderBy(desc("count"))
     .filter(col("count") > 100)
@@ -1893,8 +1904,8 @@ Group by multiple columns
 ```python
 from pyspark.sql.functions import avg, desc
 
-grouped = (
-    df.groupBy(["modelyear", "cylinders"])
+df = (
+    auto_df.groupBy(["modelyear", "cylinders"])
     .agg(avg("horsepower").alias("avg_horsepower"))
     .orderBy(desc("avg_horsepower"))
 )
@@ -1923,7 +1934,7 @@ Aggregate multiple columns
 
 ```python
 expressions = dict(horsepower="avg", weight="max", displacement="max")
-grouped = df.groupBy("modelyear").agg(expressions)
+df = auto_df.groupBy("modelyear").agg(expressions)
 ```
 ```
 # Code snippet result:
@@ -1956,7 +1967,7 @@ orderings = [
     desc_nulls_last("avg(horsepower)"),
     asc("max(weight)"),
 ]
-grouped = df.groupBy("modelyear").agg(expressions).orderBy(*orderings)
+df = auto_df.groupBy("modelyear").agg(expressions).orderBy(*orderings)
 ```
 ```
 # Code snippet result:
@@ -1983,7 +1994,7 @@ Get the maximum of a column
 ```python
 from pyspark.sql.functions import col, max
 
-grouped = df.select(max(col("horsepower")).alias("max_horsepower"))
+df = auto_df.select(max(col("horsepower")).alias("max_horsepower"))
 ```
 ```
 # Code snippet result:
@@ -1999,7 +2010,7 @@ Sum a list of columns
 
 ```python
 exprs = {x: "sum" for x in ("weight", "cylinders", "mpg")}
-summed = df.agg(exprs)
+df = auto_df.agg(exprs)
 ```
 ```
 # Code snippet result:
@@ -2016,7 +2027,7 @@ Sum a column
 ```python
 from pyspark.sql.functions import sum
 
-grouped = df.groupBy("cylinders").agg(sum("weight").alias("total_weight"))
+df = auto_df.groupBy("cylinders").agg(sum("weight").alias("total_weight"))
 ```
 ```
 # Code snippet result:
@@ -2036,8 +2047,8 @@ Aggregate all numeric columns
 
 ```python
 numerics = set(["decimal", "double", "float", "integer", "long", "short"])
-exprs = {x[0]: "sum" for x in df.dtypes if x[1] in numerics}
-summed = df.agg(exprs)
+exprs = {x[0]: "sum" for x in auto_df_fixed.dtypes if x[1] in numerics}
+df = auto_df_fixed.agg(exprs)
 ```
 ```
 # Code snippet result:
@@ -2054,7 +2065,7 @@ Count unique after grouping
 ```python
 from pyspark.sql.functions import countDistinct
 
-grouped = df.groupBy("cylinders").agg(countDistinct("mpg"))
+df = auto_df.groupBy("cylinders").agg(countDistinct("mpg"))
 ```
 ```
 # Code snippet result:
@@ -2075,7 +2086,7 @@ Count distinct values on all columns
 ```python
 from pyspark.sql.functions import countDistinct
 
-grouped = df.agg(*(countDistinct(c) for c in df.columns))
+df = auto_df.agg(*(countDistinct(c) for c in auto_df.columns))
 ```
 ```
 # Code snippet result:
@@ -2092,7 +2103,7 @@ Group by then filter on the count
 ```python
 from pyspark.sql.functions import col
 
-grouped = df.groupBy("cylinders").count().where(col("count") > 100)
+df = auto_df.groupBy("cylinders").count().where(col("count") > 100)
 ```
 ```
 # Code snippet result:
@@ -2114,8 +2125,8 @@ from pyspark.sql.window import Window
 # To get the maximum per group, set n=1.
 n = 5
 w = Window().partitionBy("cylinders").orderBy(col("horsepower").desc())
-result = (
-    df.withColumn("horsepower", col("horsepower").cast("double"))
+df = (
+    auto_df.withColumn("horsepower", col("horsepower").cast("double"))
     .withColumn("rn", row_number().over(w))
     .where(col("rn") <= n)
     .select("*")
@@ -2146,7 +2157,7 @@ Group key/values into a list
 ```python
 from pyspark.sql.functions import col, collect_list
 
-collected = df.groupBy("cylinders").agg(
+df = auto_df.groupBy("cylinders").agg(
     collect_list(col("carname")).alias("models")
 )
 ```
@@ -2170,7 +2181,7 @@ Compute a histogram
 from pyspark.sql.functions import col
 
 # Target column must be numeric.
-df = df.withColumn("horsepower", col("horsepower").cast("double"))
+df = auto_df.withColumn("horsepower", col("horsepower").cast("double"))
 
 # N is the number of bins.
 N = 11
@@ -2190,7 +2201,7 @@ from pyspark.sql.functions import col, ntile
 from pyspark.sql.window import Window
 
 w = Window().orderBy(col("mpg").desc())
-result = df.withColumn("ntile4", ntile(4).over(w))
+df = auto_df.withColumn("ntile4", ntile(4).over(w))
 ```
 ```
 # Code snippet result:
@@ -2219,7 +2230,7 @@ from pyspark.sql.functions import col, ntile
 from pyspark.sql.window import Window
 
 w = Window().partitionBy("cylinders").orderBy(col("mpg").desc())
-result = df.withColumn("ntile4", ntile(4).over(w))
+df = auto_df.withColumn("ntile4", ntile(4).over(w))
 ```
 ```
 # Code snippet result:
@@ -2247,9 +2258,9 @@ Compute percentiles after aggregating
 from pyspark.sql.functions import col, ntile
 from pyspark.sql.window import Window
 
-grouped = df.groupBy("modelyear").count()
+grouped = auto_df.groupBy("modelyear").count()
 w = Window().orderBy(col("count").desc())
-result = grouped.withColumn("ntile4", ntile(4).over(w))
+df = grouped.withColumn("ntile4", ntile(4).over(w))
 ```
 ```
 # Code snippet result:
@@ -2277,10 +2288,10 @@ Filter rows with values below a target percentile
 from pyspark.sql.functions import col, lit
 import pyspark.sql.functions as F
 
-target_percentile = df.agg(
+target_percentile = auto_df.agg(
     F.expr("percentile(mpg, 0.9)").alias("target_percentile")
 ).first()[0]
-result = df.filter(col("mpg") > lit(target_percentile))
+df = auto_df.filter(col("mpg") > lit(target_percentile))
 ```
 ```
 # Code snippet result:
@@ -2307,8 +2318,8 @@ Aggregate and rollup
 ```python
 from pyspark.sql.functions import avg, col, count, desc
 
-subset = df.filter(col("modelyear") > 79)
-grouped = (
+subset = auto_df.filter(col("modelyear") > 79)
+df = (
     subset.rollup("modelyear", "cylinders")
     .agg(
         avg("horsepower").alias("avg_horsepower"),
@@ -2344,8 +2355,8 @@ Aggregate and cube
 ```python
 from pyspark.sql.functions import avg, col, count, desc
 
-subset = df.filter(col("modelyear") > 79)
-grouped = (
+subset = auto_df.filter(col("modelyear") > 79)
+df = (
     subset.cube("modelyear", "cylinders")
     .agg(
         avg("horsepower").alias("avg_horsepower"),
@@ -2400,10 +2411,10 @@ countries = (
 
 # Add a manufacturers column, to join with the manufacturers list.
 first_word_udf = udf(lambda x: x.split()[0], StringType())
-df = df.withColumn("manufacturer", first_word_udf(df.carname))
+df = auto_df.withColumn("manufacturer", first_word_udf(auto_df.carname))
 
 # The actual join.
-joined = df.join(countries, "manufacturer")
+df = df.join(countries, "manufacturer")
 ```
 ```
 # Code snippet result:
@@ -2440,10 +2451,10 @@ countries = (
 
 # Add a manufacturers column, to join with the manufacturers list.
 first_word_udf = udf(lambda x: x.split()[0], StringType())
-df = df.withColumn("manufacturer", first_word_udf(df.carname))
+df = auto_df.withColumn("manufacturer", first_word_udf(auto_df.carname))
 
 # The actual join.
-joined = df.join(countries, df.manufacturer == countries.manufacturer)
+df = df.join(countries, df.manufacturer == countries.manufacturer)
 ```
 ```
 # Code snippet result:
@@ -2480,10 +2491,10 @@ countries = (
 
 # Add a manufacturers column, to join with the manufacturers list.
 first_word_udf = udf(lambda x: x.split()[0], StringType())
-df = df.withColumn("manufacturer", first_word_udf(df.carname))
+df = auto_df.withColumn("manufacturer", first_word_udf(auto_df.carname))
 
 # The actual join.
-joined = df.join(
+df = df.join(
     countries,
     (df.manufacturer == countries.manufacturer)
     | (df.mpg == countries.manufacturer),
@@ -2513,22 +2524,22 @@ Various Spark join types
 
 ```python
 # Inner join on one column.
-joined = df.join(df, "carname")
+joined = auto_df.join(auto_df, "carname")
 
 # Left (outer) join.
-joined = df.join(df, "carname", "left")
+joined = auto_df.join(auto_df, "carname", "left")
 
 # Left anti (not in) join.
-joined = df.join(df, "carname", "left_anti")
+joined = auto_df.join(auto_df, "carname", "left_anti")
 
 # Right (outer) join.
-joined = df.join(df, "carname", "right")
+joined = auto_df.join(auto_df, "carname", "right")
 
 # Full join.
-joined = df.join(df, "carname", "full")
+joined = auto_df.join(auto_df, "carname", "full")
 
 # Cross join.
-joined = df.crossJoin(df)
+df = auto_df.crossJoin(auto_df)
 ```
 ```
 # Code snippet result:
@@ -2615,7 +2626,7 @@ Subtract DataFrames
 ```python
 from pyspark.sql.functions import col
 
-reduced = df.subtract(df.where(col("mpg") < "25"))
+df = auto_df.subtract(auto_df.where(col("mpg") < "25"))
 ```
 ```
 # Code snippet result:
@@ -2790,8 +2801,8 @@ Filter rows with None or Null values
 ```python
 from pyspark.sql.functions import col
 
-filtered = df.where(col("horsepower").isNull())
-filtered = df.where(col("horsepower").isNotNull())
+df = auto_df.where(col("horsepower").isNull())
+df = auto_df.where(col("horsepower").isNotNull())
 ```
 ```
 # Code snippet result:
@@ -2818,9 +2829,15 @@ Drop rows with Null values
 ```python
 # thresh controls the number of nulls before the row gets dropped.
 # subset controls the columns to consider.
-df = df.na.drop(thresh=2, subset=("horsepower",))
+df = auto_df.na.drop(thresh=2, subset=("horsepower",))
 ```
-
+```
+# Code snippet result:
++---+---------+------------+----------+------+------------+---------+------+-------+
+|mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|carname|
++---+---------+------------+----------+------+------------+---------+------+-------+
++---+---------+------------+----------+------+------------+---------+------+-------+
+```
 
 Count all Null or NaN values in a DataFrame
 -------------------------------------------
@@ -2828,9 +2845,11 @@ Count all Null or NaN values in a DataFrame
 ```python
 from pyspark.sql.functions import col, count, isnan, when
 
-result = df.select([count(when(isnan(c), c)).alias(c) for c in df.columns])
-result = df.select(
-    [count(when(col(c).isNull(), c)).alias(c) for c in df.columns]
+df = auto_df.select(
+    [count(when(isnan(c), c)).alias(c) for c in auto_df.columns]
+)
+df = auto_df.select(
+    [count(when(col(c).isNull(), c)).alias(c) for c in auto_df.columns]
 )
 ```
 ```
@@ -3125,22 +3144,22 @@ Convert Spark DataFrame to Pandas DataFrame
 -------------------------------------------
 
 ```python
-pandas_df = df.toPandas()
+pandas_df = auto_df.toPandas()
 ```
 ```
 # Code snippet result:
-      mpg cylinders displacement horsepower  ... acceleration modelyear origin                    carname
-0    18.0         8        307.0      130.0  ...         12.0        70      1  chevrolet chevelle malibu
-1    15.0         8        350.0      165.0  ...         11.5        70      1          buick skylark 320
-2    18.0         8        318.0      150.0  ...         11.0        70      1         plymouth satellite
-3    16.0         8        304.0      150.0  ...         12.0        70      1              amc rebel sst
-4    17.0         8        302.0      140.0  ...         10.5        70      1                ford torino
-..    ...       ...          ...        ...  ...          ...       ...    ...                        ...
-393  27.0         4        140.0      86.00  ...         15.6        82      1            ford mustang gl
-394  44.0         4        97.00      52.00  ...         24.6        82      2                  vw pickup
-395  32.0         4        135.0      84.00  ...         11.6        82      1              dodge rampage
-396  28.0         4        120.0      79.00  ...         18.6        82      1                ford ranger
-397  31.0         4        119.0      82.00  ...         19.4        82      1                 chevy s-10
+      mpg cylinders displacement horsepower weight acceleration modelyear origin                    carname
+0    18.0         8        307.0      130.0  3504.         12.0        70      1  chevrolet chevelle malibu
+1    15.0         8        350.0      165.0  3693.         11.5        70      1          buick skylark 320
+2    18.0         8        318.0      150.0  3436.         11.0        70      1         plymouth satellite
+3    16.0         8        304.0      150.0  3433.         12.0        70      1              amc rebel sst
+4    17.0         8        302.0      140.0  3449.         10.5        70      1                ford torino
+..    ...       ...          ...        ...    ...          ...       ...    ...                        ...
+393  27.0         4        140.0      86.00  2790.         15.6        82      1            ford mustang gl
+394  44.0         4        97.00      52.00  2130.         24.6        82      2                  vw pickup
+395  32.0         4        135.0      84.00  2295.         11.6        82      1              dodge rampage
+396  28.0         4        120.0      79.00  2625.         18.6        82      1                ford ranger
+397  31.0         4        119.0      82.00  2720.         19.4        82      1                 chevy s-10
 
 [398 rows x 9 columns]
 ```
@@ -3182,23 +3201,21 @@ Convert N rows from a DataFrame to a Pandas DataFrame
 
 ```python
 N = 10
-pdf = df.limit(N).toPandas()
+pdf = auto_df.limit(N).toPandas()
 ```
 ```
 # Code snippet result:
-    mpg cylinders displacement horsepower  ... acceleration modelyear origin                    carname
-0  18.0         8        307.0      130.0  ...         12.0        70      1  chevrolet chevelle malibu
-1  15.0         8        350.0      165.0  ...         11.5        70      1          buick skylark 320
-2  18.0         8        318.0      150.0  ...         11.0        70      1         plymouth satellite
-3  16.0         8        304.0      150.0  ...         12.0        70      1              amc rebel sst
-4  17.0         8        302.0      140.0  ...         10.5        70      1                ford torino
-5  15.0         8        429.0      198.0  ...         10.0        70      1           ford galaxie 500
-6  14.0         8        454.0      220.0  ...          9.0        70      1           chevrolet impala
-7  14.0         8        440.0      215.0  ...          8.5        70      1          plymouth fury iii
-8  14.0         8        455.0      225.0  ...         10.0        70      1           pontiac catalina
-9  15.0         8        390.0      190.0  ...          8.5        70      1         amc ambassador dpl
-
-[10 rows x 9 columns]
+    mpg cylinders displacement horsepower weight acceleration modelyear origin                    carname
+0  18.0         8        307.0      130.0  3504.         12.0        70      1  chevrolet chevelle malibu
+1  15.0         8        350.0      165.0  3693.         11.5        70      1          buick skylark 320
+2  18.0         8        318.0      150.0  3436.         11.0        70      1         plymouth satellite
+3  16.0         8        304.0      150.0  3433.         12.0        70      1              amc rebel sst
+4  17.0         8        302.0      140.0  3449.         10.5        70      1                ford torino
+5  15.0         8        429.0      198.0  4341.         10.0        70      1           ford galaxie 500
+6  14.0         8        454.0      220.0  4354.          9.0        70      1           chevrolet impala
+7  14.0         8        440.0      215.0  4312.          8.5        70      1          plymouth fury iii
+8  14.0         8        455.0      225.0  4425.         10.0        70      1           pontiac catalina
+9  15.0         8        390.0      190.0  3850.          8.5        70      1         amc ambassador dpl
 ```
 
 Grouped Aggregation with Pandas
@@ -3212,7 +3229,7 @@ from pandas import DataFrame
 def mean_udaf(pdf: DataFrame) -> float:
     return pdf.mean()
 
-df = df.groupby("cylinders").agg(mean_udaf(df["mpg"]))
+df = auto_df.groupby("cylinders").agg(mean_udaf(auto_df["mpg"]))
 ```
 ```
 # Code snippet result:
@@ -3236,7 +3253,7 @@ def rescale(pdf):
     maxv = pdf.horsepower.max() - minv
     return pdf.assign(horsepower=(pdf.horsepower - minv) / maxv * 100)
 
-df = df.groupby("cylinders").applyInPandas(rescale, df.schema)
+df = auto_df.groupby("cylinders").applyInPandas(rescale, auto_df.schema)
 ```
 ```
 # Code snippet result:
@@ -3267,8 +3284,8 @@ Compute the number of NULLs across all columns
 ```python
 from pyspark.sql.functions import col, count, when
 
-result = df.select(
-    [count(when(col(c).isNull(), c)).alias(c) for c in df.columns]
+df = auto_df.select(
+    [count(when(col(c).isNull(), c)).alias(c) for c in auto_df.columns]
 )
 ```
 ```
@@ -3285,8 +3302,8 @@ Compute average values of all numeric columns
 
 ```python
 numerics = set(["decimal", "double", "float", "integer", "long", "short"])
-exprs = {x[0]: "avg" for x in df.dtypes if x[1] in numerics}
-result = df.agg(exprs)
+exprs = {x[0]: "avg" for x in auto_df_fixed.dtypes if x[1] in numerics}
+df = auto_df_fixed.agg(exprs)
 ```
 ```
 # Code snippet result:
@@ -3302,8 +3319,8 @@ Compute minimum values of all numeric columns
 
 ```python
 numerics = set(["decimal", "double", "float", "integer", "long", "short"])
-exprs = {x[0]: "min" for x in df.dtypes if x[1] in numerics}
-result = df.agg(exprs)
+exprs = {x[0]: "min" for x in auto_df_fixed.dtypes if x[1] in numerics}
+df = auto_df_fixed.agg(exprs)
 ```
 ```
 # Code snippet result:
@@ -3319,8 +3336,8 @@ Compute maximum values of all numeric columns
 
 ```python
 numerics = set(["decimal", "double", "float", "integer", "long", "short"])
-exprs = {x[0]: "max" for x in df.dtypes if x[1] in numerics}
-result = df.agg(exprs)
+exprs = {x[0]: "max" for x in auto_df_fixed.dtypes if x[1] in numerics}
+df = auto_df_fixed.agg(exprs)
 ```
 ```
 # Code snippet result:
@@ -3339,7 +3356,7 @@ import pyspark.sql.functions as F
 
 numerics = set(["decimal", "double", "float", "integer", "long", "short"])
 aggregates = []
-for name, dtype in df.dtypes:
+for name, dtype in auto_df_fixed.dtypes:
     if dtype not in numerics:
         continue
     aggregates.append(
@@ -3347,7 +3364,7 @@ for name, dtype in df.dtypes:
             "{}_median".format(name)
         )
     )
-profiled = df.agg(*aggregates)
+df = auto_df_fixed.agg(*aggregates)
 
 ```
 ```
@@ -3372,7 +3389,7 @@ target_column = "mpg"
 z_score_threshold = 2
 
 # Compute the median of the target column.
-target_df = df.select(target_column)
+target_df = auto_df.select(target_column)
 target_df.registerTempTable("target_column")
 profiled = sqlContext.sql(
     f"select percentile({target_column}, 0.5) as median from target_column"
@@ -3389,17 +3406,17 @@ mad = sqlContext.sql("select percentile(deviation, 0.5) as mad from deviations")
 
 # Add a modified z score to the original DataFrame.
 df = (
-    df.crossJoin(mad)
+    auto_df.crossJoin(mad)
     .crossJoin(profiled)
     .withColumn(
         "zscore",
         0.6745
-        * sqrt((df[target_column] - profiled["median"]) ** 2)
+        * sqrt((auto_df[target_column] - profiled["median"]) ** 2)
         / mad["mad"],
     )
 )
 
-df_outliers = df.where(col("zscore") > z_score_threshold)
+df = df.where(col("zscore") > z_score_threshold)
 ```
 ```
 # Code snippet result:
@@ -3431,7 +3448,7 @@ from pyspark.sql.functions import expr
 output_path = "delta_tests"
 
 # Currently you have to save/reload to convert from table to DataFrame.
-df.write.mode("overwrite").format("delta").save(output_path)
+auto_df.write.mode("overwrite").format("delta").save(output_path)
 dt = DeltaTable.forPath(spark, output_path)
 
 # Run a SQL update operation.
@@ -3469,7 +3486,7 @@ from pyspark.sql.functions import col, expr
 
 # Save the original data.
 output_path = "delta_tests"
-df.write.mode("overwrite").format("delta").save(output_path)
+auto_df.write.mode("overwrite").format("delta").save(output_path)
 
 # Load data that corrects some car names.
 corrected_df = (
@@ -3495,7 +3512,7 @@ ret = (
 )
 
 # Show select table history.
-history = dt.history().select("version operation operationMetrics".split())
+df = dt.history().select("version operation operationMetrics".split())
 
 ```
 ```
@@ -3503,16 +3520,16 @@ history = dt.history().select("version operation operationMetrics".split())
 +-------+---------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 |version|operation|operationMetrics                                                                                                                                                                                                                                                                        |
 +-------+---------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|29     |MERGE    |{numTargetRowsCopied -> 373, numTargetRowsDeleted -> 0, numTargetFilesAdded -> 175, executionTimeMs -> 8365, numTargetRowsInserted -> 0, scanTimeMs -> 3909, numTargetRowsUpdated -> 25, numOutputRows -> 398, numSourceRows -> 398, numTargetFilesRemoved -> 1, rewriteTimeMs -> 4451} |
+|28     |WRITE    |{numFiles -> 1, numOutputBytes -> 11582, numOutputRows -> 398}                                                                                                                                                                                                                          |
+|27     |WRITE    |{numFiles -> 1, numOutputBytes -> 11582, numOutputRows -> 398}                                                                                                                                                                                                                          |
+|26     |MERGE    |{numTargetRowsCopied -> 373, numTargetRowsDeleted -> 0, numTargetFilesAdded -> 175, executionTimeMs -> 6343, numTargetRowsInserted -> 0, scanTimeMs -> 2797, numTargetRowsUpdated -> 25, numOutputRows -> 398, numSourceRows -> 398, numTargetFilesRemoved -> 1, rewriteTimeMs -> 3543} |
+|25     |WRITE    |{numFiles -> 1, numOutputBytes -> 11582, numOutputRows -> 398}                                                                                                                                                                                                                          |
+|24     |WRITE    |{numFiles -> 1, numOutputBytes -> 11582, numOutputRows -> 398}                                                                                                                                                                                                                          |
 |23     |MERGE    |{numTargetRowsCopied -> 373, numTargetRowsDeleted -> 0, numTargetFilesAdded -> 175, executionTimeMs -> 17672, numTargetRowsInserted -> 0, scanTimeMs -> 7879, numTargetRowsUpdated -> 25, numOutputRows -> 398, numSourceRows -> 398, numTargetFilesRemoved -> 1, rewriteTimeMs -> 9787}|
 |22     |WRITE    |{numFiles -> 1, numOutputBytes -> 11582, numOutputRows -> 398}                                                                                                                                                                                                                          |
 |21     |WRITE    |{numFiles -> 1, numOutputBytes -> 11582, numOutputRows -> 398}                                                                                                                                                                                                                          |
 |20     |MERGE    |{numTargetRowsCopied -> 373, numTargetRowsDeleted -> 0, numTargetFilesAdded -> 175, executionTimeMs -> 16985, numTargetRowsInserted -> 0, scanTimeMs -> 8437, numTargetRowsUpdated -> 25, numOutputRows -> 398, numSourceRows -> 398, numTargetFilesRemoved -> 1, rewriteTimeMs -> 8542}|
-|19     |WRITE    |{numFiles -> 1, numOutputBytes -> 11582, numOutputRows -> 398}                                                                                                                                                                                                                          |
-|18     |WRITE    |{numFiles -> 1, numOutputBytes -> 11582, numOutputRows -> 398}                                                                                                                                                                                                                          |
-|17     |MERGE    |{numTargetRowsCopied -> 373, numTargetRowsDeleted -> 0, numTargetFilesAdded -> 175, executionTimeMs -> 10798, numTargetRowsInserted -> 0, scanTimeMs -> 5350, numTargetRowsUpdated -> 25, numOutputRows -> 398, numSourceRows -> 398, numTargetFilesRemoved -> 1, rewriteTimeMs -> 5443}|
-|16     |WRITE    |{numFiles -> 1, numOutputBytes -> 11582, numOutputRows -> 398}                                                                                                                                                                                                                          |
-|15     |WRITE    |{numFiles -> 1, numOutputBytes -> 11582, numOutputRows -> 398}                                                                                                                                                                                                                          |
-|14     |MERGE    |{numTargetRowsCopied -> 373, numTargetRowsDeleted -> 0, numTargetFilesAdded -> 175, executionTimeMs -> 7199, numTargetRowsInserted -> 0, scanTimeMs -> 3172, numTargetRowsUpdated -> 25, numOutputRows -> 398, numSourceRows -> 398, numTargetFilesRemoved -> 1, rewriteTimeMs -> 4023} |
 +-------+---------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 only showing top 10 rows
 ```
@@ -3747,7 +3764,7 @@ Add the current timestamp to a DataFrame
 ```python
 from pyspark.sql.functions import current_timestamp
 
-df = df.withColumn("timestamp", current_timestamp())
+df = auto_df.withColumn("timestamp", current_timestamp())
 ```
 ```
 # Code snippet result:
@@ -3780,8 +3797,10 @@ from pyspark.sql.functions import coalesce, lit
 
 # Use distinct values of customer and date from the dataset itself.
 # In general it's safer to use known reference tables for IDs and dates.
-filled = df.join(
-    df.select("customer_id").distinct().crossJoin(df.select("date").distinct()),
+df = spend_df.join(
+    spend_df.select("customer_id")
+    .distinct()
+    .crossJoin(spend_df.select("date").distinct()),
     ["date", "customer_id"],
     "right",
 ).select("date", "customer_id", coalesce("spend_dollars", lit(0)))
@@ -3813,7 +3832,7 @@ from pyspark.sql.functions import first
 from pyspark.sql.window import Window
 
 w = Window().partitionBy("customer_id").orderBy("date")
-df = df.withColumn("first_seen", first("date").over(w))
+df = spend_df.withColumn("first_seen", first("date").over(w))
 ```
 ```
 # Code snippet result:
@@ -3847,7 +3866,7 @@ w = (
     .orderBy("date")
     .rangeBetween(Window.unboundedPreceding, 0)
 )
-df = df.withColumn("running_sum", sum("spend_dollars").over(w))
+df = spend_df.withColumn("running_sum", sum("spend_dollars").over(w))
 ```
 ```
 # Code snippet result:
@@ -3882,7 +3901,7 @@ w = (
     .orderBy("date")
     .rangeBetween(Window.unboundedPreceding, 0)
 )
-df = df.withColumn("running_sum", sum("spend_dollars").over(w))
+df = spend_df.withColumn("running_sum", sum("spend_dollars").over(w))
 ```
 ```
 # Code snippet result:
@@ -3916,7 +3935,7 @@ w = (
     .orderBy("date")
     .rangeBetween(Window.unboundedPreceding, 0)
 )
-df = df.withColumn("running_avg", avg("spend_dollars").over(w))
+df = spend_df.withColumn("running_avg", avg("spend_dollars").over(w))
 ```
 ```
 # Code snippet result:
@@ -3951,7 +3970,7 @@ w = (
     .orderBy("date")
     .rangeBetween(Window.unboundedPreceding, 0)
 )
-df = df.withColumn("running_avg", avg("spend_dollars").over(w))
+df = spend_df.withColumn("running_avg", avg("spend_dollars").over(w))
 ```
 ```
 # Code snippet result:
@@ -3994,7 +4013,7 @@ vectorAssembler = VectorAssembler(
     outputCol="features",
     handleInvalid="skip",
 )
-assembled = vectorAssembler.transform(df)
+assembled = vectorAssembler.transform(auto_df_fixed)
 
 # Random test/train split.
 train_df, test_df = assembled.randomSplit([0.7, 0.3])
@@ -4032,7 +4051,7 @@ vectorAssembler = VectorAssembler(
     outputCol="features",
     handleInvalid="skip",
 )
-assembled = vectorAssembler.transform(df)
+assembled = vectorAssembler.transform(auto_df_fixed)
 
 predictions = rf_model.transform(assembled).select(
     "carname", "mpg", "prediction"
@@ -4043,16 +4062,16 @@ predictions = rf_model.transform(assembled).select(
 +----------+----+----------+
 |   carname| mpg|prediction|
 +----------+----+----------+
-|chevrol...|18.0|16.4143...|
-|buick s...|15.0|14.8165...|
-|plymout...|18.0|15.3328...|
-|amc reb...|16.0|15.6004...|
-|ford to...|17.0|16.2225...|
-|ford ga...|15.0|13.7724...|
-|chevrol...|14.0|13.7724...|
-|plymout...|14.0|13.7724...|
-|pontiac...|14.0|13.7724...|
-|amc amb...|15.0|14.7171...|
+|chevrol...|18.0|16.6828...|
+|buick s...|15.0|14.2044...|
+|plymout...|18.0|15.0533...|
+|amc reb...|16.0|15.5541...|
+|ford to...|17.0|16.4164...|
+|ford ga...|15.0|14.1436...|
+|chevrol...|14.0|14.1436...|
+|plymout...|14.0|14.1814...|
+|pontiac...|14.0|13.3966...|
+|amc amb...|15.0|14.2943...|
 +----------+----+----------+
 only showing top 10 rows
 ```
@@ -4075,7 +4094,7 @@ vectorAssembler = VectorAssembler(
     outputCol="features",
     handleInvalid="skip",
 )
-assembled = vectorAssembler.transform(df)
+assembled = vectorAssembler.transform(auto_df_fixed)
 assembled = assembled.select(["features", "mpg", "carname"])
 
 # Random test/train split.
@@ -4101,23 +4120,23 @@ print(
 )
 
 # Make predictions.
-predictions = lr_model.transform(test_df)
+df = lr_model.transform(test_df)
 ```
 ```
 # Code snippet result:
 +----------+----+----------+----------+
 |  features| mpg|   carname|prediction|
 +----------+----+----------+----------+
-|[3.0,70...|23.7|mazda r...|27.3071...|
-|[3.0,80...|21.5|mazda rx-4|25.3851...|
-|[4.0,68...|29.0|  fiat 128|32.5675...|
-|[4.0,76...|31.0|toyota ...|33.2468...|
-|[4.0,79...|31.0| fiat x1.9|30.8845...|
-|[4.0,81...|35.1|honda c...|32.2790...|
-|[4.0,83...|32.0|datsun 710|31.1799...|
-|[4.0,89...|38.1|toyota ...|31.3330...|
-|[4.0,89...|31.5|volkswa...|30.6124...|
-|[4.0,90...|29.0| vw rabbit|30.8844...|
+|[4.0,68...|29.0|  fiat 128|32.4590...|
+|[4.0,71...|32.0|toyota ...|31.5600...|
+|[4.0,72...|35.0|datsun ...|32.1846...|
+|[4.0,79...|31.0|datsun ...|30.9101...|
+|[4.0,85...|37.0|datsun ...|30.8795...|
+|[4.0,85...|33.5|datsun ...|30.6876...|
+|[4.0,85...|32.0|datsun ...|30.5096...|
+|[4.0,86...|34.1|maxda g...|30.8702...|
+|[4.0,89...|29.8|vokswag...|31.5429...|
+|[4.0,89...|31.5|volkswa...|30.4102...|
 +----------+----+----------+----------+
 only showing top 10 rows
 ```
@@ -4141,7 +4160,7 @@ vectorAssembler = VectorAssembler(
     outputCol="features",
     handleInvalid="skip",
 )
-assembled = vectorAssembler.transform(df)
+assembled = vectorAssembler.transform(auto_df_fixed)
 assembled = assembled.select(["features", "mpg", "carname"])
 
 # Random test/train split.
@@ -4158,15 +4177,15 @@ rf = RandomForestRegressor(
 rf_model = rf.fit(train_df)
 
 # Make predictions.
-predictions = rf_model.transform(test_df)
+df = rf_model.transform(test_df)
 
 # Evaluate the model.
 r2 = RegressionEvaluator(
     labelCol="mpg", predictionCol="prediction", metricName="r2"
-).evaluate(predictions)
+).evaluate(df)
 rmse = RegressionEvaluator(
     labelCol="mpg", predictionCol="prediction", metricName="rmse"
-).evaluate(predictions)
+).evaluate(df)
 print("RMSE={} r2={}".format(rmse, r2))
 
 ```
@@ -4175,16 +4194,16 @@ print("RMSE={} r2={}".format(rmse, r2))
 +----------+----+----------+----------+
 |  features| mpg|   carname|prediction|
 +----------+----+----------+----------+
-|[3.0,70...|18.0| maxda rx3|30.2406...|
-|[3.0,70...|19.0|mazda r...|27.6174...|
-|[3.0,80...|21.5|mazda rx-4|25.4930...|
-|[4.0,71...|31.0|toyota ...|33.3532...|
-|[4.0,79...|39.1|toyota ...|34.1013...|
-|[4.0,79...|26.0|volkswa...|32.9422...|
-|[4.0,79...|30.0|peugeot...|33.1174...|
-|[4.0,83...|32.0|datsun 710|34.1338...|
-|[4.0,85...|29.0|chevrol...|33.8907...|
-|[4.0,85...|37.0|datsun ...|34.1338...|
+|[4.0,71...|31.0|toyota ...|33.2800...|
+|[4.0,78...|32.8|mazda g...|35.6154...|
+|[4.0,79...|31.0|datsun ...|33.1362...|
+|[4.0,81...|35.1|honda c...|33.8407...|
+|[4.0,85...|29.0|chevrol...|39.3131...|
+|[4.0,85...|31.8|datsun 210|34.9824...|
+|[4.0,85...|39.4|datsun ...|31.1958...|
+|[4.0,86...|39.0|plymout...|34.4199...|
+|[4.0,86...|34.1|maxda g...|35.1505...|
+|[4.0,88...|30.0| fiat 124b|29.0785...|
 +----------+----+----------+----------+
 only showing top 10 rows
 ```
@@ -4199,11 +4218,11 @@ from pyspark.ml.feature import VectorAssembler
 
 label_column = "cover_type"
 vectorAssembler = VectorAssembler(
-    inputCols=df.columns,
+    inputCols=covtype_df.columns,
     outputCol="features",
     handleInvalid="skip",
 )
-assembled = vectorAssembler.transform(df)
+assembled = vectorAssembler.transform(covtype_df)
 
 # Random test/train split.
 train_df, test_df = assembled.randomSplit([0.7, 0.3])
@@ -4227,7 +4246,7 @@ evaluator = MulticlassClassificationEvaluator(
 )
 accuracy = evaluator.evaluate(predictions)
 print("Test Error = %g" % (1.0 - accuracy))
-results = predictions.select([label_column, "prediction"])
+df = predictions.select([label_column, "prediction"])
 ```
 ```
 # Code snippet result:
@@ -4238,10 +4257,10 @@ results = predictions.select([label_column, "prediction"])
 |         6|       3.0|
 |         3|       3.0|
 |         3|       3.0|
-|         6|       6.0|
 |         3|       3.0|
 |         6|       3.0|
-|         6|       3.0|
+|         6|       6.0|
+|         6|       6.0|
 |         6|       3.0|
 |         6|       3.0|
 +----------+----------+
@@ -4261,7 +4280,9 @@ from pyspark.sql.types import StringType
 
 # Add manufacturer name we will use as a string column.
 first_word_udf = udf(lambda x: x.split()[0], StringType())
-df = df.withColumn("manufacturer", first_word_udf(df.carname))
+df = auto_df_fixed.withColumn(
+    "manufacturer", first_word_udf(auto_df_fixed.carname)
+)
 
 # Strings must be indexed or we will get:
 # pyspark.sql.utils.IllegalArgumentException: Data type string of column manufacturer is not supported.
@@ -4305,12 +4326,12 @@ pipeline = Pipeline(stages=[vector_assembler, rf])
 model = pipeline.fit(train_df)
 
 # Make predictions.
-predictions = model.transform(test_df).select("carname", "mpg", "prediction")
+df = model.transform(test_df).select("carname", "mpg", "prediction")
 
 # Select (prediction, true label) and compute test error
 rmse = RegressionEvaluator(
     labelCol="mpg", predictionCol="prediction", metricName="rmse"
-).evaluate(predictions)
+).evaluate(df)
 print("RMSE={}".format(rmse))
 
 ```
@@ -4319,16 +4340,16 @@ print("RMSE={}".format(rmse))
 +----------+----+----------+
 |   carname| mpg|prediction|
 +----------+----+----------+
-|chevrol...|10.0|13.3478...|
-|oldsmob...|11.0|15.4763...|
-|mercury...|11.0|13.3238...|
-|dodge m...|12.0|14.0076...|
-|ford co...|12.0|13.5084...|
-|chevrol...|13.0|15.9149...|
-|buick c...|13.0|13.0939...|
-|buick c...|13.0|13.4527...|
-|  ford ltd|13.0|13.9120...|
-|plymout...|13.0|14.1534...|
+|chevrol...|11.0|14.0814...|
+|oldsmob...|12.0|13.6807...|
+|ford co...|12.0|13.9367...|
+|buick e...|12.0|13.4602...|
+| ford f108|13.0|17.2933...|
+|plymout...|13.0|14.9386...|
+|chevrol...|13.0|14.7679...|
+|chevrol...|13.0|14.2212...|
+|amc amb...|13.0|15.4404...|
+|chevrol...|13.0|14.1800...|
 +----------+----+----------+
 only showing top 10 rows
 ```
@@ -4345,7 +4366,9 @@ from pyspark.sql.types import StringType
 
 # Add manufacturer name we will use as a string column.
 first_word_udf = udf(lambda x: x.split()[0], StringType())
-df = df.withColumn("manufacturer", first_word_udf(df.carname))
+df = auto_df_fixed.withColumn(
+    "manufacturer", first_word_udf(auto_df_fixed.carname)
+)
 manufacturer_encoded = StringIndexer(
     inputCol="manufacturer", outputCol="manufacturer_encoded"
 )
@@ -4393,12 +4416,12 @@ for feature, importance in zip(
 ```
 ```
 # Code snippet result:
-manufacturer_encoded contributes 9.565%
-cylinders contributes 17.793%
-displacement contributes 20.047%
-horsepower contributes 20.910%
-weight contributes 27.480%
-acceleration contributes 4.206%
+manufacturer_encoded contributes 14.826%
+cylinders contributes 17.090%
+displacement contributes 23.268%
+horsepower contributes 28.346%
+weight contributes 12.691%
+acceleration contributes 3.778%
 ```
 
 Automatically encode categorical variables
@@ -4410,7 +4433,7 @@ from pyspark.ml.regression import RandomForestRegressor
 from pyspark.sql.functions import countDistinct
 
 # Remove non-numeric columns.
-df = df.drop("carname")
+df = auto_df_fixed.drop("carname")
 
 # Profile this DataFrame to get a good value for maxCategories.
 grouped = df.agg(*(countDistinct(c) for c in df.columns))
@@ -4446,23 +4469,23 @@ for feature, importance in zip(feature_columns, rf_model.featureImportances):
     print("{} contributes {:0.3f}%".format(feature, importance * 100))
 
 # Make predictions.
-predictions = rf_model.transform(test_df).select("mpg", "prediction")
+df = rf_model.transform(test_df).select("mpg", "prediction")
 ```
 ```
 # Code snippet result:
 +----+----------+
 | mpg|prediction|
 +----+----------+
-|10.0|12.9659...|
-|10.0|12.6445...|
-|12.0|12.9995...|
-|12.0|12.8926...|
-|13.0|16.9589...|
-|13.0|14.9567...|
-|13.0|14.9339...|
-|13.0|14.3146...|
-|14.0|15.1898...|
-|14.0|14.6263...|
+|10.0|13.8227...|
+|12.0|13.6410...|
+|12.0|12.8940...|
+|12.0|12.4666...|
+|12.0|12.4666...|
+|13.0|16.1240...|
+|13.0|14.2456...|
+|13.0|13.8020...|
+|13.0|12.7442...|
+|13.0|12.7442...|
 +----+----------+
 only showing top 10 rows
 ```
@@ -4481,7 +4504,9 @@ from pyspark.sql.types import StringType
 
 # Add manufacturer name we will use as a string column.
 first_word_udf = udf(lambda x: x.split()[0], StringType())
-df = df.withColumn("manufacturer", first_word_udf(df.carname))
+df = auto_df_fixed.withColumn(
+    "manufacturer", first_word_udf(auto_df_fixed.carname)
+)
 manufacturer_encoded = StringIndexer(
     inputCol="manufacturer", outputCol="manufacturer_encoded"
 )
@@ -4535,7 +4560,7 @@ print("Best model has {} trees.".format(real_model.getNumTrees))
 ```
 ```
 # Code snippet result:
-Best model has 70 trees.
+Best model has 90 trees.
 ```
 
 Plot Hyperparameter tuning metrics
@@ -4552,7 +4577,9 @@ from pyspark.sql.types import StringType
 
 # Add manufacturer name we will use as a string column.
 first_word_udf = udf(lambda x: x.split()[0], StringType())
-df = df.withColumn("manufacturer", first_word_udf(df.carname))
+df = auto_df_fixed.withColumn(
+    "manufacturer", first_word_udf(auto_df_fixed.carname)
+)
 manufacturer_encoded = StringIndexer(
     inputCol="manufacturer", outputCol="manufacturer_encoded"
 )
@@ -4635,7 +4662,7 @@ from pyspark.ml.tuning import CrossValidator, ParamGridBuilder
 
 label_column = "cover_type"
 vector_assembler = VectorAssembler(
-    inputCols=df.columns,
+    inputCols=covtype_df.columns,
     outputCol="features",
     handleInvalid="skip",
 )
@@ -4665,7 +4692,7 @@ crossval = CrossValidator(
 )
 
 # Run cross-validation and choose the best set of parameters.
-model = crossval.fit(df)
+model = crossval.fit(covtype_df)
 
 # Identify the best hyperparameters.
 real_model = model.bestModel.stages[1]
@@ -4681,7 +4708,7 @@ from pyspark.ml.feature import VectorAssembler
 from pyspark.ml.stat import Correlation
 
 # Remove non-numeric columns.
-df = df.drop("carname")
+df = auto_df_fixed.drop("carname")
 
 # Assemble all columns except mpg into a vector.
 feature_columns = list(df.columns)
@@ -4738,12 +4765,12 @@ from pyspark import StorageLevel
 from pyspark.sql.functions import lit
 
 # Make some copies of the DataFrame.
-df1 = df.where(lit(1) > lit(0))
-df2 = df.where(lit(2) > lit(0))
-df3 = df.where(lit(3) > lit(0))
+df1 = auto_df.where(lit(1) > lit(0))
+df2 = auto_df.where(lit(2) > lit(0))
+df3 = auto_df.where(lit(3) > lit(0))
 
 print("Show the default storage level (NONE).")
-print(df.storageLevel)
+print(auto_df.storageLevel)
 
 print("\nChange storage level to Memory/Disk via the cache shortcut.")
 df1.cache()
@@ -4788,7 +4815,7 @@ def number_in_partition(rows):
     except StopIteration:
         print("Empty partition")
 
-df = df.repartition(20, "modelyear")
+df = auto_df.repartition(20, "modelyear")
 df.foreachPartition(number_in_partition)
 ```
 ```
@@ -4838,7 +4865,7 @@ def count_in_partition(rows):
         print("Empty partition")
 
 number_of_partitions = 5
-df = df.repartitionByRange(number_of_partitions, col("modelyear"))
+df = auto_df.repartitionByRange(number_of_partitions, col("modelyear"))
 df.foreachPartition(count_in_partition)
 ```
 ```
@@ -4857,9 +4884,9 @@ Change Number of DataFrame Partitions
 ```python
 from pyspark.sql.functions import col
 
-df = df.repartition(col("modelyear"))
+df = auto_df.repartition(col("modelyear"))
 number_of_partitions = 5
-df = df.repartitionByRange(number_of_partitions, col("mpg"))
+df = auto_df.repartitionByRange(number_of_partitions, col("mpg"))
 ```
 ```
 # Code snippet result:
@@ -4886,8 +4913,8 @@ Coalesce DataFrame partitions
 ```python
 import math
 
-target_partitions = math.ceil(df.rdd.getNumPartitions() / 2)
-df = df.coalesce(target_partitions)
+target_partitions = math.ceil(auto_df.rdd.getNumPartitions() / 2)
+df = auto_df.coalesce(target_partitions)
 ```
 ```
 # Code snippet result:
@@ -4913,14 +4940,14 @@ Set the number of shuffle partitions
 
 ```python
 # Default shuffle partitions is usually 200.
-grouped1 = df.groupBy("cylinders").count()
+grouped1 = auto_df.groupBy("cylinders").count()
 print("{} partition(s)".format(grouped1.rdd.getNumPartitions()))
 
 # Set the shuffle partitions to 20.
 # This can reduce the number of files generated when saving DataFrames.
 spark.conf.set("spark.sql.shuffle.partitions", 20)
 
-grouped2 = df.groupBy("cylinders").count()
+grouped2 = auto_df.groupBy("cylinders").count()
 print("{} partition(s)".format(grouped2.rdd.getNumPartitions()))
 ```
 ```
@@ -4945,16 +4972,16 @@ df = (
 +----+---------+------------+----------+------+------------+---------+------+----------+
 | mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
 +----+---------+------------+----------+------+------------+---------+------+----------+
-|15.0|        8|       400.0|     150.0| 3761.|         9.5|       70|     1|chevrol...|
-|19.0|        6|       232.0|     100.0| 2634.|        13.0|       71|     1|amc gre...|
-|14.0|        8|       351.0|     153.0| 4154.|        13.5|       71|     1|ford ga...|
-|18.0|        6|       250.0|     88.00| 3139.|        14.5|       71|     1|ford mu...|
-|28.0|        4|       97.00|     92.00| 2288.|        17.0|       72|     3|datsun ...|
-|28.0|        4|       98.00|     80.00| 2164.|        15.0|       72|     1|dodge c...|
-|12.0|        8|       429.0|     198.0| 4952.|        11.5|       73|     1|mercury...|
-|13.0|        8|       360.0|     170.0| 4654.|        13.0|       73|     1|plymout...|
-|21.0|        6|       155.0|     107.0| 2472.|        14.0|       73|     1|mercury...|
-|24.0|        4|       121.0|     110.0| 2660.|        14.0|       73|     2| saab 99le|
+|19.0|        6|       250.0|     88.00| 3302.|        15.5|       71|     1|ford to...|
+|15.0|        8|       318.0|     150.0| 3777.|        12.5|       73|     1|dodge c...|
+|15.0|        8|       350.0|     145.0| 4082.|        13.0|       73|     1|chevrol...|
+|21.0|        6|       200.0|      null| 2875.|        17.0|       74|     1|ford ma...|
+|26.0|        4|       122.0|     80.00| 2451.|        16.5|       74|     1|ford pinto|
+|25.0|        4|       140.0|     75.00| 2542.|        17.0|       74|     1|chevrol...|
+|14.0|        8|       304.0|     150.0| 4257.|        15.5|       74|     1|amc mat...|
+|32.0|        4|       83.00|     61.00| 2003.|        19.0|       74|     3|datsun 710|
+|26.0|        4|       116.0|     75.00| 2246.|        14.0|       74|     2|fiat 12...|
+|24.0|        4|       120.0|     97.00| 2489.|        15.0|       74|     3|honda c...|
 +----+---------+------------+----------+------+------------+---------+------+----------+
 only showing top 10 rows
 ```
@@ -4967,7 +4994,7 @@ print(spark.sparkContext.getConf().getAll())
 ```
 ```
 # Code snippet result:
-[('spark.app.initial.jar.urls', 'spark://192.168.1.197:54651/jars/org.glassfish_javax.json-1.0.4.jar,spark://192.168.1.197:54651/jars/org.antlr_ST4-4.0.8.jar,spark://192.168.1.197:54651/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,spark://192.168.1.197:54651/jars/org.antlr_antlr4-runtime-4.7.jar,spark://192.168.1.197:54651/jars/org.antlr_antlr4-4.7.jar,spark://192.168.1.197:54651/jars/org.antlr_antlr-runtime-3.5.2.jar,spark://192.168.1.197:54651/jars/com.ibm.icu_icu4j-58.2.jar,spark://192.168.1.197:54651/jars/io.delta_delta-core_2.12-1.0.0.jar'), ('spark.driver.memory', '2G'), ('spark.files', 'file:///Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_ST4-4.0.8.jar,file:///Users/cshankli/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,file:///Users/cshankli/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,file:///Users/cshankli/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar'), ('spark.jars', 'file:///Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_ST4-4.0.8.jar,file:///Users/cshankli/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,file:///Users/cshankli/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,file:///Users/cshankli/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar'), ('spark.app.id', 'local-1633298592955'), ('spark.driver.port', '54651'), ('spark.executor.memory', '2G'), ('spark.repl.local.jars', 'file:///Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_ST4-4.0.8.jar,file:///Users/cshankli/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,file:///Users/cshankli/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,file:///Users/cshankli/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar'), ('spark.executor.id', 'driver'), ('spark.submit.pyFiles', '/Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,/Users/cshankli/.ivy2/jars/org.antlr_antlr4-4.7.jar,/Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,/Users/cshankli/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,/Users/cshankli/.ivy2/jars/org.antlr_ST4-4.0.8.jar,/Users/cshankli/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,/Users/cshankli/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,/Users/cshankli/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar'), ('spark.sql.extensions', 'io.delta.sql.DeltaSparkSessionExtension'), ('spark.rdd.compress', 'True'), ('spark.app.initial.file.urls', 'file:///Users/cshankli/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,file:///Users/cshankli/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,file:///Users/cshankli/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-4.7.jar,file:///Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_ST4-4.0.8.jar'), ('spark.serializer.objectStreamReset', '100'), ('spark.app.startTime', '1633298591628'), ('spark.master', 'local[*]'), ('spark.submit.deployMode', 'client'), ('spark.driver.host', '192.168.1.197'), ('spark.app.name', 'cheatsheet'), ('spark.ui.showConsoleProgress', 'true'), ('spark.sql.warehouse.dir', 'file:///Users/cshankli/git/pyspark-cheatsheet/spark_warehouse'), ('spark.jars.packages', 'io.delta:delta-core_2.12:1.0.0'), ('spark.sql.catalog.spark_catalog', 'org.apache.spark.sql.delta.catalog.DeltaCatalog')]
+[('spark.app.initial.jar.urls', 'spark://192.168.1.207:59707/jars/org.glassfish_javax.json-1.0.4.jar,spark://192.168.1.207:59707/jars/com.ibm.icu_icu4j-58.2.jar,spark://192.168.1.207:59707/jars/org.antlr_antlr4-runtime-4.7.jar,spark://192.168.1.207:59707/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,spark://192.168.1.207:59707/jars/org.antlr_antlr4-4.7.jar,spark://192.168.1.207:59707/jars/org.antlr_ST4-4.0.8.jar,spark://192.168.1.207:59707/jars/org.antlr_antlr-runtime-3.5.2.jar,spark://192.168.1.207:59707/jars/io.delta_delta-core_2.12-1.0.0.jar'), ('spark.driver.memory', '2G'), ('spark.files', 'file:///Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_ST4-4.0.8.jar,file:///Users/cshankli/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,file:///Users/cshankli/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,file:///Users/cshankli/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar'), ('spark.jars', 'file:///Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_ST4-4.0.8.jar,file:///Users/cshankli/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,file:///Users/cshankli/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,file:///Users/cshankli/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar'), ('spark.executor.memory', '2G'), ('spark.repl.local.jars', 'file:///Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_ST4-4.0.8.jar,file:///Users/cshankli/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,file:///Users/cshankli/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,file:///Users/cshankli/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar'), ('spark.executor.id', 'driver'), ('spark.submit.pyFiles', '/Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,/Users/cshankli/.ivy2/jars/org.antlr_antlr4-4.7.jar,/Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,/Users/cshankli/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,/Users/cshankli/.ivy2/jars/org.antlr_ST4-4.0.8.jar,/Users/cshankli/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,/Users/cshankli/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,/Users/cshankli/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar'), ('spark.driver.port', '59707'), ('spark.sql.extensions', 'io.delta.sql.DeltaSparkSessionExtension'), ('spark.rdd.compress', 'True'), ('spark.app.initial.file.urls', 'file:///Users/cshankli/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,file:///Users/cshankli/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,file:///Users/cshankli/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-4.7.jar,file:///Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_ST4-4.0.8.jar'), ('spark.app.id', 'local-1633707626682'), ('spark.serializer.objectStreamReset', '100'), ('spark.driver.host', '192.168.1.207'), ('spark.master', 'local[*]'), ('spark.app.startTime', '1633707625565'), ('spark.submit.deployMode', 'client'), ('spark.app.name', 'cheatsheet'), ('spark.ui.showConsoleProgress', 'true'), ('spark.sql.warehouse.dir', 'file:///Users/cshankli/git/pyspark-cheatsheet/spark_warehouse'), ('spark.jars.packages', 'io.delta:delta-core_2.12:1.0.0'), ('spark.sql.catalog.spark_catalog', 'org.apache.spark.sql.delta.catalog.DeltaCatalog')]
 ```
 
 Set Spark configuration properties
