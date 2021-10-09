@@ -122,6 +122,8 @@ Preamble:
 
         - Generate README.md: `python3 cheatsheet.py`
 
+        - Generate cheatsheet.ipynb: `python3 cheatsheet.py --notebook`
+
 
 Postscript:
     description:
