@@ -3745,6 +3745,92 @@ class management_merge_tables(snippet):
         return (df, dict(truncate=False))
 
 
+class management_version_history(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Show Table Version History"
+        self.category = "Data Management"
+        self.dataset = "UNUSED"
+        self.priority = 300
+
+    def snippet(self, auto_df):
+        # Load our table.
+        output_path = "delta_tests"
+        dt = DeltaTable.forPath(spark, output_path)
+
+        # Show select table history.
+        df = dt.history().select("version timestamp operation".split())
+        return df
+
+
+
+class management_specific_version(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Load a Delta Table by Version ID"
+        self.category = "Data Management"
+        self.dataset = "UNUSED"
+        self.priority = 400
+
+    def snippet(self, auto_df):
+        output_path = "delta_tests"
+
+        # Get versions.
+        dt = DeltaTable.forPath(spark, output_path)
+        versions = dt.history().select("version timestamp".split()).orderBy("version")
+        oldest_version = versions.first()[0]
+        print("Oldest version is", oldest_version)
+
+        # Load the oldest version.
+        df = spark.read.format("delta").option("versionAsOf", oldest_version).load(output_path)
+        return df
+
+
+class management_specific_timestamp(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Load a Delta Table by Timestamp"
+        self.category = "Data Management"
+        self.dataset = "UNUSED"
+        self.priority = 410
+
+    def snippet(self, auto_df):
+        output_path = "delta_tests"
+
+        # Get versions.
+        dt = DeltaTable.forPath(spark, output_path)
+        versions = dt.history().select("version timestamp".split()).orderBy("version")
+        oldest_timestamp = versions.first()[1]
+        print("Oldest timestamp is", oldest_timestamp)
+
+        # Load the oldest version by timestamp.
+        df = spark.read.format("delta").option("timestampAsOf", oldest_timestamp).load(output_path)
+        return df
+
+
+class management_compact_table(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Compact a Delta Table"
+        self.category = "Data Management"
+        self.dataset = "UNUSED"
+        self.priority = 500
+
+    def snippet(self, auto_df):
+        output_path = "delta_tests"
+
+        # Load table.
+        dt = DeltaTable.forPath(spark, output_path)
+
+        # Clean up data older than the given window.
+        retention_window_hours = 168
+        dt.vacuum(retention_window_hours)
+
+        # Show the new versions.
+        df = dt.history().select("version timestamp".split()).orderBy("version")
+        return df
+
+
 class streaming_connect_kafka_sasl_plain(snippet):
     def __init__(self):
         super().__init__()
