@@ -3767,7 +3767,7 @@ class management_version_history(snippet):
 class management_specific_version(snippet):
     def __init__(self):
         super().__init__()
-        self.name = "Load a Delta Table by Version ID"
+        self.name = "Load a Delta Table by Version ID (Time Travel Query)"
         self.category = "Data Management"
         self.dataset = "UNUSED"
         self.priority = 400
@@ -3789,7 +3789,7 @@ class management_specific_version(snippet):
 class management_specific_timestamp(snippet):
     def __init__(self):
         super().__init__()
-        self.name = "Load a Delta Table by Timestamp"
+        self.name = "Load a Delta Table by Timestamp (Time Travel Query)"
         self.category = "Data Management"
         self.dataset = "UNUSED"
         self.priority = 410
