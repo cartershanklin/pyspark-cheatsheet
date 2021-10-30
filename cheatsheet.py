@@ -612,11 +612,11 @@ class dfo_add_column_custom_udf(snippet):
         self.priority = 2100
 
     def snippet(self, auto_df):
-        from pyspark.sql.functions import udf
+        from pyspark.sql.functions import col, udf
         from pyspark.sql.types import StringType
 
         first_word_udf = udf(lambda x: x.split()[0], StringType())
-        df = auto_df.withColumn("manufacturer", first_word_udf(auto_df.carname))
+        df = auto_df.withColumn("manufacturer", first_word_udf(col("carname")))
         return df
 
 
