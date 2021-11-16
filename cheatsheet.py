@@ -263,6 +263,7 @@ class loadsave_read_from_s3(snippet):
 
     def snippet(self, df):
         import configparser
+        import os
 
         config = configparser.ConfigParser()
         config.read(os.path.expanduser("~/.aws/credentials"))
