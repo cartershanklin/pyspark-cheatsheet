@@ -267,8 +267,8 @@ class loadsave_read_from_s3(snippet):
 
         config = configparser.ConfigParser()
         config.read(os.path.expanduser("~/.aws/credentials"))
-        access_key = config.get("default", "aws_access_key_id")
-        secret_key = config.get("default", "aws_secret_access_key")
+        access_key = config.get("default", "aws_access_key_id").replace('"', "")
+        secret_key = config.get("default", "aws_secret_access_key").replace('"', "")
 
         # Requires compatible hadoop-aws and aws-java-sdk-bundle JARs.
         spark.conf.set(
