@@ -1610,13 +1610,9 @@ class sortsearch_multi_filter(snippet):
         from pyspark.sql.functions import col
 
         # OR
-        df = auto_df.filter(
-            (col("mpg") > "30") | (col("acceleration") < "10")
-        )
+        df = auto_df.filter((col("mpg") > "30") | (col("acceleration") < "10"))
         # AND
-        df = auto_df.filter(
-            (col("mpg") > "30") & (col("acceleration") < "13")
-        )
+        df = auto_df.filter((col("mpg") > "30") & (col("acceleration") < "13"))
         return df
 
 
@@ -3764,7 +3760,6 @@ class management_version_history(snippet):
         return df
 
 
-
 class management_specific_version(snippet):
     def __init__(self):
         super().__init__()
@@ -3783,7 +3778,11 @@ class management_specific_version(snippet):
         print("Oldest version is", oldest_version)
 
         # Load the oldest version.
-        df = spark.read.format("delta").option("versionAsOf", oldest_version).load(output_path)
+        df = (
+            spark.read.format("delta")
+            .option("versionAsOf", oldest_version)
+            .load(output_path)
+        )
         return df
 
 
@@ -3805,7 +3804,11 @@ class management_specific_timestamp(snippet):
         print("Oldest timestamp is", oldest_timestamp)
 
         # Load the oldest version by timestamp.
-        df = spark.read.format("delta").option("timestampAsOf", oldest_timestamp).load(output_path)
+        df = (
+            spark.read.format("delta")
+            .option("timestampAsOf", oldest_timestamp)
+            .load(output_path)
+        )
         return df
 
 
@@ -4081,6 +4084,111 @@ class streaming_add_timestamp(snippet):
         return df
 
 
+class streaming_conditional_udf(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Call a UDF only when a threshold is reached"
+        self.category = "Spark Streaming"
+        self.dataset = "UNUSED"
+        self.skip_run = True
+        self.priority = 400
+
+    def snippet(self, auto_df):
+        """
+        It's common you want to call a UDF when measure hits a threshold. You want
+        to call the UDF when a row hits a condition and skip it otherwise. PySpark
+        does not support calling UDFs conditionally (or short-circuiting) as of 3.1.2.
+
+        To deal with this put a short-circuit field in the UDF and call the UDF
+        with the condition. If the short-circuit is true return immediately.
+
+        This example performs an action when a running average exceeds 100.
+        """
+        from pyspark.sql.types import BooleanType
+        from pyspark.sql.functions import udf
+
+        @udf(returnType=BooleanType())
+        def myudf(short_circuit, state, value):
+            if short_circuit == True:
+                return True
+
+            # Log, send an alert, etc.
+            return False
+
+        df = (
+            spark.readStream.format("socket")
+            .option("host", "localhost")
+            .option("port", "9090")
+            .load()
+        )
+        parsed = (
+            df.selectExpr(
+                "split(value,',')[0] as state",
+                "split(value,',')[1] as zipcode",
+                "split(value,',')[2] as spend",
+            )
+            .groupBy("state")
+            .agg({"spend": "avg"})
+            .orderBy(desc("avg(spend)"))
+        )
+        tagged = parsed.withColumn(
+            "below", myudf(col("avg(spend)") < 100, col("state"), col("avg(spend)"))
+        )
+
+        tagged.writeStream.outputMode("complete").format(
+            "console"
+        ).start().awaitTermination()
+
+
+class streaming_machine_learning(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Streaming Machine Learning"
+        self.category = "Spark Streaming"
+        self.dataset = "UNUSED"
+        self.priority = 500
+        self.skip_run = True
+
+    def snippet(self, auto_df):
+        """
+        MLlib pipelines can be loaded and used in streaming jobs.
+
+        When training, define a Pipeline like:
+            pipeline = Pipeline(stages=[a, b, ...])
+
+        Fit it, then save the resulting model:
+            pipeline_model = pipeline.fit(train_df)
+            pipeline_model.write().overwrite().save("path/to/pipeline")
+
+        The pipeline model can then be used as shown below.
+        """
+
+        from pyspark.ml import PipelineModel
+
+        pipeline_model = PipelineModel.load("path/to/pipeline")
+        df = pipeline.transform(input_df)
+        df.writeStream.format("console").start().awaitTermination()
+
+
+class streaming_processing_frequency(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Control stream processing frequency"
+        self.category = "Spark Streaming"
+        self.dataset = "UNUSED"
+        self.priority = 600
+        self.skip_run = True
+
+    def snippet(self, auto_df):
+        """
+        Use the processingTime option of trigger to control how frequently microbatches
+        run. You can specify milliseconds or a string interval.
+        """
+        df.writeStream.outputMode("complete").format("console").trigger(
+            processingTime="10 seconds"
+        ).start().awaitTermination()
+
+
 # Dynamically build a list of all cheats.
 cheat_sheet = []
 clsmembers = inspect.getmembers(sys.modules[__name__], inspect.isclass)
@@ -4088,6 +4196,7 @@ for name, clazz in clsmembers:
     classes = [str(x) for x in inspect.getmro(clazz)[1:]]
     if "<class '__main__.snippet'>" in classes:
         cheat_sheet.append(clazz())
+
 
 def generate(type):
     # Gather up all the categories and snippets.
@@ -4119,12 +4228,13 @@ def generate(type):
     else:
         return generate_notebook(snippets, sorted_categories, category_spec)
 
+
 def generate_notebook(snippets, sorted_categories, category_spec):
     import nbformat as nbf
 
     nb = nbf.v4.new_notebook()
     cells = []
-    target_file = 'cheatsheet.ipynb'
+    target_file = "cheatsheet.ipynb"
 
     header_format = "## {}"
     name_format = "**{}**"
@@ -4139,7 +4249,11 @@ def generate_notebook(snippets, sorted_categories, category_spec):
 
     for category in sorted_categories:
         list = snippets[category]
-        cells.append(nbf.v4.new_markdown_cell(header_format.format(category_spec[category]["description"])))
+        cells.append(
+            nbf.v4.new_markdown_cell(
+                header_format.format(category_spec[category]["description"])
+            )
+        )
         for name, priority, source, raw_source, cheat in list:
             if cheat.skip_run:
                 continue
@@ -4150,8 +4264,9 @@ def generate_notebook(snippets, sorted_categories, category_spec):
             cells.append(nbf.v4.new_code_cell(source))
 
     nb["cells"] = cells
-    with open(target_file, 'w') as f:
+    with open(target_file, "w") as f:
         nbf.write(nb, f)
+
 
 def generate_cheatsheet(snippets, sorted_categories, category_spec):
     # TOC Template

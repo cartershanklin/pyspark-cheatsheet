@@ -9,7 +9,7 @@ These snippets use DataFrames loaded from various data sources:
 - customer_spend.csv, a generated time series dataset.
 - date_examples.csv, a generated dataset with various date and time formats.
 
-These snippets were tested against the Spark 3.1.2 API. This page was last updated 2021-11-17 09:25:26.
+These snippets were tested against the Spark 3.1.2 API. This page was last updated 2021-12-08 09:00:33.
 
 Make note of these helpful links:
 - [PySpark DataFrame Operations](http://spark.apache.org/docs/latest/api/python/reference/pyspark.sql.html#dataframe-apis)
@@ -178,6 +178,9 @@ Table of contents
       * [Create a windowed Structured Stream over input CSV files](#create-a-windowed-structured-stream-over-input-csv-files)
       * [Create an unwindowed Structured Stream over input CSV files](#create-an-unwindowed-structured-stream-over-input-csv-files)
       * [Add the current timestamp to a DataFrame](#add-the-current-timestamp-to-a-dataframe)
+      * [Call a UDF only when a threshold is reached](#call-a-udf-only-when-a-threshold-is-reached)
+      * [Streaming Machine Learning](#streaming-machine-learning)
+      * [Control stream processing frequency](#control-stream-processing-frequency)
    * [Time Series](#time-series)
       * [Zero fill missing values in a timeseries](#zero-fill-missing-values-in-a-timeseries)
       * [First Time an ID is Seen](#first-time-an-id-is-seen)
@@ -1711,13 +1714,9 @@ Multiple filter conditions
 from pyspark.sql.functions import col
 
 # OR
-df = auto_df.filter(
-    (col("mpg") > "30") | (col("acceleration") < "10")
-)
+df = auto_df.filter((col("mpg") > "30") | (col("acceleration") < "10"))
 # AND
-df = auto_df.filter(
-    (col("mpg") > "30") & (col("acceleration") < "13")
-)
+df = auto_df.filter((col("mpg") > "30") & (col("acceleration") < "13"))
 ```
 ```
 # Code snippet result:
@@ -2710,16 +2709,16 @@ df = spark.createDataFrame(entries, schema)
 +----------+----------+-----+----------+
 |      file|      path| size|     mtime|
 +----------+----------+-----+----------+
-|  manpaths|/etc/ma...|   36|2020-06...|
-| rc.common|/etc/rc...| 1560|2020-06...|
-|auto_ma...|/etc/au...|  195|2020-08...|
-| csh.login|/etc/cs...|  121|2020-06...|
-|syslog....|/etc/sy...|  133|2020-12...|
-|krb5.ke...|/etc/kr...| 1946|2021-10...|
-|    nanorc|/etc/na...|   11|2020-06...|
-|csh.logout|/etc/cs...|   39|2020-06...|
-|aliases.db|/etc/al...|16384|2020-06...|
-|bashrc_...|/etc/ba...| 9192|2020-06...|
+|  manpaths|/etc/ma...|   36|2020-01...|
+| rc.common|/etc/rc...| 1560|2020-01...|
+|auto_ma...|/etc/au...|  195|2020-01...|
+| csh.login|/etc/cs...|  121|2020-01...|
+|syslog....|/etc/sy...|  133|2021-12...|
+|krb5.ke...|/etc/kr...| 1946|2021-12...|
+|    nanorc|/etc/na...|   11|2020-01...|
+|csh.logout|/etc/cs...|   39|2020-01...|
+|aliases.db|/etc/al...|16384|2020-01...|
+|bashrc_...|/etc/ba...| 9270|2020-01...|
 +----------+----------+-----+----------+
 only showing top 10 rows
 ```
@@ -3523,16 +3522,13 @@ df = dt.history().select("version operation operationMetrics".split())
 ```
 ```
 # Code snippet result:
-+-------+---------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-|version|operation|operationMetrics                                                                                                                                                                                                                                                                        |
-+-------+---------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-|5      |MERGE    |{numTargetRowsCopied -> 373, numTargetRowsDeleted -> 0, numTargetFilesAdded -> 175, executionTimeMs -> 7540, numTargetRowsInserted -> 0, scanTimeMs -> 3155, numTargetRowsUpdated -> 25, numOutputRows -> 398, numSourceRows -> 398, numTargetFilesRemoved -> 1, rewriteTimeMs -> 4382} |
-|4      |WRITE    |{numFiles -> 1, numOutputBytes -> 11582, numOutputRows -> 398}                                                                                                                                                                                                                          |
-|3      |WRITE    |{numFiles -> 1, numOutputBytes -> 11582, numOutputRows -> 398}                                                                                                                                                                                                                          |
-|2      |MERGE    |{numTargetRowsCopied -> 373, numTargetRowsDeleted -> 0, numTargetFilesAdded -> 175, executionTimeMs -> 11332, numTargetRowsInserted -> 0, scanTimeMs -> 5228, numTargetRowsUpdated -> 25, numOutputRows -> 398, numSourceRows -> 398, numTargetFilesRemoved -> 1, rewriteTimeMs -> 6101}|
-|1      |WRITE    |{numFiles -> 1, numOutputBytes -> 11582, numOutputRows -> 398}                                                                                                                                                                                                                          |
-|0      |WRITE    |{numFiles -> 1, numOutputBytes -> 11582, numOutputRows -> 398}                                                                                                                                                                                                                          |
-+-------+---------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
++-------+---------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|version|operation|operationMetrics                                                                                                                                                                                                                                                                       |
++-------+---------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|2      |MERGE    |{numTargetRowsCopied -> 373, numTargetRowsDeleted -> 0, numTargetFilesAdded -> 175, executionTimeMs -> 8639, numTargetRowsInserted -> 0, scanTimeMs -> 3853, numTargetRowsUpdated -> 25, numOutputRows -> 398, numSourceRows -> 398, numTargetFilesRemoved -> 1, rewriteTimeMs -> 4781}|
+|1      |WRITE    |{numFiles -> 1, numOutputBytes -> 11582, numOutputRows -> 398}                                                                                                                                                                                                                         |
+|0      |WRITE    |{numFiles -> 1, numOutputBytes -> 11582, numOutputRows -> 398}                                                                                                                                                                                                                         |
++-------+---------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 ```
 
 Show Table Version History
@@ -3551,12 +3547,9 @@ df = dt.history().select("version timestamp operation".split())
 +-------+----------+---------+
 |version| timestamp|operation|
 +-------+----------+---------+
-|      5|2021-11...|    MERGE|
-|      4|2021-11...|    WRITE|
-|      3|2021-11...|    WRITE|
-|      2|2021-10...|    MERGE|
-|      1|2021-10...|    WRITE|
-|      0|2021-10...|    WRITE|
+|      2|2021-12...|    MERGE|
+|      1|2021-12...|    WRITE|
+|      0|2021-12...|    WRITE|
 +-------+----------+---------+
 ```
 
@@ -3573,7 +3566,11 @@ oldest_version = versions.first()[0]
 print("Oldest version is", oldest_version)
 
 # Load the oldest version.
-df = spark.read.format("delta").option("versionAsOf", oldest_version).load(output_path)
+df = (
+    spark.read.format("delta")
+    .option("versionAsOf", oldest_version)
+    .load(output_path)
+)
 ```
 ```
 # Code snippet result:
@@ -3607,7 +3604,11 @@ oldest_timestamp = versions.first()[1]
 print("Oldest timestamp is", oldest_timestamp)
 
 # Load the oldest version by timestamp.
-df = spark.read.format("delta").option("timestampAsOf", oldest_timestamp).load(output_path)
+df = (
+    spark.read.format("delta")
+    .option("timestampAsOf", oldest_timestamp)
+    .load(output_path)
+)
 ```
 ```
 # Code snippet result:
@@ -3649,12 +3650,9 @@ df = dt.history().select("version timestamp".split()).orderBy("version")
 +-------+----------+
 |version| timestamp|
 +-------+----------+
-|      0|2021-10...|
-|      1|2021-10...|
-|      2|2021-10...|
-|      3|2021-11...|
-|      4|2021-11...|
-|      5|2021-11...|
+|      0|2021-12...|
+|      1|2021-12...|
+|      2|2021-12...|
 +-------+----------+
 ```
 
@@ -3895,19 +3893,109 @@ df = auto_df.withColumn("timestamp", current_timestamp())
 +----+---------+------------+----------+------+------------+---------+------+----------+----------+
 | mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname| timestamp|
 +----+---------+------------+----------+------+------------+---------+------+----------+----------+
-|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|2021-11...|
-|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|2021-11...|
-|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|2021-11...|
-|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|2021-11...|
-|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|2021-11...|
-|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|2021-11...|
-|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|2021-11...|
-|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|2021-11...|
-|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|2021-11...|
-|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|2021-11...|
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|2021-12...|
+|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|2021-12...|
+|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|2021-12...|
+|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|2021-12...|
+|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|2021-12...|
+|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|2021-12...|
+|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|2021-12...|
+|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|2021-12...|
+|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|2021-12...|
+|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|2021-12...|
 +----+---------+------------+----------+------+------------+---------+------+----------+----------+
 only showing top 10 rows
 ```
+
+Call a UDF only when a threshold is reached
+-------------------------------------------
+
+```python
+"""
+It's common you want to call a UDF when measure hits a threshold. You want
+to call the UDF when a row hits a condition and skip it otherwise. PySpark
+does not support calling UDFs conditionally (or short-circuiting) as of 3.1.2.
+
+To deal with this put a short-circuit field in the UDF and call the UDF
+with the condition. If the short-circuit is true return immediately.
+
+This example performs an action when a running average exceeds 100.
+"""
+from pyspark.sql.types import BooleanType
+from pyspark.sql.functions import udf
+
+@udf(returnType=BooleanType())
+def myudf(short_circuit, state, value):
+    if short_circuit == True:
+        return True
+
+    # Log, send an alert, etc.
+    return False
+
+df = (
+    spark.readStream.format("socket")
+    .option("host", "localhost")
+    .option("port", "9090")
+    .load()
+)
+parsed = (
+    df.selectExpr(
+        "split(value,',')[0] as state",
+        "split(value,',')[1] as zipcode",
+        "split(value,',')[2] as spend",
+    )
+    .groupBy("state")
+    .agg({"spend": "avg"})
+    .orderBy(desc("avg(spend)"))
+)
+tagged = parsed.withColumn(
+    "below", myudf(col("avg(spend)") < 100, col("state"), col("avg(spend)"))
+)
+
+tagged.writeStream.outputMode("complete").format(
+    "console"
+).start().awaitTermination()
+```
+
+
+Streaming Machine Learning
+--------------------------
+
+```python
+"""
+MLlib pipelines can be loaded and used in streaming jobs.
+
+When training, define a Pipeline like:
+    pipeline = Pipeline(stages=[a, b, ...])
+
+Fit it, then save the resulting model:
+    pipeline_model = pipeline.fit(train_df)
+    pipeline_model.write().overwrite().save("path/to/pipeline")
+
+The pipeline model can then be used as shown below.
+"""
+
+from pyspark.ml import PipelineModel
+
+pipeline_model = PipelineModel.load("path/to/pipeline")
+df = pipeline.transform(input_df)
+df.writeStream.format("console").start().awaitTermination()
+```
+
+
+Control stream processing frequency
+-----------------------------------
+
+```python
+"""
+Use the processingTime option of trigger to control how frequently microbatches
+run. You can specify milliseconds or a string interval.
+"""
+df.writeStream.outputMode("complete").format("console").trigger(
+    processingTime="10 seconds"
+).start().awaitTermination()
+```
+
 
 Time Series
 ===========
@@ -4186,16 +4274,16 @@ predictions = rf_model.transform(assembled).select(
 +----------+----+----------+
 |   carname| mpg|prediction|
 +----------+----+----------+
-|chevrol...|18.0|16.4302...|
-|buick s...|15.0|13.8394...|
-|plymout...|18.0|16.0477...|
-|amc reb...|16.0|16.0737...|
-|ford to...|17.0|16.7996...|
-|ford ga...|15.0|13.4743...|
-|chevrol...|14.0|13.2459...|
-|plymout...|14.0|13.3359...|
-|pontiac...|14.0|13.2459...|
-|amc amb...|15.0|13.8137...|
+|chevrol...|18.0|16.6869...|
+|buick s...|15.0|14.4966...|
+|plymout...|18.0|15.2718...|
+|amc reb...|16.0|15.7257...|
+|ford to...|17.0|17.1433...|
+|ford ga...|15.0|13.6918...|
+|chevrol...|14.0|13.6220...|
+|plymout...|14.0|13.8455...|
+|pontiac...|14.0|13.6220...|
+|amc amb...|15.0|14.0617...|
 +----------+----+----------+
 only showing top 10 rows
 ```
@@ -4251,16 +4339,16 @@ df = lr_model.transform(test_df)
 +----------+----+----------+----------+
 |  features| mpg|   carname|prediction|
 +----------+----+----------+----------+
-|[3.0,70...|19.0|mazda r...|27.4835...|
-|[4.0,71...|31.0|toyota ...|31.3967...|
-|[4.0,71...|32.0|toyota ...|31.0929...|
-|[4.0,72...|35.0|datsun ...|31.9802...|
-|[4.0,79...|39.1|toyota ...|31.8126...|
-|[4.0,79...|36.0|renault...|31.4750...|
-|[4.0,79...|31.0|datsun ...|30.4491...|
-|[4.0,79...|26.0|volkswa...|30.3864...|
-|[4.0,79...|30.0|peugeot...|29.7101...|
-|[4.0,85...|40.8|datsun 210|29.7716...|
+|[3.0,70...|18.0| maxda rx3|29.6694...|
+|[3.0,70...|23.7|mazda r...|28.0450...|
+|[4.0,68...|29.0|  fiat 128|31.5737...|
+|[4.0,76...|31.0|toyota ...|32.4482...|
+|[4.0,78...|32.8|mazda g...|30.8332...|
+|[4.0,79...|39.1|toyota ...|31.7783...|
+|[4.0,79...|36.0|renault...|31.4467...|
+|[4.0,79...|26.0|volkswa...|30.5931...|
+|[4.0,79...|30.0|peugeot...|30.0006...|
+|[4.0,81...|35.1|honda c...|31.6873...|
 +----------+----+----------+----------+
 only showing top 10 rows
 ```
@@ -4318,16 +4406,16 @@ print("RMSE={} r2={}".format(rmse, r2))
 +----------+----+----------+----------+
 |  features| mpg|   carname|prediction|
 +----------+----+----------+----------+
-|[4.0,68...|29.0|  fiat 128|31.5822...|
-|[4.0,71...|31.0|toyota ...|31.6272...|
-|[4.0,79...|39.1|toyota ...|32.1540...|
-|[4.0,79...|36.0|renault...|31.5388...|
-|[4.0,81...|35.1|honda c...|32.1759...|
-|[4.0,85...|29.0|chevrol...|40.5962...|
-|[4.0,85...|33.5|datsun ...|31.3370...|
-|[4.0,86...|39.0|plymout...|32.3840...|
-|[4.0,86...|34.1|maxda g...|33.6188...|
-|[4.0,88...|30.0| fiat 124b|31.0977...|
+|[3.0,80...|21.5|mazda rx-4|22.9185...|
+|[4.0,71...|32.0|toyota ...|34.0767...|
+|[4.0,76...|31.0|toyota ...|34.5185...|
+|[4.0,78...|32.8|mazda g...|33.9069...|
+|[4.0,79...|31.0| fiat x1.9|33.4072...|
+|[4.0,81...|35.1|honda c...|34.6885...|
+|[4.0,83...|32.0|datsun 710|35.5823...|
+|[4.0,85...|29.0|chevrol...|36.3276...|
+|[4.0,85...|37.0|datsun ...|35.3207...|
+|[4.0,85...|40.8|datsun 210|36.4996...|
 +----------+----+----------+----------+
 only showing top 10 rows
 ```
@@ -4377,16 +4465,16 @@ df = predictions.select([label_column, "prediction"])
 +----------+----------+
 |cover_type|prediction|
 +----------+----------+
+|         3|       3.0|
+|         3|       3.0|
+|         6|       3.0|
+|         3|       3.0|
+|         6|       3.0|
 |         6|       6.0|
 |         6|       6.0|
-|         6|       6.0|
+|         6|       3.0|
 |         6|       6.0|
 |         3|       3.0|
-|         6|       6.0|
-|         6|       6.0|
-|         6|       6.0|
-|         3|       3.0|
-|         6|       6.0|
 +----------+----------+
 only showing top 10 rows
 ```
@@ -4464,16 +4552,16 @@ print("RMSE={}".format(rmse))
 +----------+----+----------+
 |   carname| mpg|prediction|
 +----------+----+----------+
-|chevrol...|10.0|14.0107...|
-|dodge d200|11.0|14.9111...|
-|oldsmob...|12.0|12.9271...|
-|chevrol...|13.0|14.9972...|
-|buick c...|13.0|12.9889...|
-|buick c...|13.0|14.3358...|
-|ford co...|13.0|12.8106...|
-|ford gr...|14.0|14.1528...|
-|amc mat...|14.0|14.8936...|
-|plymout...|14.0|14.5594...|
+|chevrol...|10.0|14.7539...|
+| ford f250|10.0|13.2802...|
+|oldsmob...|11.0|16.2092...|
+|chevrol...|11.0|13.7245...|
+|oldsmob...|12.0|14.3971...|
+|buick c...|13.0|13.8121...|
+|amc mat...|14.0|15.3828...|
+|plymout...|14.0|14.6926...|
+|plymout...|14.0|14.6383...|
+|plymout...|14.0|14.9145...|
 +----------+----+----------+
 only showing top 10 rows
 ```
@@ -4540,12 +4628,12 @@ for feature, importance in zip(
 ```
 ```
 # Code snippet result:
-manufacturer_encoded contributes 9.157%
-cylinders contributes 14.142%
-displacement contributes 22.838%
-horsepower contributes 14.118%
-weight contributes 35.510%
-acceleration contributes 4.234%
+manufacturer_encoded contributes 7.308%
+cylinders contributes 16.650%
+displacement contributes 24.435%
+horsepower contributes 26.243%
+weight contributes 22.187%
+acceleration contributes 3.176%
 ```
 
 Automatically encode categorical variables
@@ -4600,16 +4688,16 @@ df = rf_model.transform(test_df).select("mpg", "prediction")
 +----+----------+
 | mpg|prediction|
 +----+----------+
-|10.0|13.0853...|
-|11.0|13.0139...|
-|12.0|13.1280...|
-|12.0|13.0139...|
-|13.0|16.7742...|
-|13.0|15.1852...|
-|13.0|13.8427...|
-|13.0|13.2077...|
-|13.0|13.2407...|
-|14.0|14.8145...|
+|10.0|12.6709...|
+|12.0|12.9458...|
+|12.0|12.4317...|
+|13.0|17.8238...|
+|13.0|14.2979...|
+|13.0|15.8380...|
+|13.0|14.8416...|
+|13.0|13.5783...|
+|13.0|13.5805...|
+|13.0|13.6961...|
 +----+----------+
 only showing top 10 rows
 ```
@@ -5096,16 +5184,16 @@ df = (
 +----+---------+------------+----------+------+------------+---------+------+----------+
 | mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
 +----+---------+------------+----------+------+------------+---------+------+----------+
-|15.0|        8|       383.0|     170.0| 3563.|        10.0|       70|     1|dodge c...|
-|25.0|        4|       104.0|     95.00| 2375.|        17.5|       70|     2|  saab 99e|
-|19.0|        6|       250.0|     100.0| 3282.|        15.0|       71|     1|pontiac...|
-|24.0|        4|       113.0|     95.00| 2278.|        15.5|       72|     3|toyota ...|
-|22.0|        4|       122.0|     86.00| 2395.|        16.0|       72|     1|ford pi...|
-|23.0|        6|       198.0|     95.00| 2904.|        16.0|       73|     1|plymout...|
-|21.0|        6|       155.0|     107.0| 2472.|        14.0|       73|     1|mercury...|
-|15.0|        8|       318.0|     150.0| 3399.|        11.0|       73|     1|dodge d...|
-|32.0|        4|       71.00|     65.00| 1836.|        21.0|       74|     3|toyota ...|
-|16.0|        6|       250.0|     100.0| 3781.|        17.0|       74|     1|chevrol...|
+|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|
+|14.0|        8|       455.0|     225.0| 3086.|        10.0|       70|     1|buick e...|
+|21.0|        6|       200.0|     85.00| 2587.|        16.0|       70|     1|ford ma...|
+|25.0|        4|       110.0|     87.00| 2672.|        17.5|       70|     2|peugeot...|
+|24.0|        4|       107.0|     90.00| 2430.|        14.5|       70|     2|audi 10...|
+|25.0|        4|       98.00|      null| 2046.|        19.0|       71|     1|ford pinto|
+|14.0|        8|       400.0|     175.0| 4464.|        11.5|       71|     1|pontiac...|
+|23.0|        4|       122.0|     86.00| 2220.|        14.0|       71|     1|mercury...|
+|35.0|        4|       72.00|     69.00| 1613.|        18.0|       71|     3|datsun ...|
+|27.0|        4|       97.00|     60.00| 1834.|        19.0|       71|     2|volkswa...|
 +----+---------+------------+----------+------+------------+---------+------+----------+
 only showing top 10 rows
 ```
@@ -5118,7 +5206,7 @@ print(spark.sparkContext.getConf().getAll())
 ```
 ```
 # Code snippet result:
-[('spark.driver.memory', '2G'), ('spark.app.initial.jar.urls', 'spark://192.168.1.199:59398/jars/org.antlr_antlr4-4.7.jar,spark://192.168.1.199:59398/jars/org.antlr_antlr4-runtime-4.7.jar,spark://192.168.1.199:59398/jars/org.antlr_ST4-4.0.8.jar,spark://192.168.1.199:59398/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,spark://192.168.1.199:59398/jars/com.ibm.icu_icu4j-58.2.jar,spark://192.168.1.199:59398/jars/org.glassfish_javax.json-1.0.4.jar,spark://192.168.1.199:59398/jars/io.delta_delta-core_2.12-1.0.0.jar,spark://192.168.1.199:59398/jars/org.antlr_antlr-runtime-3.5.2.jar'), ('spark.files', 'file:///Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_ST4-4.0.8.jar,file:///Users/cshankli/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,file:///Users/cshankli/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,file:///Users/cshankli/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar'), ('spark.jars', 'file:///Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_ST4-4.0.8.jar,file:///Users/cshankli/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,file:///Users/cshankli/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,file:///Users/cshankli/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar'), ('spark.executor.memory', '2G'), ('spark.repl.local.jars', 'file:///Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_ST4-4.0.8.jar,file:///Users/cshankli/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,file:///Users/cshankli/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,file:///Users/cshankli/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar'), ('spark.executor.id', 'driver'), ('spark.driver.port', '59398'), ('spark.submit.pyFiles', '/Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,/Users/cshankli/.ivy2/jars/org.antlr_antlr4-4.7.jar,/Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,/Users/cshankli/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,/Users/cshankli/.ivy2/jars/org.antlr_ST4-4.0.8.jar,/Users/cshankli/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,/Users/cshankli/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,/Users/cshankli/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar'), ('spark.app.startTime', '1637169922841'), ('spark.sql.extensions', 'io.delta.sql.DeltaSparkSessionExtension'), ('spark.rdd.compress', 'True'), ('spark.app.initial.file.urls', 'file:///Users/cshankli/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,file:///Users/cshankli/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,file:///Users/cshankli/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-4.7.jar,file:///Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_ST4-4.0.8.jar'), ('spark.app.id', 'local-1637169924116'), ('spark.serializer.objectStreamReset', '100'), ('spark.driver.host', '192.168.1.199'), ('spark.master', 'local[*]'), ('spark.submit.deployMode', 'client'), ('spark.app.name', 'cheatsheet'), ('spark.ui.showConsoleProgress', 'true'), ('spark.sql.warehouse.dir', 'file:///Users/cshankli/git/pyspark-cheatsheet/spark_warehouse'), ('spark.jars.packages', 'io.delta:delta-core_2.12:1.0.0'), ('spark.sql.catalog.spark_catalog', 'org.apache.spark.sql.delta.catalog.DeltaCatalog')]
+[('spark.driver.memory', '2G'), ('spark.app.id', 'local-1638982832073'), ('spark.files', 'file:///Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_ST4-4.0.8.jar,file:///Users/cshankli/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,file:///Users/cshankli/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,file:///Users/cshankli/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar'), ('spark.jars', 'file:///Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_ST4-4.0.8.jar,file:///Users/cshankli/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,file:///Users/cshankli/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,file:///Users/cshankli/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar'), ('spark.app.startTime', '1638982831305'), ('spark.executor.memory', '2G'), ('spark.repl.local.jars', 'file:///Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_ST4-4.0.8.jar,file:///Users/cshankli/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,file:///Users/cshankli/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,file:///Users/cshankli/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar'), ('spark.executor.id', 'driver'), ('spark.submit.pyFiles', '/Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,/Users/cshankli/.ivy2/jars/org.antlr_antlr4-4.7.jar,/Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,/Users/cshankli/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,/Users/cshankli/.ivy2/jars/org.antlr_ST4-4.0.8.jar,/Users/cshankli/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,/Users/cshankli/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,/Users/cshankli/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar'), ('spark.sql.extensions', 'io.delta.sql.DeltaSparkSessionExtension'), ('spark.rdd.compress', 'True'), ('spark.app.initial.file.urls', 'file:///Users/cshankli/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,file:///Users/cshankli/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,file:///Users/cshankli/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-4.7.jar,file:///Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_ST4-4.0.8.jar'), ('spark.serializer.objectStreamReset', '100'), ('spark.app.initial.jar.urls', 'spark://192.168.1.199:64290/jars/io.delta_delta-core_2.12-1.0.0.jar,spark://192.168.1.199:64290/jars/org.antlr_antlr4-4.7.jar,spark://192.168.1.199:64290/jars/org.antlr_antlr-runtime-3.5.2.jar,spark://192.168.1.199:64290/jars/org.antlr_antlr4-runtime-4.7.jar,spark://192.168.1.199:64290/jars/com.ibm.icu_icu4j-58.2.jar,spark://192.168.1.199:64290/jars/org.antlr_ST4-4.0.8.jar,spark://192.168.1.199:64290/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,spark://192.168.1.199:64290/jars/org.glassfish_javax.json-1.0.4.jar'), ('spark.driver.host', '192.168.1.199'), ('spark.master', 'local[*]'), ('spark.submit.deployMode', 'client'), ('spark.driver.port', '64290'), ('spark.app.name', 'cheatsheet'), ('spark.ui.showConsoleProgress', 'true'), ('spark.sql.warehouse.dir', 'file:///Users/cshankli/git/pyspark-cheatsheet/spark_warehouse'), ('spark.jars.packages', 'io.delta:delta-core_2.12:1.0.0'), ('spark.sql.catalog.spark_catalog', 'org.apache.spark.sql.delta.catalog.DeltaCatalog')]
 ```
 
 Set Spark configuration properties
