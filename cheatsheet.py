@@ -2611,7 +2611,7 @@ class ml_hyperparameter_tuning(snippet):
         paramGrid = (
             ParamGridBuilder().addGrid(rf.numTrees, list(range(20, 100, 10))).build()
         )
-        crossval = CrossValidator(
+        cross_validator = CrossValidator(
             estimator=pipeline,
             estimatorParamMaps=paramGrid,
             evaluator=RegressionEvaluator(
@@ -2621,14 +2621,21 @@ class ml_hyperparameter_tuning(snippet):
             parallelism=4,
         )
 
-        # Run cross-validation, and choose the best set of parameters.
-        model = crossval.fit(encoded_df)
-        real_model = model.bestModel.stages[1]
-        print("Best model has {} trees.".format(real_model.getNumTrees))
+        # Run cross-validation to get the best parameters.
+        fit_cross_validator = cross_validator.fit(encoded_df)
+        best_pipeline_model = fit_cross_validator.bestModel
+        best_regressor = best_pipeline_model.stages[1]
+        print("Best model has {} trees.".format(best_regressor.getNumTrees))
+
+        # Save the Cross Validator, to capture everything including stats.
+        fit_cross_validator.write().overwrite().save("fit_cross_validator.model")
+
+        # Or, just save the best model.
+        best_pipeline_model.write().overwrite().save("best_pipeline_model.model")
 
         # EXCLUDE
         retval = []
-        retval.append("Best model has {} trees.".format(real_model.getNumTrees))
+        retval.append("Best model has {} trees.".format(best_regressor.getNumTrees))
         print(retval)
         return retval
         # INCLUDE
@@ -3769,21 +3776,29 @@ class management_specific_version(snippet):
         self.priority = 400
 
     def snippet(self, auto_df):
-        output_path = "delta_tests"
+        from pyspark.sql.functions import desc
 
         # Get versions.
+        output_path = "delta_tests"
         dt = DeltaTable.forPath(spark, output_path)
-        versions = dt.history().select("version timestamp".split()).orderBy("version")
-        oldest_version = versions.first()[0]
-        print("Oldest version is", oldest_version)
+        versions = (
+            dt.history().select("version timestamp".split()).orderBy(desc("version"))
+        )
+        most_recent_version = versions.first()[0]
+        print("Most recent version is", most_recent_version)
 
-        # Load the oldest version.
+        # Load the most recent data.
         df = (
             spark.read.format("delta")
-            .option("versionAsOf", oldest_version)
+            .option("versionAsOf", most_recent_version)
             .load(output_path)
         )
-        return df
+
+        # EXCLUDE
+        retval = []
+        retval.append("Most recent version is " + str(most_recent_version))
+        return retval
+        # INCLUDE
 
 
 class management_specific_timestamp(snippet):
@@ -3795,21 +3810,27 @@ class management_specific_timestamp(snippet):
         self.priority = 410
 
     def snippet(self, auto_df):
-        output_path = "delta_tests"
+        from pyspark.sql.functions import desc
 
         # Get versions.
+        output_path = "delta_tests"
         dt = DeltaTable.forPath(spark, output_path)
-        versions = dt.history().select("version timestamp".split()).orderBy("version")
-        oldest_timestamp = versions.first()[1]
-        print("Oldest timestamp is", oldest_timestamp)
+        versions = dt.history().select("version timestamp".split()).orderBy("timestamp")
+        most_recent_timestamp = versions.first()[1]
+        print("Most recent timestamp is", most_recent_timestamp)
 
         # Load the oldest version by timestamp.
         df = (
             spark.read.format("delta")
-            .option("timestampAsOf", oldest_timestamp)
+            .option("timestampAsOf", most_recent_timestamp)
             .load(output_path)
         )
-        return df
+
+        # EXCLUDE
+        retval = []
+        retval.append("Most recent timestamp is " + str(most_recent_timestamp))
+        return retval
+        # INCLUDE
 
 
 class management_compact_table(snippet):
