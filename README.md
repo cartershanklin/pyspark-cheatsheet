@@ -9,7 +9,7 @@ These snippets use DataFrames loaded from various data sources:
 - customer_spend.csv, a generated time series dataset.
 - date_examples.csv, a generated dataset with various date and time formats.
 
-These snippets were tested against the Spark 3.1.2 API. This page was last updated 2021-12-08 09:00:33.
+These snippets were tested against the Spark 3.1.2 API. This page was last updated 2021-12-16 11:45:07.
 
 Make note of these helpful links:
 - [PySpark DataFrame Operations](http://spark.apache.org/docs/latest/api/python/reference/pyspark.sql.html#dataframe-apis)
@@ -167,6 +167,7 @@ Table of contents
       * [Compute median values of all numeric columns](#compute-median-values-of-all-numeric-columns)
       * [Identify Outliers in a DataFrame](#identify-outliers-in-a-dataframe)
    * [Data Management](#data-management)
+      * [Save to a Delta Table](#save-to-a-delta-table)
       * [Update records in a DataFrame using Delta Tables](#update-records-in-a-dataframe-using-delta-tables)
       * [Merge into a Delta table](#merge-into-a-delta-table)
       * [Show Table Version History](#show-table-version-history)
@@ -3444,6 +3445,14 @@ Data Management
 ===============
 Upserts, updates and deletes on data.
 
+Save to a Delta Table
+---------------------
+
+```python
+auto_df.write.mode("overwrite").format("delta").saveAsTable("delta_table")
+```
+
+
 Update records in a DataFrame using Delta Tables
 ------------------------------------------------
 
@@ -3525,7 +3534,7 @@ df = dt.history().select("version operation operationMetrics".split())
 +-------+---------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 |version|operation|operationMetrics                                                                                                                                                                                                                                                                       |
 +-------+---------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-|2      |MERGE    |{numTargetRowsCopied -> 373, numTargetRowsDeleted -> 0, numTargetFilesAdded -> 175, executionTimeMs -> 8639, numTargetRowsInserted -> 0, scanTimeMs -> 3853, numTargetRowsUpdated -> 25, numOutputRows -> 398, numSourceRows -> 398, numTargetFilesRemoved -> 1, rewriteTimeMs -> 4781}|
+|2      |MERGE    |{numTargetRowsCopied -> 373, numTargetRowsDeleted -> 0, numTargetFilesAdded -> 175, executionTimeMs -> 8557, numTargetRowsInserted -> 0, scanTimeMs -> 3923, numTargetRowsUpdated -> 25, numOutputRows -> 398, numSourceRows -> 398, numTargetFilesRemoved -> 1, rewriteTimeMs -> 4630}|
 |1      |WRITE    |{numFiles -> 1, numOutputBytes -> 11582, numOutputRows -> 398}                                                                                                                                                                                                                         |
 |0      |WRITE    |{numFiles -> 1, numOutputBytes -> 11582, numOutputRows -> 398}                                                                                                                                                                                                                         |
 +-------+---------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -3557,76 +3566,54 @@ Load a Delta Table by Version ID (Time Travel Query)
 ----------------------------------------------------
 
 ```python
-output_path = "delta_tests"
+from pyspark.sql.functions import desc
 
 # Get versions.
+output_path = "delta_tests"
 dt = DeltaTable.forPath(spark, output_path)
-versions = dt.history().select("version timestamp".split()).orderBy("version")
-oldest_version = versions.first()[0]
-print("Oldest version is", oldest_version)
+versions = (
+    dt.history().select("version timestamp".split()).orderBy(desc("version"))
+)
+most_recent_version = versions.first()[0]
+print("Most recent version is", most_recent_version)
 
-# Load the oldest version.
+# Load the most recent data.
 df = (
     spark.read.format("delta")
-    .option("versionAsOf", oldest_version)
+    .option("versionAsOf", most_recent_version)
     .load(output_path)
 )
+
 ```
 ```
 # Code snippet result:
-+----+---------+------------+----------+------+------------+---------+------+----------+
-| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
-+----+---------+------------+----------+------+------------+---------+------+----------+
-|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|
-|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|
-|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|
-|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|
-|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|
-|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|
-|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|
-|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|
-|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|
-|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|
-+----+---------+------------+----------+------+------------+---------+------+----------+
-only showing top 10 rows
+Most recent version is 2
 ```
 
 Load a Delta Table by Timestamp (Time Travel Query)
 ---------------------------------------------------
 
 ```python
-output_path = "delta_tests"
+from pyspark.sql.functions import desc
 
 # Get versions.
+output_path = "delta_tests"
 dt = DeltaTable.forPath(spark, output_path)
-versions = dt.history().select("version timestamp".split()).orderBy("version")
-oldest_timestamp = versions.first()[1]
-print("Oldest timestamp is", oldest_timestamp)
+versions = dt.history().select("version timestamp".split()).orderBy("timestamp")
+most_recent_timestamp = versions.first()[1]
+print("Most recent timestamp is", most_recent_timestamp)
 
 # Load the oldest version by timestamp.
 df = (
     spark.read.format("delta")
-    .option("timestampAsOf", oldest_timestamp)
+    .option("timestampAsOf", most_recent_timestamp)
     .load(output_path)
 )
+
 ```
 ```
 # Code snippet result:
-+----+---------+------------+----------+------+------------+---------+------+----------+
-| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
-+----+---------+------------+----------+------+------------+---------+------+----------+
-|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|
-|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|
-|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|
-|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|
-|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|
-|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|
-|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|
-|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|
-|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|
-|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|
-+----+---------+------------+----------+------+------------+---------+------+----------+
-only showing top 10 rows
+Most recent timestamp is 2021-12-16 11:46:47.993000
 ```
 
 Compact a Delta Table
@@ -4274,16 +4261,16 @@ predictions = rf_model.transform(assembled).select(
 +----------+----+----------+
 |   carname| mpg|prediction|
 +----------+----+----------+
-|chevrol...|18.0|16.6869...|
-|buick s...|15.0|14.4966...|
-|plymout...|18.0|15.2718...|
-|amc reb...|16.0|15.7257...|
-|ford to...|17.0|17.1433...|
-|ford ga...|15.0|13.6918...|
-|chevrol...|14.0|13.6220...|
-|plymout...|14.0|13.8455...|
-|pontiac...|14.0|13.6220...|
-|amc amb...|15.0|14.0617...|
+|chevrol...|18.0|17.7884...|
+|buick s...|15.0|14.3654...|
+|plymout...|18.0|15.9072...|
+|amc reb...|16.0|16.0667...|
+|ford to...|17.0|18.0885...|
+|ford ga...|15.0|14.0155...|
+|chevrol...|14.0|14.0155...|
+|plymout...|14.0|14.0155...|
+|pontiac...|14.0|13.7766...|
+|amc amb...|15.0|14.3591...|
 +----------+----+----------+
 only showing top 10 rows
 ```
@@ -4339,16 +4326,16 @@ df = lr_model.transform(test_df)
 +----------+----+----------+----------+
 |  features| mpg|   carname|prediction|
 +----------+----+----------+----------+
-|[3.0,70...|18.0| maxda rx3|29.6694...|
-|[3.0,70...|23.7|mazda r...|28.0450...|
-|[4.0,68...|29.0|  fiat 128|31.5737...|
-|[4.0,76...|31.0|toyota ...|32.4482...|
-|[4.0,78...|32.8|mazda g...|30.8332...|
-|[4.0,79...|39.1|toyota ...|31.7783...|
-|[4.0,79...|36.0|renault...|31.4467...|
-|[4.0,79...|26.0|volkswa...|30.5931...|
-|[4.0,79...|30.0|peugeot...|30.0006...|
-|[4.0,81...|35.1|honda c...|31.6873...|
+|[3.0,70...|18.0| maxda rx3|29.2181...|
+|[3.0,80...|21.5|mazda rx-4|25.2522...|
+|[4.0,68...|29.0|  fiat 128|32.3511...|
+|[4.0,78...|32.8|mazda g...|31.5750...|
+|[4.0,79...|36.0|renault...|32.1041...|
+|[4.0,79...|31.0|datsun ...|31.0619...|
+|[4.0,79...|26.0|volkswa...|30.9962...|
+|[4.0,81...|35.1|honda c...|32.3322...|
+|[4.0,85...|32.0|datsun ...|30.6968...|
+|[4.0,85...|39.4|datsun ...|30.2930...|
 +----------+----+----------+----------+
 only showing top 10 rows
 ```
@@ -4406,16 +4393,16 @@ print("RMSE={} r2={}".format(rmse, r2))
 +----------+----+----------+----------+
 |  features| mpg|   carname|prediction|
 +----------+----+----------+----------+
-|[3.0,80...|21.5|mazda rx-4|22.9185...|
-|[4.0,71...|32.0|toyota ...|34.0767...|
-|[4.0,76...|31.0|toyota ...|34.5185...|
-|[4.0,78...|32.8|mazda g...|33.9069...|
-|[4.0,79...|31.0| fiat x1.9|33.4072...|
-|[4.0,81...|35.1|honda c...|34.6885...|
-|[4.0,83...|32.0|datsun 710|35.5823...|
-|[4.0,85...|29.0|chevrol...|36.3276...|
-|[4.0,85...|37.0|datsun ...|35.3207...|
-|[4.0,85...|40.8|datsun 210|36.4996...|
+|[4.0,78...|32.8|mazda g...|32.9472...|
+|[4.0,85...|37.0|datsun ...|33.9494...|
+|[4.0,85...|39.4|datsun ...|32.2745...|
+|[4.0,86...|39.0|plymout...|33.5835...|
+|[4.0,86...|46.6| mazda glc|35.4047...|
+|[4.0,90...|43.4|vw dash...|29.3432...|
+|[4.0,90...|28.0|dodge colt|29.9994...|
+|[4.0,91...|33.0|honda c...|33.4811...|
+|[4.0,91...|38.0|datsun ...|33.1765...|
+|[4.0,91...|37.0|mazda g...|32.3131...|
 +----------+----+----------+----------+
 only showing top 10 rows
 ```
@@ -4466,13 +4453,13 @@ df = predictions.select([label_column, "prediction"])
 |cover_type|prediction|
 +----------+----------+
 |         3|       3.0|
+|         6|       6.0|
 |         3|       3.0|
-|         6|       3.0|
-|         3|       3.0|
-|         6|       3.0|
 |         6|       6.0|
 |         6|       6.0|
-|         6|       3.0|
+|         6|       6.0|
+|         6|       6.0|
+|         6|       6.0|
 |         6|       6.0|
 |         3|       3.0|
 +----------+----------+
@@ -4552,16 +4539,16 @@ print("RMSE={}".format(rmse))
 +----------+----+----------+
 |   carname| mpg|prediction|
 +----------+----+----------+
-|chevrol...|10.0|14.7539...|
-| ford f250|10.0|13.2802...|
-|oldsmob...|11.0|16.2092...|
-|chevrol...|11.0|13.7245...|
-|oldsmob...|12.0|14.3971...|
-|buick c...|13.0|13.8121...|
-|amc mat...|14.0|15.3828...|
-|plymout...|14.0|14.6926...|
-|plymout...|14.0|14.6383...|
-|plymout...|14.0|14.9145...|
+|dodge d200|11.0|13.6885...|
+|chevrol...|13.0|14.6398...|
+|buick l...|13.0|13.5575...|
+|buick c...|13.0|14.7450...|
+|amc amb...|13.0|14.9315...|
+|chrysle...|13.0|14.2843...|
+|ford gr...|14.0|15.4655...|
+|amc mat...|14.0|15.6363...|
+|plymout...|14.0|14.7391...|
+|ford ga...|14.0|14.3952...|
 +----------+----+----------+
 only showing top 10 rows
 ```
@@ -4628,12 +4615,12 @@ for feature, importance in zip(
 ```
 ```
 # Code snippet result:
-manufacturer_encoded contributes 7.308%
-cylinders contributes 16.650%
-displacement contributes 24.435%
-horsepower contributes 26.243%
-weight contributes 22.187%
-acceleration contributes 3.176%
+manufacturer_encoded contributes 11.453%
+cylinders contributes 18.600%
+displacement contributes 38.483%
+horsepower contributes 10.974%
+weight contributes 16.973%
+acceleration contributes 3.517%
 ```
 
 Automatically encode categorical variables
@@ -4688,16 +4675,16 @@ df = rf_model.transform(test_df).select("mpg", "prediction")
 +----+----------+
 | mpg|prediction|
 +----+----------+
-|10.0|12.6709...|
-|12.0|12.9458...|
-|12.0|12.4317...|
-|13.0|17.8238...|
-|13.0|14.2979...|
-|13.0|15.8380...|
-|13.0|14.8416...|
-|13.0|13.5783...|
-|13.0|13.5805...|
-|13.0|13.6961...|
+| 9.0|12.6076...|
+|11.0|13.5769...|
+|12.0|13.2923...|
+|12.0|12.6409...|
+|13.0|13.2824...|
+|14.0|14.2970...|
+|14.0|14.0494...|
+|14.0|15.0261...|
+|14.0|14.1505...|
+|14.0|14.3228...|
 +----+----------+
 only showing top 10 rows
 ```
@@ -4754,7 +4741,7 @@ target_metric = "rmse"
 paramGrid = (
     ParamGridBuilder().addGrid(rf.numTrees, list(range(20, 100, 10))).build()
 )
-crossval = CrossValidator(
+cross_validator = CrossValidator(
     estimator=pipeline,
     estimatorParamMaps=paramGrid,
     evaluator=RegressionEvaluator(
@@ -4764,15 +4751,22 @@ crossval = CrossValidator(
     parallelism=4,
 )
 
-# Run cross-validation, and choose the best set of parameters.
-model = crossval.fit(encoded_df)
-real_model = model.bestModel.stages[1]
-print("Best model has {} trees.".format(real_model.getNumTrees))
+# Run cross-validation to get the best parameters.
+fit_cross_validator = cross_validator.fit(encoded_df)
+best_pipeline_model = fit_cross_validator.bestModel
+best_regressor = best_pipeline_model.stages[1]
+print("Best model has {} trees.".format(best_regressor.getNumTrees))
+
+# Save the Cross Validator, to capture everything including stats.
+fit_cross_validator.write().overwrite().save("fit_cross_validator.model")
+
+# Or, just save the best model.
+best_pipeline_model.write().overwrite().save("best_pipeline_model.model")
 
 ```
 ```
 # Code snippet result:
-Best model has 60 trees.
+Best model has 50 trees.
 ```
 
 Plot Hyperparameter tuning metrics
@@ -5184,16 +5178,16 @@ df = (
 +----+---------+------------+----------+------+------------+---------+------+----------+
 | mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
 +----+---------+------------+----------+------+------------+---------+------+----------+
-|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|
-|14.0|        8|       455.0|     225.0| 3086.|        10.0|       70|     1|buick e...|
-|21.0|        6|       200.0|     85.00| 2587.|        16.0|       70|     1|ford ma...|
-|25.0|        4|       110.0|     87.00| 2672.|        17.5|       70|     2|peugeot...|
-|24.0|        4|       107.0|     90.00| 2430.|        14.5|       70|     2|audi 10...|
-|25.0|        4|       98.00|      null| 2046.|        19.0|       71|     1|ford pinto|
-|14.0|        8|       400.0|     175.0| 4464.|        11.5|       71|     1|pontiac...|
-|23.0|        4|       122.0|     86.00| 2220.|        14.0|       71|     1|mercury...|
-|35.0|        4|       72.00|     69.00| 1613.|        18.0|       71|     3|datsun ...|
-|27.0|        4|       97.00|     60.00| 1834.|        19.0|       71|     2|volkswa...|
+|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|
+|15.0|        8|       383.0|     170.0| 3563.|        10.0|       70|     1|dodge c...|
+|19.0|        6|       232.0|     100.0| 2634.|        13.0|       71|     1|amc gre...|
+|13.0|        8|       350.0|     165.0| 4274.|        12.0|       72|     1|chevrol...|
+|14.0|        8|       400.0|     175.0| 4385.|        12.0|       72|     1|pontiac...|
+|13.0|        8|       400.0|     190.0| 4422.|        12.5|       72|     1|chrysle...|
+|13.0|        8|       307.0|     130.0| 4098.|        14.0|       72|     1|chevrol...|
+|26.0|        4|       96.00|     69.00| 2189.|        18.0|       72|     2|renault...|
+|14.0|        8|       302.0|     137.0| 4042.|        14.5|       73|     1|ford gr...|
+|14.0|        8|       318.0|     150.0| 4237.|        14.5|       73|     1|plymout...|
 +----+---------+------------+----------+------+------------+---------+------+----------+
 only showing top 10 rows
 ```
@@ -5206,7 +5200,7 @@ print(spark.sparkContext.getConf().getAll())
 ```
 ```
 # Code snippet result:
-[('spark.driver.memory', '2G'), ('spark.app.id', 'local-1638982832073'), ('spark.files', 'file:///Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_ST4-4.0.8.jar,file:///Users/cshankli/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,file:///Users/cshankli/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,file:///Users/cshankli/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar'), ('spark.jars', 'file:///Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_ST4-4.0.8.jar,file:///Users/cshankli/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,file:///Users/cshankli/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,file:///Users/cshankli/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar'), ('spark.app.startTime', '1638982831305'), ('spark.executor.memory', '2G'), ('spark.repl.local.jars', 'file:///Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_ST4-4.0.8.jar,file:///Users/cshankli/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,file:///Users/cshankli/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,file:///Users/cshankli/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar'), ('spark.executor.id', 'driver'), ('spark.submit.pyFiles', '/Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,/Users/cshankli/.ivy2/jars/org.antlr_antlr4-4.7.jar,/Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,/Users/cshankli/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,/Users/cshankli/.ivy2/jars/org.antlr_ST4-4.0.8.jar,/Users/cshankli/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,/Users/cshankli/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,/Users/cshankli/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar'), ('spark.sql.extensions', 'io.delta.sql.DeltaSparkSessionExtension'), ('spark.rdd.compress', 'True'), ('spark.app.initial.file.urls', 'file:///Users/cshankli/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,file:///Users/cshankli/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,file:///Users/cshankli/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-4.7.jar,file:///Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_ST4-4.0.8.jar'), ('spark.serializer.objectStreamReset', '100'), ('spark.app.initial.jar.urls', 'spark://192.168.1.199:64290/jars/io.delta_delta-core_2.12-1.0.0.jar,spark://192.168.1.199:64290/jars/org.antlr_antlr4-4.7.jar,spark://192.168.1.199:64290/jars/org.antlr_antlr-runtime-3.5.2.jar,spark://192.168.1.199:64290/jars/org.antlr_antlr4-runtime-4.7.jar,spark://192.168.1.199:64290/jars/com.ibm.icu_icu4j-58.2.jar,spark://192.168.1.199:64290/jars/org.antlr_ST4-4.0.8.jar,spark://192.168.1.199:64290/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,spark://192.168.1.199:64290/jars/org.glassfish_javax.json-1.0.4.jar'), ('spark.driver.host', '192.168.1.199'), ('spark.master', 'local[*]'), ('spark.submit.deployMode', 'client'), ('spark.driver.port', '64290'), ('spark.app.name', 'cheatsheet'), ('spark.ui.showConsoleProgress', 'true'), ('spark.sql.warehouse.dir', 'file:///Users/cshankli/git/pyspark-cheatsheet/spark_warehouse'), ('spark.jars.packages', 'io.delta:delta-core_2.12:1.0.0'), ('spark.sql.catalog.spark_catalog', 'org.apache.spark.sql.delta.catalog.DeltaCatalog')]
+[('spark.driver.memory', '2G'), ('spark.files', 'file:///Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_ST4-4.0.8.jar,file:///Users/cshankli/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,file:///Users/cshankli/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,file:///Users/cshankli/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar'), ('spark.jars', 'file:///Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_ST4-4.0.8.jar,file:///Users/cshankli/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,file:///Users/cshankli/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,file:///Users/cshankli/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar'), ('spark.executor.memory', '2G'), ('spark.repl.local.jars', 'file:///Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_ST4-4.0.8.jar,file:///Users/cshankli/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,file:///Users/cshankli/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,file:///Users/cshankli/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar'), ('spark.executor.id', 'driver'), ('spark.app.id', 'local-1639683906200'), ('spark.submit.pyFiles', '/Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,/Users/cshankli/.ivy2/jars/org.antlr_antlr4-4.7.jar,/Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,/Users/cshankli/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,/Users/cshankli/.ivy2/jars/org.antlr_ST4-4.0.8.jar,/Users/cshankli/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,/Users/cshankli/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,/Users/cshankli/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar'), ('spark.app.startTime', '1639683905382'), ('spark.driver.port', '49269'), ('spark.app.initial.jar.urls', 'spark://192.168.1.197:49269/jars/org.glassfish_javax.json-1.0.4.jar,spark://192.168.1.197:49269/jars/com.ibm.icu_icu4j-58.2.jar,spark://192.168.1.197:49269/jars/org.antlr_antlr-runtime-3.5.2.jar,spark://192.168.1.197:49269/jars/org.antlr_ST4-4.0.8.jar,spark://192.168.1.197:49269/jars/org.antlr_antlr4-4.7.jar,spark://192.168.1.197:49269/jars/io.delta_delta-core_2.12-1.0.0.jar,spark://192.168.1.197:49269/jars/org.antlr_antlr4-runtime-4.7.jar,spark://192.168.1.197:49269/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar'), ('spark.sql.extensions', 'io.delta.sql.DeltaSparkSessionExtension'), ('spark.rdd.compress', 'True'), ('spark.app.initial.file.urls', 'file:///Users/cshankli/.ivy2/jars/org.glassfish_javax.json-1.0.4.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr-runtime-3.5.2.jar,file:///Users/cshankli/.ivy2/jars/org.abego.treelayout_org.abego.treelayout.core-1.0.3.jar,file:///Users/cshankli/.ivy2/jars/com.ibm.icu_icu4j-58.2.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-4.7.jar,file:///Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.0.0.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.7.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_ST4-4.0.8.jar'), ('spark.serializer.objectStreamReset', '100'), ('spark.master', 'local[*]'), ('spark.submit.deployMode', 'client'), ('spark.driver.host', '192.168.1.197'), ('spark.app.name', 'cheatsheet'), ('spark.ui.showConsoleProgress', 'true'), ('spark.sql.warehouse.dir', 'file:///Users/cshankli/git/pyspark-cheatsheet/spark_warehouse'), ('spark.jars.packages', 'io.delta:delta-core_2.12:1.0.0'), ('spark.sql.catalog.spark_catalog', 'org.apache.spark.sql.delta.catalog.DeltaCatalog')]
 ```
 
 Set Spark configuration properties

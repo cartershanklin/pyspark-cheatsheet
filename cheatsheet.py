@@ -3678,13 +3678,25 @@ class fileprocessing_transform_images(snippet):
         df.foreach(resize_an_image)
 
 
+class management_delta_table(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Save to a Delta Table"
+        self.category = "Data Management"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 100
+
+    def snippet(self, auto_df):
+        auto_df.write.mode("overwrite").format("delta").saveAsTable("delta_table")
+
+
 class management_update_records(snippet):
     def __init__(self):
         super().__init__()
         self.name = "Update records in a DataFrame using Delta Tables"
         self.category = "Data Management"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 110
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import expr
