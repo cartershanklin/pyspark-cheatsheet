@@ -2911,6 +2911,19 @@ class performance_get_spark_version(snippet):
         return spark.sparkContext.version
 
 
+class performance_logging(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Log messages using Spark's Log4J"
+        self.category = "Performance"
+        self.dataset = "UNUSED"
+        self.priority = 110
+
+    def snippet(self, df):
+        logger = spark.sparkContext._jvm.org.apache.log4j.Logger.getRootLogger()
+        logger.warn("WARNING LEVEL LOG MESSAGE");
+
+
 class performance_cache(snippet):
     def __init__(self):
         super().__init__()
