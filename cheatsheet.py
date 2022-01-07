@@ -4457,8 +4457,7 @@ def main():
     parser.add_argument("--debug", action="store_true")
     parser.add_argument("--dump-priorities", action="store_true")
     parser.add_argument("--notebook", action="store_true")
-    # parser.add_argument("--test", action="append")
-    parser.add_argument("--test", action="append", default=["Run a SparkSQL Statement on a DataFrame"])
+    parser.add_argument("--test", action="append")
     args = parser.parse_args()
 
     # Set the correct directory.
