@@ -2921,7 +2921,7 @@ class performance_logging(snippet):
 
     def snippet(self, df):
         logger = spark.sparkContext._jvm.org.apache.log4j.Logger.getRootLogger()
-        logger.warn("WARNING LEVEL LOG MESSAGE");
+        logger.warn("WARNING LEVEL LOG MESSAGE")
 
 
 class performance_cache(snippet):
@@ -2969,6 +2969,20 @@ class performance_cache(snippet):
             str(df3.storageLevel),
         ]
         # INCLUDE
+
+
+class performance_execution_plan(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Show the execution plan, with costs"
+        self.category = "Performance"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 250
+
+    def snippet(self, auto_df):
+        df = auto_df.groupBy("cylinders").count()
+        execution_plan = df.explain(mode="cost")
+        return execution_plan
 
 
 class performance_partition_by_value(snippet):
@@ -3168,6 +3182,59 @@ class performance_spark_change_configuration(snippet):
         spark_builder = SparkSession.builder.appName("My App")
         spark_builder.config(key, value)
         spark = spark_builder.getOrCreate()
+
+
+class performance_concurrent_jobs(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Run multiple concurrent jobs in different pools"
+        self.category = "Performance"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 600
+        self.skip_run = True
+        self.manual_output = """
+Starting job 0 at 2022-03-13 08:53:07.012511
+Starting job 1 at 2022-03-13 08:53:07.213019
+Starting job 2 at 2022-03-13 08:53:07.416360
+Starting job 3 at 2022-03-13 08:53:07.618749
+Starting job 4 at 2022-03-13 08:53:07.822736
+Starting job 5 at 2022-03-13 08:53:08.023281
+Starting job 6 at 2022-03-13 08:53:08.224146
+Starting job 7 at 2022-03-13 08:53:08.428519
+Job 1 returns Row(cylinders='3', count=800) at 2022-03-13 08:53:08.576396
+Starting job 8 at 2022-03-13 08:53:08.631801
+Job 6 returns Row(modelyear='73', count=4000) at 2022-03-13 08:53:08.917601
+Job 7 returns Row(origin='3', count=6320) at 2022-03-13 08:53:08.941718
+Job 3 returns Row(horsepower='102.0', count=160) at 2022-03-13 08:53:09.129134
+Job 2 returns Row(displacement='151.0', count=1800) at 2022-03-13 08:53:09.164282
+Job 0 returns Row(mpg='20.5', count=660) at 2022-03-13 08:53:09.286087
+Job 5 returns Row(acceleration='8.5', count=240) at 2022-03-13 08:53:09.298583
+Job 4 returns Row(weight='3574.', count=140) at 2022-03-13 08:53:09.476974
+Job 8 returns Row(carname='audi 100 ls', count=60) at 2022-03-13 08:53:09.639598
+"""
+
+    def snippet(self, auto_df):
+        import concurrent.futures
+        import datetime
+        import time
+
+        other_df = auto_df.toDF(*("_" + c for c in auto_df.columns))
+        target_frames = [
+            auto_df.crossJoin(other_df.limit((11 - i) * 20))
+            .groupBy(column_name)
+            .count()
+            for i, column_name in enumerate(auto_df.columns)
+        ]
+
+        def launch(i, target):
+            spark.sparkContext.setLocalProperty("spark.scheduler.pool", f"pool{i}")
+            print("Job", i, "returns", target.first(), "at", datetime.datetime.now())
+
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            for i, target in enumerate(target_frames):
+                print("Starting job", i, "at", datetime.datetime.now())
+                executor.submit(launch, i, target)
+                time.sleep(0.2)
 
 
 class performance_increase_heap_space(snippet):
