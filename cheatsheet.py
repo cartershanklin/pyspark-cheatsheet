@@ -1654,8 +1654,11 @@ class transform_sql(snippet):
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import col, regexp_extract
+
         auto_df.registerTempTable("auto_df")
-        df = sqlContext.sql("select modelyear, avg(mpg) from auto_df group by modelyear")
+        df = sqlContext.sql(
+            "select modelyear, avg(mpg) from auto_df group by modelyear"
+        )
         return df
 
 
@@ -2996,7 +2999,8 @@ class performance_execution_plan(snippet):
 
     def snippet(self, auto_df):
         df = auto_df.groupBy("cylinders").count()
-        execution_plan = df.explain(mode="cost")
+        execution_plan = str(df.explain(mode="cost"))
+        print(execution_plan)
         return execution_plan
 
 
@@ -3205,7 +3209,7 @@ class performance_concurrent_jobs(snippet):
         self.name = "Run multiple concurrent jobs in different pools"
         self.category = "Performance"
         self.dataset = "auto-mpg.csv"
-        self.priority = 600
+        self.priority = 490
         self.skip_run = True
         self.manual_output = """
 Starting job 0 at 2022-03-13 08:53:07.012511
