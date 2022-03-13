@@ -1644,13 +1644,28 @@ class sortsearch_filtering_basic(snippet):
         return df
 
 
+class transform_sql(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Run a SparkSQL Statement on a DataFrame"
+        self.category = "Transforming Data"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 100
+
+    def snippet(self, auto_df):
+        from pyspark.sql.functions import col, regexp_extract
+        auto_df.registerTempTable("auto_df")
+        df = sqlContext.sql("select modelyear, avg(mpg) from auto_df group by modelyear")
+        return df
+
+
 class transform_regexp_extract(snippet):
     def __init__(self):
         super().__init__()
         self.name = "Extract data from a string using a regular expression"
         self.category = "Transforming Data"
         self.dataset = "auto-mpg.csv"
-        self.priority = 100
+        self.priority = 110
         self.truncate = False
 
     def snippet(self, auto_df):
