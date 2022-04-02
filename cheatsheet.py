@@ -3250,10 +3250,14 @@ Job 8 returns Row(carname='audi 100 ls', count=60) at 2022-03-13 08:53:09.639598
             print("Job", i, "returns", target.first(), "at", datetime.datetime.now())
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures = []
             for i, target in enumerate(target_frames):
                 print("Starting job", i, "at", datetime.datetime.now())
-                executor.submit(launch, i, target)
+                futures.append(executor.submit(launch, i, target))
                 time.sleep(0.2)
+            concurrent.futures.wait(futures)
+            for future in futures:
+                print(future.result())
 
 
 class performance_increase_heap_space(snippet):
