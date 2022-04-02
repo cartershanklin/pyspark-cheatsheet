@@ -533,6 +533,17 @@ class loadsave_overwrite_specific_partitions(snippet):
         self.skip_run = True
 
     def snippet(self, df):
+        """
+        Enabling dynamic partitioning lets you add or overwrite partitions
+        based on DataFrame contents.
+
+        Without dynamic partitioning the overwrite will overwrite the entire
+        table.
+
+        With dynamic partitioning, partitions with keys in the DataFrame are
+        overwritten, but partitions not in the DataFrame are untouched.
+        """
+
         spark.conf.set("spark.sql.sources.partitionOverwriteMode", "dynamic")
         your_dataframe.write.mode("overwrite").insertInto("your_table")
 
