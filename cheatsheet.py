@@ -3324,10 +3324,26 @@ class pandas_spark_dataframe_to_pandas_dataframe(snippet):
 class pandas_pandas_dataframe_to_spark_dataframe(snippet):
     def __init__(self):
         super().__init__()
-        self.name = "Convert Pandas DataFrame to Spark DataFrame"
+        self.name = "Convert Pandas DataFrame to Spark DataFrame with Schema Detection"
         self.category = "Pandas"
         self.dataset = "auto-mpg.csv"
-        self.priority = 101
+        self.priority = 110
+
+    def snippet(self, auto_df):
+        # EXCLUDE
+        pandas_df = auto_df.toPandas()
+        # INCLUDE
+        df = spark.createDataFrame(pandas_df)
+        return df
+
+
+class pandas_pandas_dataframe_to_spark_dataframe_custom(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Convert Pandas DataFrame to Spark DataFrame using a Custom Schema"
+        self.category = "Pandas"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 120
 
     def snippet(self, auto_df):
         # EXCLUDE
