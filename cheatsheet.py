@@ -3287,6 +3287,32 @@ Job 8 returns Row(carname='audi 100 ls', count=60) at 2022-03-13 08:53:09.639598
                 print(future.result())
 
 
+class performance_metrics(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Publish Metrics to Graphite"
+        self.category = "Performance"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 700
+        self.skip_run = True
+
+    def snippet(self, auto_df):
+        """
+        To publish metrics to Graphite, create a file called graphite_metrics.properties with these contents:
+
+        *.sink.graphite.class=org.apache.spark.metrics.sink.GraphiteSink
+        *.sink.graphite.host=<graphite_ip_address>
+        *.sink.graphite.port=2003
+        *.sink.graphite.period=10
+        *.sink.graphite.unit=seconds
+
+        Then set spark.metrics.conf to the file graphite_metrics.properties. For example:
+        $ spark-submit --conf spark.metrics.conf=graphite_metrics.properties myapp.jar
+
+        Read more about monitoring Spark jobs at https://spark.apache.org/docs/latest/monitoring.html
+        """
+
+
 class performance_increase_heap_space(snippet):
     def __init__(self):
         super().__init__()
