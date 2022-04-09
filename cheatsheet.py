@@ -252,6 +252,22 @@ class loadsave_load_catalog(snippet):
         return df
 
 
+class loadsave_load_sql(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Load a DataFrame from a SQL query"
+        self.category = "Accessing Data Sources"
+        self.dataset = "UNUSED"
+        self.priority = 520
+
+    def snippet(self, df):
+        # Load the table previously saved.
+        df = sqlContext.sql(
+            "select carname, mpg, horsepower from autompg where horsepower > 100 and mpg > 25"
+        )
+        return df
+
+
 class loadsave_read_from_s3(snippet):
     def __init__(self):
         super().__init__()
