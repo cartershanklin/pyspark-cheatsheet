@@ -723,6 +723,22 @@ class dfo_change_column_name_multi(snippet):
         return df
 
 
+class dfo_change_column_name_all(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Change all column names at once"
+        self.category = "DataFrame Operations"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 710
+
+    def snippet(self, auto_df):
+        # To rename all columns, use toDF with the desired column names in
+        # the argument list. This example puts an X in front of all column
+        # names.
+        df = auto_df.toDF(*["X" + name for name in auto_df.columns])
+        return df
+
+
 class dfo_column_to_python_list(snippet):
     def __init__(self):
         super().__init__()
