@@ -1,13 +1,14 @@
+black
 dateparser
 delta-spark
 matplotlib
 money_parser
+nbformat
 oci
 pandas
 pillow
-pyarrow==1.0.0
-pyspark
+pyarrow
+pyspark==3.2.1
 python-slugify
 pyunicode
 pyyaml
-yaml
