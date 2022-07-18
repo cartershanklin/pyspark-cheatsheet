@@ -18,8 +18,8 @@ from delta import *
 warehouse_path = "file://{}/spark_warehouse".format(os.getcwd())
 builder = (
     SparkSession.builder.master("local[*]")
-    .config("spark.executor.memory", "2G")
     .config("spark.driver.memory", "2G")
+    .config("spark.executor.memory", "2G")
     .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
     .config(
         "spark.sql.catalog.spark_catalog",
@@ -28,7 +28,9 @@ builder = (
     .config("spark.sql.warehouse.dir", warehouse_path)
     .appName("cheatsheet")
 )
-spark = configure_spark_with_delta_pip(builder).getOrCreate()
+spark = configure_spark_with_delta_pip(
+    builder, extra_packages=["org.postgresql:postgresql:42.4.0"]
+).getOrCreate()
 sqlContext = SQLContext(spark)
 
 
@@ -392,48 +394,21 @@ class loadsave_write_oracle(snippet):
         df.write.jdbc(url=url, table=table, mode="Append", properties=properties)
 
 
-class loadsave_read_postgres(snippet):
-    def __init__(self):
-        super().__init__()
-        self.name = "Read a Postgres table into a DataFrame"
-        self.category = "Accessing Data Sources"
-        self.dataset = "UNUSED"
-        self.priority = 11000
-        self.skip_run = True
-
-    def snippet(self, df):
-        # You need a compatible postgresql JDBC JAR.
-        pg_database = os.environ.get("PGDATABASE")
-        pg_host = os.environ.get("PGHOST")
-        pg_password = os.environ.get("PGPASSWORD")
-        pg_user = os.environ.get("PGUSER")
-        table = "test"
-
-        properties = {
-            "driver": "org.postgresql.Driver",
-            "user": pg_user,
-            "password": pg_password,
-        }
-        url = f"jdbc:postgresql://{pg_host}:5432/{pg_database}"
-        df = spark.read.jdbc(url=url, table=table, properties=properties)
-        return df
-
-
 class loadsave_write_postgres(snippet):
     def __init__(self):
         super().__init__()
         self.name = "Write a DataFrame to a Postgres table"
         self.category = "Accessing Data Sources"
         self.dataset = "auto-mpg.csv"
-        self.priority = 11100
-        self.skip_run = True
+        self.priority = 11000
 
     def snippet(self, auto_df):
-        # You need a compatible postgresql JDBC JAR.
-        pg_database = os.environ.get("PGDATABASE")
-        pg_host = os.environ.get("PGHOST")
-        pg_password = os.environ.get("PGPASSWORD")
-        pg_user = os.environ.get("PGUSER")
+        # Adding org.postgresql:postgresql:<version> to spark.jars.packages ensures
+        # a compatible JDBC driver.
+        pg_database = os.environ.get("PGDATABASE") or "postgres"
+        pg_host = os.environ.get("PGHOST") or "localhost"
+        pg_password = os.environ.get("PGPASSWORD") or "password"
+        pg_user = os.environ.get("PGUSER") or "postgres"
         table = "autompg"
 
         properties = {
@@ -443,6 +418,33 @@ class loadsave_write_postgres(snippet):
         }
         url = f"jdbc:postgresql://{pg_host}:5432/{pg_database}"
         auto_df.write.jdbc(url=url, table=table, mode="Append", properties=properties)
+
+
+class loadsave_read_postgres(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Read a Postgres table into a DataFrame"
+        self.category = "Accessing Data Sources"
+        self.dataset = "UNUSED"
+        self.priority = 11010
+
+    def snippet(self, df):
+        # Adding org.postgresql:postgresql:<version> to spark.jars.packages ensures
+        # a compatible JDBC driver.
+        pg_database = os.environ.get("PGDATABASE") or "postgres"
+        pg_host = os.environ.get("PGHOST") or "localhost"
+        pg_password = os.environ.get("PGPASSWORD") or "password"
+        pg_user = os.environ.get("PGUSER") or "postgres"
+        table = "autompg"
+
+        properties = {
+            "driver": "org.postgresql.Driver",
+            "user": pg_user,
+            "password": pg_password,
+        }
+        url = f"jdbc:postgresql://{pg_host}:5432/{pg_database}"
+        df = spark.read.jdbc(url=url, table=table, properties=properties)
+        return df
 
 
 class loadsave_dataframe_from_csv_provide_schema(snippet):
@@ -4558,6 +4560,43 @@ Table of contents
                         fd.write("```")
 
 
+def modify_environment(setup=True):
+    setup_commands = [
+        # Set up a Postgres database.
+        "podman pull postgres:latest",
+        "podman run --name postgres -p 5432:5432 -e POSTGRES_PASSWORD=password -d postgres:latest",
+        "sleep 5",
+    ]
+    teardown_commands = [
+        # Tear down the Postgres database.
+        "podman stop postgres",
+        "podman rm postgres",
+    ]
+
+    # Always run teardown to handle a partially torn-down environment.
+    for command in teardown_commands:
+        logging.info("Running teardown " + command)
+        os.system(command)
+
+    if not setup:
+        return
+
+    # Set up the environment we need.
+    for command in setup_commands:
+        logging.info("Running setup " + command)
+        retval = os.system(command)
+        if retval != 0:
+            raise Exception(command + " returned non-zero exit " + str(retval))
+
+
+def setup_environment():
+    modify_environment(setup=True)
+
+
+def teardown_environment():
+    modify_environment(setup=False)
+
+
 def all_tests(category=None):
     for cheat in cheat_sheet:
         if category is not None and cheat.category != category:
@@ -4646,10 +4685,13 @@ def main():
             print(e)
             pass
 
+    if args.dump_priorities:
+        dump_priorities()
+        return
+
+    setup_environment()
     if args.all_tests or args.category:
         all_tests(args.category)
-    elif args.dump_priorities:
-        dump_priorities()
     elif args.test:
         for this_test in args.test:
             test(this_test)
@@ -4657,6 +4699,7 @@ def main():
         generate("notebook")
     else:
         generate("markdown")
+    teardown_environment()
 
 
 if __name__ == "__main__":
