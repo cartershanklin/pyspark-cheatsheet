@@ -4412,6 +4412,57 @@ class streaming_processing_frequency(snippet):
         ).start().awaitTermination()
 
 
+class streaming_to_database(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Write a streaming DataFrame to a database"
+        self.category = "Spark Streaming"
+        self.dataset = "UNUSED"
+        self.priority = 700
+
+    def snippet(self, auto_df):
+        """
+        Streaming directly to databases is not supported but you can use foreachBatch
+        to write individual DataFrames to your database.
+        """
+        import time
+
+        pg_database = os.environ.get("PGDATABASE") or "postgres"
+        pg_host = os.environ.get("PGHOST") or "localhost"
+        pg_password = os.environ.get("PGPASSWORD") or "password"
+        pg_user = os.environ.get("PGUSER") or "postgres"
+        url = f"jdbc:postgresql://{pg_host}:5432/{pg_database}"
+        table = "streaming"
+        properties = {
+            "driver": "org.postgresql.Driver",
+            "user": pg_user,
+            "password": pg_password,
+        }
+
+        def foreach_batch_function(my_df, epoch_id):
+            my_df.write.jdbc(url=url, table=table, mode="Append", properties=properties)
+
+        df = (
+            spark.readStream.format("rate")
+            .option("rowPerSecond", 100)
+            .option("numPartitions", 2)
+            .load()
+        )
+        query = df.writeStream.foreachBatch(foreach_batch_function).start()
+
+        # Wait for some data to be processed and exit.
+        for i in range(10):
+            time.sleep(5)
+            if len(query.recentProgress) > 0:
+                query.stop()
+                break
+
+        df = spark.read.jdbc(url=url, table=table, properties=properties)
+        result = "{} rows written to database".format(df.count())
+        print(result)
+        return [result]
+
+
 # Dynamically build a list of all cheats.
 cheat_sheet = []
 clsmembers = inspect.getmembers(sys.modules[__name__], inspect.isclass)
@@ -4563,7 +4614,7 @@ Table of contents
 def modify_environment(setup=True):
     setup_commands = [
         # Set up a Postgres database.
-        "podman pull postgres:latest",
+        "podman pull docker.io/library/postgres:latest",
         "podman run --name postgres -p 5432:5432 -e POSTGRES_PASSWORD=password -d postgres:latest",
         "sleep 5",
     ]
