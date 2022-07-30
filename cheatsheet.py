@@ -4307,6 +4307,25 @@ class streaming_add_timestamp(snippet):
         return df
 
 
+class streaming_session_window(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Session analytics on a DataFrame"
+        self.category = "Spark Streaming"
+        self.dataset = "weblog.csv"
+        self.priority = 310
+
+    def snippet(self, weblog_df):
+        from pyspark.sql.functions import hash, session_window
+
+        hits_per_session = (
+            weblog_df.groupBy("ip", session_window("time", "5 minutes"))
+            .count()
+            .withColumn("session", hash("ip", "session_window"))
+        )
+        return (hits_per_session, dict(truncate=80))
+
+
 class streaming_conditional_udf(snippet):
     def __init__(self):
         super().__init__()

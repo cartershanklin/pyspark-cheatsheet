@@ -39,3 +39,6 @@ for column_name in covtype_df.columns:
 
 # Customer spend dataset.
 spend_df = spark.read.format("csv").option("header", True).load("data/customer_spend.csv")
+
+# Weblog.
+weblog_df = spark.read.format("csv").option("header", True).load("data/weblog.csv")

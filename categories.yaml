@@ -90,6 +90,8 @@ Preamble:
 
         - date_examples.csv, a generated dataset with various date and time formats.
 
+        - weblog.csv, a cleaned version of this [web log dataset](https://www.kaggle.com/datasets/shawon10/web-log-dataset).
+
 
         These snippets were tested against the Spark {version} API. This page was last updated {last_updated}.
 
