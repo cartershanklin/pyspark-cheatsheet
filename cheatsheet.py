@@ -4058,6 +4058,42 @@ class management_compact_table(snippet):
         return df
 
 
+class management_write_custom_metadata(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Add custom metadata to a Delta table write"
+        self.category = "Data Management"
+        self.dataset = "auto-mpg.csv"
+        self.priority = 600
+
+    def snippet(self, auto_df):
+        import os
+        import time
+
+        extra_properties = dict(
+            user=os.environ.get("USER"),
+            write_timestamp=time.time(),
+        )
+        auto_df.write.mode("append").option("userMetadata", extra_properties).format(
+            "delta"
+        ).save("delta_table_metadata")
+        return auto_df
+
+
+class management_read_custom_metadata(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Read custom Delta table metadata"
+        self.category = "Data Management"
+        self.dataset = "UNUSED"
+        self.priority = 610
+
+    def snippet(self, df):
+        dt = DeltaTable.forPath(spark, "delta_table_metadata")
+        df = dt.history().select("version timestamp userMetadata".split())
+        return (df, dict(truncate=80))
+
+
 class streaming_connect_kafka_sasl_plain(snippet):
     def __init__(self):
         super().__init__()
