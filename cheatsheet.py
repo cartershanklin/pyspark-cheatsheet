@@ -65,6 +65,7 @@ class snippet:
         self.skip_run = False
         self.manual_output = None
         self.truncate = True
+        self.requires_environment = False
 
     def load_data(self):
         assert self.dataset is not None, "Dataset not set"
@@ -401,6 +402,7 @@ class loadsave_write_postgres(snippet):
         self.category = "Accessing Data Sources"
         self.dataset = "auto-mpg.csv"
         self.priority = 11000
+        self.requires_environment = True
 
     def snippet(self, auto_df):
         # Adding org.postgresql:postgresql:<version> to spark.jars.packages ensures
@@ -427,6 +429,7 @@ class loadsave_read_postgres(snippet):
         self.category = "Accessing Data Sources"
         self.dataset = "UNUSED"
         self.priority = 11010
+        self.requires_environment = True
 
     def snippet(self, df):
         # Adding org.postgresql:postgresql:<version> to spark.jars.packages ensures
@@ -4703,9 +4706,11 @@ def teardown_environment():
     modify_environment(setup=False)
 
 
-def all_tests(category=None):
+def all_tests(args):
     for cheat in cheat_sheet:
-        if category is not None and cheat.category != category:
+        if args.category is not None and cheat.category != args.category:
+            continue
+        if cheat.requires_argument and args.skip_environment:
             continue
         cheat.run()
 
@@ -4762,6 +4767,7 @@ def main():
     parser.add_argument("--debug", action="store_true")
     parser.add_argument("--dump-priorities", action="store_true")
     parser.add_argument("--notebook", action="store_true")
+    parser.add_argument("--skip-environment", action="store_true")
     parser.add_argument("--test", action="append")
     args = parser.parse_args()
 
@@ -4795,9 +4801,10 @@ def main():
         dump_priorities()
         return
 
-    setup_environment()
+    if not args.skip_environment:
+        setup_environment()
     if args.all_tests or args.category:
-        all_tests(args.category)
+        all_tests(args)
     elif args.test:
         for this_test in args.test:
             test(this_test)
@@ -4805,7 +4812,8 @@ def main():
         generate("notebook")
     else:
         generate("markdown")
-    teardown_environment()
+    if not args.skip_environment:
+        teardown_environment()
 
 
 if __name__ == "__main__":
