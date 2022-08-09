@@ -66,6 +66,7 @@ class snippet:
         self.manual_output = None
         self.truncate = True
         self.requires_environment = False
+        self.docmd = None
 
     def load_data(self):
         assert self.dataset is not None, "Dataset not set"
@@ -146,10 +147,11 @@ class loadsave_dataframe_from_csv(snippet):
         self.category = "Accessing Data Sources"
         self.dataset = "UNUSED"
         self.priority = 100
+        self.docmd = """
+See https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameReader.html for a list of supported options.
+"""
 
     def snippet(self, df):
-        # See https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameReader.html
-        # for a list of supported options.
         df = spark.read.format("csv").option("header", True).load("data/auto-mpg.csv")
         return df
 
@@ -161,10 +163,11 @@ class loadsave_dataframe_from_csv_delimiter(snippet):
         self.category = "Accessing Data Sources"
         self.dataset = "UNUSED"
         self.priority = 110
+        self.docmd = """
+See https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameReader.html for a list of supported options.
+"""
 
     def snippet(self, df):
-        # See https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameReader.html
-        # for a list of supported options.
         df = (
             spark.read.format("csv")
             .option("header", True)
@@ -181,10 +184,11 @@ class loadsave_save_csv(snippet):
         self.category = "Accessing Data Sources"
         self.dataset = "auto-mpg.csv"
         self.priority = 120
+        self.docmd = """
+See https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameWriter.html for a list of supported options.
+"""
 
     def snippet(self, auto_df):
-        # See https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameWriter.html
-        # for a list of supported options.
         auto_df.write.csv("output.csv")
 
 
@@ -195,6 +199,9 @@ class loadsave_load_parquet(snippet):
         self.category = "Accessing Data Sources"
         self.dataset = "UNUSED"
         self.priority = 200
+        self.documd = """
+Using the parquet format loads parquet files. If the path is a directory, all files in the directory will be combined into one DataFrame. Loading Parquet files does not require the schema to be given.
+"""
 
     def snippet(self, df):
         df = spark.read.format("parquet").load("data/auto-mpg.parquet")
@@ -220,11 +227,11 @@ class loadsave_read_jsonl(snippet):
         self.category = "Accessing Data Sources"
         self.dataset = "UNUSED"
         self.priority = 300
+        self.docmd = """
+JSON Lines / jsonl format uses one JSON document per line. If you have data with mostly regular structure this is better than nesting it in an array. See [jsonlines.org](https://jsonlines.org/)
+"""
 
     def snippet(self, df):
-        # JSON Lines / jsonl format uses one JSON document per line.
-        # If you have data with mostly regular structure this is better than nesting it in an array.
-        # See https://jsonlines.org/
         df = spark.read.json("data/weblog.jsonl")
         return df
 
@@ -236,6 +243,10 @@ class loadsave_save_catalog(snippet):
         self.category = "Accessing Data Sources"
         self.dataset = "auto-mpg.csv"
         self.priority = 500
+        self.docmd = """
+Save a DataFrame to a Hive-compatible catalog. Use `table` to save in the session's current database or `database.table` to save
+in a specific database.
+"""
 
     def snippet(self, auto_df):
         auto_df.write.mode("overwrite").saveAsTable("autompg")
@@ -248,9 +259,10 @@ class loadsave_load_catalog(snippet):
         self.category = "Accessing Data Sources"
         self.dataset = "UNUSED"
         self.priority = 510
+        self.docmd = """Load a DataFrame from a particular table. Use `table` to load from the session's current database or `database.table` to load from a specific database.
+"""
 
     def snippet(self, df):
-        # Load the table previously saved.
         df = spark.table("autompg")
         return df
 
@@ -262,9 +274,11 @@ class loadsave_load_sql(snippet):
         self.category = "Accessing Data Sources"
         self.dataset = "UNUSED"
         self.priority = 520
+        self.docmd = """
+This example shows loading a DataFrame from a query run over the a table in a Hive-compatible catalog.
+"""
 
     def snippet(self, df):
-        # Load the table previously saved.
         df = sqlContext.sql(
             "select carname, mpg, horsepower from autompg where horsepower > 100 and mpg > 25"
         )
@@ -279,6 +293,9 @@ class loadsave_read_from_s3(snippet):
         self.dataset = "UNUSED"
         self.priority = 1000
         self.skip_run = True
+        self.docmd = """
+This example shows how to load a CSV file from AWS S3. This example uses a credential pair and the `SimpleAWSCredentialsProvider`. For other authentication options, refer to the [Hadoop-AWS module documentation](https://hadoop.apache.org/docs/stable/hadoop-aws/tools/hadoop-aws/index.html).
+"""
 
     def snippet(self, df):
         import configparser
@@ -315,6 +332,9 @@ class loadsave_read_from_oci(snippet):
         self.dataset = "UNUSED"
         self.priority = 1300
         self.skip_run = True
+        self.docmd = """
+This example shows loading data from Oracle Cloud Infrastructure Object Storage using an API key.
+"""
 
     def snippet(self, df):
         import oci
@@ -342,11 +362,11 @@ class loadsave_read_oracle(snippet):
         self.dataset = "UNUSED"
         self.priority = 10000
         self.skip_run = True
+        self.docmd = """
+Get the tnsname from tnsnames.ora. The wallet path should point to an extracted wallet file. The wallet files need to be available on all nodes.
+"""
 
     def snippet(self, df):
-        # Key variables you need.
-        # Get the tnsname from tnsnames.ora.
-        # Wallet path should point to an extracted wallet file.
         password = "my_password"
         table = "source_table"
         tnsname = "my_tns_name"
@@ -372,11 +392,11 @@ class loadsave_write_oracle(snippet):
         self.dataset = "UNUSED"
         self.priority = 10100
         self.skip_run = True
+        self.docmd = """
+Get the tnsname from tnsnames.ora. The wallet path should point to an extracted wallet file. The wallet files need to be available on all nodes.
+"""
 
     def snippet(self, df):
-        # Key variables you need.
-        # Get the tnsname from tnsnames.ora.
-        # Wallet path should point to an extracted wallet file.
         password = "my_password"
         table = "target_table"
         tnsname = "my_tns_name"
@@ -403,10 +423,16 @@ class loadsave_write_postgres(snippet):
         self.dataset = "auto-mpg.csv"
         self.priority = 11000
         self.requires_environment = True
+        self.docmd = """
+You need a Postgres JDBC driver to connect to a Postgres database.
+
+Options include:
+- Add `org.postgresql:postgresql:<version>` to `spark.jars.packages`
+- Provide the JDBC driver using `spark-submit --jars`
+- Add the JDBC driver to your Spark runtime (not recommended)
+"""
 
     def snippet(self, auto_df):
-        # Adding org.postgresql:postgresql:<version> to spark.jars.packages ensures
-        # a compatible JDBC driver.
         pg_database = os.environ.get("PGDATABASE") or "postgres"
         pg_host = os.environ.get("PGHOST") or "localhost"
         pg_password = os.environ.get("PGPASSWORD") or "password"
@@ -430,10 +456,16 @@ class loadsave_read_postgres(snippet):
         self.dataset = "UNUSED"
         self.priority = 11010
         self.requires_environment = True
+        self.docmd = """
+You need a Postgres JDBC driver to connect to a Postgres database.
+
+Options include:
+- Add `org.postgresql:postgresql:<version>` to `spark.jars.packages`
+- Provide the JDBC driver using `spark-submit --jars`
+- Add the JDBC driver to your Spark runtime (not recommended)
+"""
 
     def snippet(self, df):
-        # Adding org.postgresql:postgresql:<version> to spark.jars.packages ensures
-        # a compatible JDBC driver.
         pg_database = os.environ.get("PGDATABASE") or "postgres"
         pg_host = os.environ.get("PGHOST") or "localhost"
         pg_password = os.environ.get("PGPASSWORD") or "password"
@@ -457,10 +489,11 @@ class loadsave_dataframe_from_csv_provide_schema(snippet):
         self.category = "Data Handling Options"
         self.dataset = "UNUSED"
         self.priority = 100
+        self.docmd = """
+See https://spark.apache.org/docs/latest/api/python/_modules/pyspark/sql/types.html for a list of types.
+"""
 
     def snippet(self, df):
-        # See https://spark.apache.org/docs/latest/api/python/_modules/pyspark/sql/types.html
-        # for a list of types.
         from pyspark.sql.types import (
             DoubleType,
             IntegerType,
@@ -510,10 +543,11 @@ class loadsave_csv_with_header(snippet):
         self.category = "Data Handling Options"
         self.dataset = "auto-mpg.csv"
         self.priority = 300
+        self.docmd = """
+See https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameWriter.html for a list of supported options.
+"""
 
     def snippet(self, auto_df):
-        # See https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameWriter.html
-        # for a list of supported options.
         auto_df.coalesce(1).write.csv("header.csv", header="true")
 
 
@@ -524,6 +558,13 @@ class loadsave_single_output_file(snippet):
         self.category = "Data Handling Options"
         self.dataset = "auto-mpg.csv"
         self.priority = 400
+        self.docmd = """
+This example outputs CSV data to a single file. The file will be written in a directory called single.csv and have a random name. There is no way to change this behavior.
+
+If you need to write to a single file with a name you choose, consider converting it to a Pandas dataframe and saving it using Pandas.
+
+Either way all data will be collected on one node before being written so be careful not to run out of memory.
+"""
 
     def snippet(self, auto_df):
         auto_df.coalesce(1).write.csv("single.csv")
@@ -536,6 +577,13 @@ class loadsave_dynamic_partitioning(snippet):
         self.category = "Data Handling Options"
         self.dataset = "auto-mpg.csv"
         self.priority = 500
+        self.docmd = """
+When you write using dynamic partitioning, the output partitions are determined bby the values of a column rather than specified in code.
+
+The values of the partitions will appear as subdirectories and are not contained in the output files, i.e. they become "virtual columns". When you read a partition table these virtual columns will be part of the DataFrame.
+
+Dynamic partitioning has the potential to create many small files, this will impact performance negatively. Be sure the partition columns do not have too many distinct values and limit the use of multiple virtual columns.
+"""
 
     def snippet(self, auto_df):
         spark.conf.set("spark.sql.sources.partitionOverwriteMode", "dynamic")
@@ -552,19 +600,13 @@ class loadsave_overwrite_specific_partitions(snippet):
         self.dataset = "auto-mpg.csv"
         self.priority = 501
         self.skip_run = True
+        self.docmd = """
+Enabling dynamic partitioning lets you add or overwrite partitions based on DataFrame contents. Without dynamic partitioning the overwrite will overwrite the entire table.
+
+With dynamic partitioning, partitions with keys in the DataFrame are overwritten, but partitions not in the DataFrame are untouched.
+"""
 
     def snippet(self, df):
-        """
-        Enabling dynamic partitioning lets you add or overwrite partitions
-        based on DataFrame contents.
-
-        Without dynamic partitioning the overwrite will overwrite the entire
-        table.
-
-        With dynamic partitioning, partitions with keys in the DataFrame are
-        overwritten, but partitions not in the DataFrame are untouched.
-        """
-
         spark.conf.set("spark.sql.sources.partitionOverwriteMode", "dynamic")
         your_dataframe.write.mode("overwrite").insertInto("your_table")
 
@@ -611,6 +653,9 @@ class dfo_modify_column(snippet):
         self.category = "DataFrame Operations"
         self.dataset = "auto-mpg.csv"
         self.priority = 200
+        self.docmd = """
+Modify a column in-place using `withColumn`, specifying the output column name to be the same as the existing column name.
+"""
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import col, concat, lit
@@ -626,6 +671,9 @@ class dfo_add_column_builtin(snippet):
         self.category = "DataFrame Operations"
         self.dataset = "auto-mpg.csv"
         self.priority = 100
+        self.docmd = """
+`withColumn` returns a new DataFrame with a column added to the source DataFrame. `withColumn` can be chained together multiple times.
+"""
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import upper, lower
@@ -643,6 +691,9 @@ class dfo_add_column_custom_udf(snippet):
         self.category = "DataFrame Operations"
         self.dataset = "auto-mpg.csv"
         self.priority = 2100
+        self.docmd = """
+Create a UDF by providing a function to the udf function. This example shows a [lambda function](https://docs.python.org/3/reference/expressions.html#lambdas-1). You can also use ordinary functions for more complex UDFs.
+"""
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import col, udf
@@ -3316,22 +3367,20 @@ class performance_metrics(snippet):
         self.dataset = "auto-mpg.csv"
         self.priority = 700
         self.skip_run = True
+        self.docmd = """
+To publish metrics to Graphite, create a file called graphite_metrics.properties with these contents:
+
+- *.sink.graphite.class=org.apache.spark.metrics.sink.GraphiteSink
+- *.sink.graphite.host=<graphite_ip_address>
+- *.sink.graphite.port=2003
+- *.sink.graphite.period=10
+- *.sink.graphite.unit=seconds
+
+Then set spark.metrics.conf to the file graphite_metrics.properties. For example: `$ spark-submit --conf spark.metrics.conf=graphite_metrics.properties myapp.jar`. The documentation has more information about [monitoring Spark jobs](https://spark.apache.org/docs/latest/monitoring.html)
+"""
 
     def snippet(self, auto_df):
-        """
-        To publish metrics to Graphite, create a file called graphite_metrics.properties with these contents:
-
-        *.sink.graphite.class=org.apache.spark.metrics.sink.GraphiteSink
-        *.sink.graphite.host=<graphite_ip_address>
-        *.sink.graphite.port=2003
-        *.sink.graphite.period=10
-        *.sink.graphite.unit=seconds
-
-        Then set spark.metrics.conf to the file graphite_metrics.properties. For example:
-        $ spark-submit --conf spark.metrics.conf=graphite_metrics.properties myapp.jar
-
-        Read more about monitoring Spark jobs at https://spark.apache.org/docs/latest/monitoring.html
-        """
+        pass
 
 
 class performance_increase_heap_space(snippet):
@@ -4105,6 +4154,11 @@ class streaming_connect_kafka_sasl_plain(snippet):
         self.dataset = "UNUSED"
         self.priority = 100
         self.skip_run = True
+        self.docmd = """
+Replace USERNAME and PASSWORD with your actual values.
+
+This is for test/dev only, for production you should put credentials in a [JAAS Login Configuration File](https://docs.oracle.com/javase/7/docs/technotes/guides/security/jgss/tutorials/LoginConfigFile.html).
+"""
 
     def snippet(self, df):
         options = {
@@ -4338,6 +4392,9 @@ class streaming_add_timestamp(snippet):
         self.category = "Spark Streaming"
         self.dataset = "auto-mpg.csv"
         self.priority = 300
+        self.docmd = """
+Your data needs a timestamp column for windowing. If your source data doesn't include a timestamp you can add one. This example adds the current system time as of DataFrame creation, which may be appropriate if you are not reading historical data.
+"""
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import current_timestamp
@@ -4353,6 +4410,11 @@ class streaming_session_window(snippet):
         self.category = "Spark Streaming"
         self.dataset = "weblog.csv"
         self.priority = 310
+        self.docmd = """
+Session windows divide an input stream by both a time dimension and a grouping key. The length of the window depends on how long the grouping key is "active", the length of the window is extended each time the grouping key is seen without a timeout.
+
+This example shows weblog traffic split by IP address, with a 5 minute timeout per session. This sessionization would allow you compute things like average number of visits per session.
+"""
 
     def snippet(self, weblog_df):
         from pyspark.sql.functions import hash, session_window
@@ -4373,18 +4435,15 @@ class streaming_conditional_udf(snippet):
         self.dataset = "UNUSED"
         self.skip_run = True
         self.priority = 400
+        self.docmd = """
+It's common you want to call a UDF when measure hits a threshold. You want to call the UDF when a row hits a condition and skip it otherwise. PySpark does not support calling UDFs conditionally (or short-circuiting) as of 3.1.2.
+
+To deal with this put a short-circuit field in the UDF and call the UDF with the condition. If the short-circuit is true return immediately.
+
+This example performs an action when a running average exceeds 100.
+"""
 
     def snippet(self, auto_df):
-        """
-        It's common you want to call a UDF when measure hits a threshold. You want
-        to call the UDF when a row hits a condition and skip it otherwise. PySpark
-        does not support calling UDFs conditionally (or short-circuiting) as of 3.1.2.
-
-        To deal with this put a short-circuit field in the UDF and call the UDF
-        with the condition. If the short-circuit is true return immediately.
-
-        This example performs an action when a running average exceeds 100.
-        """
         from pyspark.sql.types import BooleanType
         from pyspark.sql.functions import udf
 
@@ -4429,21 +4488,19 @@ class streaming_machine_learning(snippet):
         self.dataset = "UNUSED"
         self.priority = 500
         self.skip_run = True
+        self.docmd = """
+MLlib pipelines can be loaded and used in streaming jobs.
+
+When training, define a Pipeline like: `pipeline = Pipeline(stages=[a, b, ...])`
+
+Fit it, then save the resulting model:
+- `pipeline_model = pipeline.fit(train_df)`
+- `pipeline_model.write().overwrite().save("path/to/pipeline")`
+
+The pipeline model can then be used as shown below.
+"""
 
     def snippet(self, auto_df):
-        """
-        MLlib pipelines can be loaded and used in streaming jobs.
-
-        When training, define a Pipeline like:
-            pipeline = Pipeline(stages=[a, b, ...])
-
-        Fit it, then save the resulting model:
-            pipeline_model = pipeline.fit(train_df)
-            pipeline_model.write().overwrite().save("path/to/pipeline")
-
-        The pipeline model can then be used as shown below.
-        """
-
         from pyspark.ml import PipelineModel
 
         pipeline_model = PipelineModel.load("path/to/pipeline")
@@ -4459,12 +4516,11 @@ class streaming_processing_frequency(snippet):
         self.dataset = "UNUSED"
         self.priority = 600
         self.skip_run = True
+        self.docmd = """
+Use the processingTime option of trigger to control how frequently microbatches run. You can specify milliseconds or a string interval.
+"""
 
     def snippet(self, auto_df):
-        """
-        Use the processingTime option of trigger to control how frequently microbatches
-        run. You can specify milliseconds or a string interval.
-        """
         df.writeStream.outputMode("complete").format("console").trigger(
             processingTime="10 seconds"
         ).start().awaitTermination()
@@ -4476,13 +4532,13 @@ class streaming_to_database(snippet):
         self.name = "Write a streaming DataFrame to a database"
         self.category = "Spark Streaming"
         self.dataset = "UNUSED"
+        self.requires_environment = True
         self.priority = 700
+        self.docmd = """
+Streaming directly to databases is not supported but you can use foreachBatch to write individual DataFrames to your database. If a task fails you will see the same data with the same epoch_id multiple times and your code will need to handle this.
+"""
 
     def snippet(self, auto_df):
-        """
-        Streaming directly to databases is not supported but you can use foreachBatch
-        to write individual DataFrames to your database.
-        """
         import time
 
         pg_database = os.environ.get("PGDATABASE") or "postgres"
@@ -4530,7 +4586,7 @@ for name, clazz in clsmembers:
         cheat_sheet.append(clazz())
 
 
-def generate(type):
+def generate(args):
     # Gather up all the categories and snippets.
     snippets = dict()
     for cheat in cheat_sheet:
@@ -4555,13 +4611,13 @@ def generate(type):
         snippets.keys(), key=lambda x: category_spec[x]["priority"]
     )
 
-    if type == "markdown":
-        return generate_cheatsheet(snippets, sorted_categories, category_spec)
+    if args.notebook:
+        return generate_notebook(args, snippets, sorted_categories, category_spec)
     else:
-        return generate_notebook(snippets, sorted_categories, category_spec)
+        return generate_cheatsheet(args, snippets, sorted_categories, category_spec)
 
 
-def generate_notebook(snippets, sorted_categories, category_spec):
+def generate_notebook(args, snippets, sorted_categories, category_spec):
     import nbformat as nbf
 
     nb = nbf.v4.new_notebook()
@@ -4587,7 +4643,7 @@ def generate_notebook(snippets, sorted_categories, category_spec):
             )
         )
         for name, priority, source, raw_source, cheat in list:
-            if cheat.skip_run:
+            if cheat.requires_environment and args.skip_environment:
                 continue
             result = cheat.run(show=False)
             if type(result) in (pyspark.sql.dataframe.DataFrame, tuple):
@@ -4600,7 +4656,7 @@ def generate_notebook(snippets, sorted_categories, category_spec):
         nbf.write(nb, f)
 
 
-def generate_cheatsheet(snippets, sorted_categories, category_spec):
+def generate_cheatsheet(args, snippets, sorted_categories, category_spec):
     # TOC Template
     toc_template = """
 Table of contents
@@ -4652,7 +4708,11 @@ Table of contents
             toc_content_list.append("   * [{}](#{})".format(category, category_slug))
             for name, priority, source, raw_source, cheat in list:
                 header_text = header.format(name, "-" * len(name))
+                if cheat.requires_environment and args.skip_environment:
+                    continue
                 fd.write(header_text)
+                if cheat.docmd is not None:
+                    fd.write(cheat.docmd)
                 fd.write(snippet_template.format(code=source))
                 result = cheat.run(show=False)
                 if result is not None:
@@ -4710,7 +4770,7 @@ def all_tests(args):
     for cheat in cheat_sheet:
         if args.category is not None and cheat.category != args.category:
             continue
-        if cheat.requires_argument and args.skip_environment:
+        if cheat.requires_environment and args.skip_environment:
             continue
         cheat.run()
 
@@ -4718,6 +4778,12 @@ def all_tests(args):
 def dump_priorities():
     for cheat in cheat_sheet:
         print("{},{},{}".format(cheat.category, cheat.name, cheat.priority))
+
+
+def dump_undocumented():
+    for cheat in cheat_sheet:
+        if cheat.docmd is None:
+            print(cheat.name)
 
 
 def test(test_name):
@@ -4766,6 +4832,7 @@ def main():
     parser.add_argument("--category")
     parser.add_argument("--debug", action="store_true")
     parser.add_argument("--dump-priorities", action="store_true")
+    parser.add_argument("--dump-undocumented", action="store_true")
     parser.add_argument("--notebook", action="store_true")
     parser.add_argument("--skip-environment", action="store_true")
     parser.add_argument("--test", action="append")
@@ -4801,6 +4868,10 @@ def main():
         dump_priorities()
         return
 
+    if args.dump_undocumented:
+        dump_undocumented()
+        return
+
     if not args.skip_environment:
         setup_environment()
     if args.all_tests or args.category:
@@ -4808,10 +4879,7 @@ def main():
     elif args.test:
         for this_test in args.test:
             test(this_test)
-    elif args.notebook:
-        generate("notebook")
-    else:
-        generate("markdown")
+    generate(args)
     if not args.skip_environment:
         teardown_environment()
 
