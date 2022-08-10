@@ -8,7 +8,7 @@ oci
 pandas
 pillow
 pyarrow
-pyspark==3.2.1
+pyspark==3.2.2
 python-slugify
 pyunicode
 pyyaml
