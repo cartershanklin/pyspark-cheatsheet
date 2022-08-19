@@ -711,6 +711,7 @@ class dfo_concat_columns(snippet):
         self.category = "DataFrame Operations"
         self.dataset = "auto-mpg.csv"
         self.priority = 450
+        self.docmd = """TODO"""
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import concat, col, lit
@@ -786,11 +787,11 @@ class dfo_change_column_name_all(snippet):
         self.category = "DataFrame Operations"
         self.dataset = "auto-mpg.csv"
         self.priority = 710
+        self.docmd = """
+To rename all columns use toDF with the desired column names in the argument list. This example puts an X in front of all column names.
+"""
 
     def snippet(self, auto_df):
-        # To rename all columns, use toDF with the desired column names in
-        # the argument list. This example puts an X in front of all column
-        # names.
         df = auto_df.toDF(*["X" + name for name in auto_df.columns])
         return df
 
@@ -802,6 +803,14 @@ class dfo_column_to_python_list(snippet):
         self.category = "DataFrame Operations"
         self.dataset = "auto-mpg.csv"
         self.priority = 710
+        self.docmd = """
+Steps below:
+
+- `select` the target column, this example uses `carname`.
+- Access the DataFrame's rdd using `.rdd`
+- Use `flatMap` to convert the rdd's `Row` objects into simple values.
+- Use `collect` to assemble everything into a list.
+"""
 
     def snippet(self, auto_df):
         names = auto_df.select("carname").rdd.flatMap(lambda x: x).collect()
@@ -817,6 +826,13 @@ class dfo_consume_as_dict(snippet):
         self.dataset = "auto-mpg.csv"
         self.preconvert = True
         self.priority = 730
+        self.docmd = """
+Steps below:
+
+- `collect` all DataFrame Rows in the driver.
+- Iterate over the Rows.
+- Call the Row's `asDict` method to convert the Row to a Python dictionary.
+"""
 
     def snippet(self, auto_df):
         first_three = auto_df.limit(3)
@@ -839,6 +855,14 @@ class dfo_scalar_query_to_python_variable(snippet):
         self.category = "DataFrame Operations"
         self.dataset = "auto-mpg.csv"
         self.priority = 720
+        self.docmd = """
+If you have a `DataFrame` with one row and one column, how do you access its value?
+
+Steps below:
+- Create a DataFrame with one row and one column, this example uses an average but it could be anything.
+- Call the DataFrame's `first` method, this returns the first `Row` of the DataFrame.
+- `Row`s can be accessed like arrays, so we extract the zeroth value of the first `Row` using `first()[0]`.
+"""
 
     def snippet(self, auto_df):
         average = auto_df.agg(dict(mpg="avg")).first()[0]
@@ -854,6 +878,20 @@ class dfo_dataframe_from_rdd(snippet):
         self.dataset = "auto-mpg.csv"
         self.preconvert = True
         self.priority = 1500
+        self.docmd = """
+If you have an `rdd` how do you convert it to a `DataFrame`? The `rdd` method `toDf` can be used, but the `rdd` must be a collection of `Row` objects.
+
+Steps below:
+- Create an `rdd` to be converted to a `DataFrame`.
+- Use the `rdd`'s `map` method:
+  - The example uses a lambda function to convert `rdd` elements to `Row`s.
+  - The `Row` constructor request key/value pairs with the key serving as the "column name".
+  - Each `rdd` entry is converted to a dictionary and the dictionary is unpacked to create the `Row`.
+  - `map` creates a new `rdd` containing all the `Row` objects.
+  - This new `rdd` is converted to a `DataFrame` using the `toDF` method.
+
+The second example is a variation on the first, modifying source `rdd` entries while creating the target `rdd`.
+"""
 
     def snippet(self, auto_df):
         from pyspark.sql import Row
@@ -1887,6 +1925,9 @@ class join_concatenate(snippet):
         self.category = "Joining DataFrames"
         self.dataset = "UNUSED"
         self.priority = 500
+        self.docmd = """
+Spark's union operator is similar to SQL UNION ALL.
+"""
 
     def snippet(self, df):
         df1 = spark.read.format("csv").option("header", True).load("data/part1.csv")
@@ -1902,6 +1943,9 @@ class join_basic(snippet):
         self.category = "Joining DataFrames"
         self.dataset = "auto-mpg.csv"
         self.priority = 100
+        self.docmd = """
+The second argument to `join` can be a string if that column name exists in both DataFrames.
+"""
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import udf
@@ -1930,6 +1974,9 @@ class join_basic2(snippet):
         self.category = "Joining DataFrames"
         self.dataset = "auto-mpg.csv"
         self.priority = 200
+        self.docmd = """
+The boolean expression given to `join` determines the matching condition.
+"""
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import udf
@@ -1958,6 +2005,14 @@ class join_multiple_files_single_dataframe(snippet):
         self.category = "Joining DataFrames"
         self.dataset = "UNUSED"
         self.priority = 600
+        self.docmd = """
+If you have a collection of files you need to load into one DataFrame, it's more efficient to load them all rather than union a collection of DataFrames together.
+
+Ways to do this include:
+- If you load a directory, Spark attempts to combine all files in that director into one DataFrame.
+- You can pass a list of paths to the `load` function.
+- You can pass wildcards to the `load` function.
+"""
 
     def snippet(self, auto_df):
         # Approach 1: Use a list.
@@ -1979,6 +2034,9 @@ class join_multiple_conditions(snippet):
         self.category = "Joining DataFrames"
         self.dataset = "auto-mpg.csv"
         self.priority = 300
+        self.docmd = """
+If you need to join on multiple conditions, combine them with bitwise operators in the join expression. It's worth noting that most Python boolean expressions can be used as the join expression.
+"""
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import udf
@@ -2011,6 +2069,9 @@ class join_subtract_dataframes(snippet):
         self.category = "Joining DataFrames"
         self.dataset = "auto-mpg.csv"
         self.priority = 700
+        self.docmd = """
+Spark's `subtract` operator is similar to SQL's `MINUS` operator.
+"""
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import col
@@ -2026,6 +2087,9 @@ class join_different_types(snippet):
         self.category = "Joining DataFrames"
         self.dataset = "auto-mpg.csv"
         self.priority = 400
+        self.docmd = """
+This snippet shows how to use the various join strategies Spark supports. By default the join type is inner. See the diagram at the top of this section for a visual comparison of what these will produce.
+"""
 
     def snippet(self, auto_df):
         # Inner join on one column.
@@ -2055,6 +2119,7 @@ class dates_string_to_date(snippet):
         self.category = "Dealing with Dates"
         self.dataset = "UNUSED"
         self.priority = 100
+        self.docmd = "IGNORE"
 
     def snippet(self, df):
         from pyspark.sql.functions import col
@@ -2073,6 +2138,7 @@ class dates_string_to_date_custom(snippet):
         self.category = "Dealing with Dates"
         self.dataset = "UNUSED"
         self.priority = 200
+        self.docmd = "IGNORE"
 
     def snippet(self, df):
         from pyspark.sql.functions import col, to_date
@@ -2091,6 +2157,7 @@ class dates_last_day_of_month(snippet):
         self.category = "Dealing with Dates"
         self.dataset = "UNUSED"
         self.priority = 300
+        self.docmd = "IGNORE"
 
     def snippet(self, df):
         from pyspark.sql.functions import col, last_day
@@ -2111,6 +2178,7 @@ class dates_unix_timestamp_to_date(snippet):
         self.category = "Dealing with Dates"
         self.dataset = "UNUSED"
         self.priority = 1000
+        self.docmd = "IGNORE"
 
     def snippet(self, df):
         from pyspark.sql.functions import col, from_unixtime
@@ -2129,6 +2197,9 @@ class dates_complexdate(snippet):
         self.category = "Dealing with Dates"
         self.dataset = "UNUSED"
         self.priority = 1100
+        self.docmd = """
+Spark's ability to deal with date formats is poor relative to most databases. You can fill in the gap using the `dateparser` Python add-in which is able to figure out most common date formats.
+"""
 
     def snippet(self, df):
         from pyspark.sql.functions import udf
@@ -2155,6 +2226,30 @@ class unstructured_json_top_level_map(snippet):
         self.category = "Unstructured Analytics"
         self.dataset = "UNUSED"
         self.priority = 100
+        self.docmd = """
+When Spark loads JSON data into a DataFrame, the DataFrame's columns are complex types (StructType and ArrayType) representing the JSON object.
+
+Spark allows you to traverse complex types in a select operation by providing multiple StructField names separated by a `.`.  Names used to in StructFields will correspond to the JSON member names.
+
+For example, if you load this document:
+```
+{
+  "Image": {
+    "Width":  800,
+    "Height": 600,
+    "Title":  "View from 15th Floor",
+    "Thumbnail": {
+       "Url":    "http://www.example.com/image/481989943",
+       "Height": 125,
+       "Width":  "100"
+    },
+    "IDs": [116, 943, 234, 38793]
+  }
+}
+```
+
+The resulting DataFrame will have one StructType column named Image. The Image column will have these selectable fields: `Image.Width`, `Image.Height`, `Image.Title`, `Image.Thumbnail.Url`, `Image.Thumbnail.Height`, `Image.Thumbnail.Width`, `Image.IDs`.
+"""
 
     def snippet(self, df):
         from pyspark.sql.functions import col
@@ -2183,6 +2278,9 @@ class unstructured_json_column_map(snippet):
         self.category = "Unstructured Analytics"
         self.dataset = "UNUSED"
         self.priority = 110
+        self.docmd = """
+If you have JSON text in a DataFrame's column, you can parse that column into its own DataFrame as follows.
+"""
 
     def snippet(self, df):
         from pyspark.sql.functions import col, from_json, schema_of_json
@@ -2224,6 +2322,13 @@ class unstructured_json_unnest_complex_array(snippet):
         self.category = "Unstructured Analytics"
         self.dataset = "UNUSED"
         self.priority = 200
+        self.docmd = """
+When you need to access JSON array elements you will usually use the table generating functions [explode](https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.explode.html#pyspark.sql.functions.explode) or [posexplode](https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.posexplode.html#pyspark.sql.functions.posexplode).
+
+`explode` and `posexplode` are called table generating functions because they produce one output row for each array entry, in other words a row goes in and a table comes out. The output column has the same data type as the data type in the array. When dealing with JSON this data type could be a boolean, integer, float or StructType.
+
+The example below uses `explode` to flatten an array of StructTypes, then selects certain key fields from the output structures.
+"""
 
     def snippet(self, df):
         from pyspark.sql.functions import col, explode
@@ -3035,6 +3140,12 @@ class performance_logging(snippet):
         self.category = "Performance"
         self.dataset = "UNUSED"
         self.priority = 110
+        self.docmd = """
+You can access the JVM of the Spark Context using `_jvm`. Caveats:
+
+- `_jvm` is an internal variable and this could break after a Spark version upgrade.
+- This is the JVM running on the Driver node. I'm not aware of a way to access Log4J on Executor nodes.
+"""
 
     def snippet(self, df):
         logger = spark.sparkContext._jvm.org.apache.log4j.Logger.getRootLogger()
@@ -3095,6 +3206,7 @@ class performance_execution_plan(snippet):
         self.category = "Performance"
         self.dataset = "auto-mpg.csv"
         self.priority = 250
+        self.docmd = "IGNORE"
 
     def snippet(self, auto_df):
         df = auto_df.groupBy("cylinders").count()
@@ -3110,6 +3222,9 @@ class performance_partition_by_value(snippet):
         self.category = "Performance"
         self.dataset = "auto-mpg.csv"
         self.priority = 300
+        self.docmd = """
+A DataFrame can be partitioned by a column using the `repartition` method. This method requires a target number of partitions and a column name. This allows you to control how data is distributed around the cluster, which can help speed up operations when these operations are able to run entirely on the local partition.
+"""
 
     def snippet(self, auto_df):
         # rows is an iterable, e.g. itertools.chain
@@ -3149,7 +3264,6 @@ Empty partition
         # INCLUDE
 
 
-# XXX: Should find some solution for hard-coded output.
 class performance_partition_by_range(snippet):
     def __init__(self):
         super().__init__()
@@ -3157,6 +3271,9 @@ class performance_partition_by_range(snippet):
         self.category = "Performance"
         self.dataset = "auto-mpg.csv"
         self.priority = 310
+        self.docmd = """
+A DataFrame can be range partitioned using `repartitionByRange`. This method requires a number of target partitions and a partitioning key. Range partitioning gives similar benefits to key-based partitioning but may be better when keys can have small numbers of distinct values, which would lead to skew problems in key-based partitioning.
+"""
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import col
@@ -3503,6 +3620,11 @@ class pandas_n_rows_from_dataframe_to_pandas(snippet):
         self.category = "Pandas"
         self.dataset = "auto-mpg.csv"
         self.priority = 200
+        self.docmd = """
+If you only want the first rows of a Spark DataFrame to be converted to a Pandas DataFrame, use the `limit` function to select how many you want.
+
+Be aware that rows in a Spark DataFrame have no guaranteed order unless you explicitly order them.
+"""
 
     def snippet(self, auto_df):
         N = 10
@@ -3517,6 +3639,9 @@ class profile_number_nulls(snippet):
         self.category = "Data Profiling"
         self.dataset = "auto-mpg.csv"
         self.priority = 100
+        self.docmd = """
+This example creates a new DataFrame consisting of the colunm name and number of NULLs in the column. The example takes advantage of the fact that Spark's `select` method accepts an array. The array is built using a Python [list comprehension](https://docs.python.org/3/tutorial/datastructures.html#list-comprehensions).
+"""
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import col, count, when
@@ -3535,6 +3660,9 @@ class profile_numeric_averages(snippet):
         self.dataset = "auto-mpg.csv"
         self.priority = 200
         self.preconvert = True
+        self.docmd = """
+This example uses Spark's `agg` function to aggregate multiple columns at once using a dictionary containing column name and aggregate function. This example uses the `avg` aggregate function.
+"""
 
     def snippet(self, auto_df_fixed):
         numerics = set(["decimal", "double", "float", "integer", "long", "short"])
@@ -3551,6 +3679,9 @@ class profile_numeric_min(snippet):
         self.dataset = "auto-mpg.csv"
         self.priority = 300
         self.preconvert = True
+        self.docmd = """
+This example uses Spark's `agg` function to aggregate multiple columns at once using a dictionary containing column name and aggregate function. This example uses the `min` aggregate function.
+"""
 
     def snippet(self, auto_df_fixed):
         numerics = set(["decimal", "double", "float", "integer", "long", "short"])
@@ -3567,6 +3698,9 @@ class profile_numeric_max(snippet):
         self.dataset = "auto-mpg.csv"
         self.priority = 400
         self.preconvert = True
+        self.docmd = """
+This example uses Spark's `agg` function to aggregate multiple columns at once using a dictionary containing column name and aggregate function. This example uses the `max` aggregate function.
+"""
 
     def snippet(self, auto_df_fixed):
         numerics = set(["decimal", "double", "float", "integer", "long", "short"])
@@ -3583,6 +3717,9 @@ class profile_numeric_median(snippet):
         self.dataset = "auto-mpg.csv"
         self.priority = 500
         self.preconvert = True
+        self.docmd = """
+Median can be computed using SQL's `percentile` function with a value of 0.5.
+"""
 
     def snippet(self, auto_df_fixed):
         import pyspark.sql.functions as F
@@ -3927,6 +4064,13 @@ class management_delta_table(snippet):
         self.category = "Data Management"
         self.dataset = "auto-mpg.csv"
         self.priority = 100
+        self.docmd = """
+[Delta Lake](https://delta.io/) is a table format and a set of extensions enabling data management on top of object stores. Delta table format is an extension of [Apache Parquet](https://parquet.apache.org/). "Data management" here means the ability to update or delete table data after it's written without needing to understand the underlying file layout. When you use Delta tables you can treat them much like RDBMS tables.
+
+To create a Delta table save it in Delta format.
+
+Your Spark session needs to be "Delta enabled". See `cheatsheet.py` (the code that generates this cheatsheet) for more information on how to do this.
+"""
 
     def snippet(self, auto_df):
         auto_df.write.mode("overwrite").format("delta").saveAsTable("delta_table")
@@ -3939,6 +4083,11 @@ class management_update_records(snippet):
         self.category = "Data Management"
         self.dataset = "auto-mpg.csv"
         self.priority = 110
+        self.docmd = """
+The `update` operation behaves like SQL's `UPDATE` statement. `update` is possible on a `DeltaTable` but not on a `DataFrame`.
+
+Be sure to read Delta Lake's documentation on [concurrency control](https://docs.delta.io/latest/concurrency-control.html) before using transactions in any application.
+"""
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import expr
@@ -3966,6 +4115,11 @@ class management_merge_tables(snippet):
         self.category = "Data Management"
         self.dataset = "auto-mpg.csv"
         self.priority = 200
+        self.docmd = """
+The `merge` operation behaves like SQL's `MERGE` statement. `merge` allows a combination of inserts, updates and deletes to be performed on a table with ACID consistency. `merge` is possible on a `DeltaTable` but not on a `DataFrame`.
+
+Be sure to read Delta Lake's documentation on [concurrency control](https://docs.delta.io/latest/concurrency-control.html) before using transactions in any application.
+"""
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import col, expr
@@ -4010,6 +4164,9 @@ class management_version_history(snippet):
         self.category = "Data Management"
         self.dataset = "UNUSED"
         self.priority = 300
+        self.docmd = """
+Delta tables maintain a lot of metadata, ranging from things like operation times, actions, version history, custom metadata and more. This example shows how to use `DeltaTable`'s `history` command to load version history into a `DataFrame` and view it.
+"""
 
     def snippet(self, auto_df):
         # Load our table.
@@ -4094,6 +4251,9 @@ class management_compact_table(snippet):
         self.category = "Data Management"
         self.dataset = "UNUSED"
         self.priority = 500
+        self.docmd = """
+Vacuuming (sometimes called compacting) a table is done by loading the tables' `DeltaTable` and running `vacuum`. This process combines small files into larger files and cleans up old metadata. As of Spark 3.2 7 days or 168 hours is the minimum retention window.
+"""
 
     def snippet(self, auto_df):
         output_path = "delta_tests"
@@ -4711,7 +4871,7 @@ Table of contents
                 if cheat.requires_environment and args.skip_environment:
                     continue
                 fd.write(header_text)
-                if cheat.docmd is not None:
+                if cheat.docmd is not None and cheat.docmd != "IGNORE":
                     fd.write(cheat.docmd)
                 fd.write(snippet_template.format(code=source))
                 result = cheat.run(show=False)
@@ -4781,9 +4941,26 @@ def dump_priorities():
 
 
 def dump_undocumented():
+    count = 0
+
     for cheat in cheat_sheet:
+        # Ignore suppresed cheats.
+        if cheat.docmd == "IGNORE":
+            continue
+
+        # Ignore trivial cheats.
+        source = inspect.getsource(cheat.snippet)
+        snippet = get_code_snippet(source).split("\n")
+        snippet = [line for line in snippet if not line.startswith("import ")]
+        snippet = [line for line in snippet if not line.startswith("from ")]
+        snippet = [line for line in snippet if not line.startswith("return")]
+        snippet = [line for line in snippet if line != ""]
+        if len(snippet) <= 1:
+            continue
         if cheat.docmd is None:
             print(cheat.name)
+            count += 1
+    print(f"{count} undocumented cheats")
 
 
 def test(test_name):
@@ -4879,7 +5056,8 @@ def main():
     elif args.test:
         for this_test in args.test:
             test(this_test)
-    generate(args)
+    else:
+        generate(args)
     if not args.skip_environment:
         teardown_environment()
 
