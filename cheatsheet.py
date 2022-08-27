@@ -430,6 +430,8 @@ Options include:
 - Add `org.postgresql:postgresql:<version>` to `spark.jars.packages`
 - Provide the JDBC driver using `spark-submit --jars`
 - Add the JDBC driver to your Spark runtime (not recommended)
+
+If you use Delta Lake there is a special procedure for specifying `spark.jars.packages`, see the source code that generates this file for details.
 """
 
     def snippet(self, auto_df):
@@ -772,6 +774,9 @@ class dfo_change_column_name_multi(snippet):
         self.category = "DataFrame Operations"
         self.dataset = "auto-mpg.csv"
         self.priority = 700
+        self.docmd = """
+If you need to change multiple column names you can chain `withColumnRenamed` calls together. If you want to change all column names see "Change all column names at once".
+"""
 
     def snippet(self, auto_df):
         df = auto_df.withColumnRenamed("horsepower", "horses").withColumnRenamed(
@@ -1053,6 +1058,11 @@ class dfo_flatmap(snippet):
         self.category = "DataFrame Operations"
         self.dataset = "auto-mpg.csv"
         self.priority = 2000
+        self.docmd = """
+Use `flatMap` when you have a UDF that produces a list of `Rows` per input `Row`. `flatMap` is an `RDD` operation so we need to access the `DataFrame`'s `RDD`, call `flatMap` and convert the resulting `RDD` back into a `DataFrame`. Spark will handle "flatting" arrays into the output `RDD`.
+
+Note also that you can [`yield`](https://docs.python.org/3/reference/expressions.html#yield-expressions) results rather than returning full lists which can simplify code considerably.
+"""
 
     def snippet(self, auto_df):
         from pyspark.sql.types import Row
@@ -1076,6 +1086,9 @@ class dfo_constant_dataframe(snippet):
         self.category = "DataFrame Operations"
         self.dataset = "UNUSED"
         self.priority = 950
+        self.docmd = """
+Constant `DataFrame`s are mostly useful for unit tests.
+"""
 
     def snippet(self, df):
         import datetime
@@ -1396,6 +1409,9 @@ class group_histogram(snippet):
         self.category = "Grouping"
         self.dataset = "auto-mpg.csv"
         self.priority = 1400
+        self.docmd = """
+Spark's `RDD` object supports computing histograms. This example computes the DataFrame column called horsepower to an RDD before calling `histogram`.
+"""
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import col
@@ -1417,6 +1433,9 @@ class group_key_value_to_key_list(snippet):
         self.category = "Grouping"
         self.dataset = "auto-mpg.csv"
         self.priority = 1300
+        self.docmd = """
+The [`collect_list`](https://spark.apache.org/docs/latest/api/sql/index.html#collect_list) function returns an `ArrayType` column containing all values seen per grouping key. The array entries are not unique, you can use `collect_set` if you need unique values.
+"""
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import col, collect_list
@@ -1434,6 +1453,7 @@ class group_group_and_count(snippet):
         self.category = "Grouping"
         self.dataset = "auto-mpg.csv"
         self.priority = 100
+        self.docmd = "IGNORE"
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import desc
@@ -1453,6 +1473,7 @@ class group_group_and_sort(snippet):
         self.category = "Grouping"
         self.dataset = "auto-mpg.csv"
         self.priority = 110
+        self.docmd = "IGNORE"
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import avg, desc
@@ -1494,6 +1515,7 @@ class group_multiple_columns(snippet):
         self.category = "Grouping"
         self.dataset = "auto-mpg.csv"
         self.priority = 200
+        self.docmd = "IGNORE"
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import avg, desc
@@ -1712,6 +1734,7 @@ class sortsearch_sort_descending(snippet):
         self.category = "Sorting and Searching"
         self.dataset = "auto-mpg.csv"
         self.priority = 800
+        self.docmd = "IGNORE"
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import col
@@ -1742,6 +1765,9 @@ class sortsearch_multi_filter(snippet):
         self.category = "Sorting and Searching"
         self.dataset = "auto-mpg.csv"
         self.priority = 700
+        self.docmd = """
+The key thing to remember if you have multiple filter conditions is that `filter` accepts standard Python expressions. Use bitwise operators to handle and/or conditions.
+"""
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import col
@@ -1788,6 +1814,14 @@ class transform_sql(snippet):
         self.category = "Transforming Data"
         self.dataset = "auto-mpg.csv"
         self.priority = 100
+        self.docmd = """
+You can run arbitrary SQL statements on a `DataFrame` provided you:
+
+1. Register the `DataFrame` as a temporary table using `registerTempTable`.
+2. Use `sqlContext.sql` and use the temp table name you specified as the table source.
+
+You can also join `DataFrames` if you register them. If you're porting complex SQL from another application this can be a lot easier than converting it to use `DataFrame` SQL APIs.
+"""
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import col, regexp_extract
@@ -2227,9 +2261,9 @@ class unstructured_json_top_level_map(snippet):
         self.dataset = "UNUSED"
         self.priority = 100
         self.docmd = """
-When Spark loads JSON data into a DataFrame, the DataFrame's columns are complex types (StructType and ArrayType) representing the JSON object.
+When Spark loads JSON data into a `DataFrame`, the `DataFrame`'s columns are complex types (`StructType` and `ArrayType`) representing the JSON object.
 
-Spark allows you to traverse complex types in a select operation by providing multiple StructField names separated by a `.`.  Names used to in StructFields will correspond to the JSON member names.
+Spark allows you to traverse complex types in a select operation by providing multiple `StructField` names separated by a `.`.  Names used to in `StructField`s will correspond to the JSON member names.
 
 For example, if you load this document:
 ```
@@ -2383,11 +2417,14 @@ class missing_filter_null_value(snippet):
         self.category = "Handling Missing Data"
         self.dataset = "auto-mpg.csv"
         self.priority = 200
+        self.docmd = """
+A `DataFrame`'s [`na`](https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.na.html#pyspark.sql.DataFrame.na) property returns a special class for dealing with missing values.
+
+This class's [`drop`](https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrameNaFunctions.drop.html#pyspark.sql.DataFrameNaFunctions.drop) method returns a new `DataFrame` with nulls omitted. `thresh` controls the number of nulls before the row gets dropped and `subset` controls the columns to consider.
+"""
 
     def snippet(self, auto_df):
-        # thresh controls the number of nulls before the row gets dropped.
-        # subset controls the columns to consider.
-        df = auto_df.na.drop(thresh=2, subset=("horsepower",))
+        df = auto_df.na.drop(thresh=1, subset=("horsepower",))
         return df
 
 
@@ -3053,6 +3090,9 @@ class ml_save_model(snippet):
         self.dataset = "auto-mpg-fixed.csv"
         self.priority = 10
         self.preconvert = True
+        self.docmd = """
+To save a model call `fit` on the `Model` object.
+"""
 
     def snippet(self, auto_df_fixed):
         from pyspark.ml.feature import VectorAssembler
@@ -3159,6 +3199,12 @@ class performance_cache(snippet):
         self.category = "Performance"
         self.dataset = "auto-mpg.csv"
         self.priority = 200
+        self.docmd = """
+By default a DataFrame is not stored anywhere and is recomputed whenever it is needed. Caching a DataFrame can improve performance if it is accessed many times. There are two ways to do this:
+
+* The DataFrame [`cache`](https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.cache.html#pyspark.sql.DataFrame.cache) method sets the DataFrame's persistence mode to the default (Memory and Disk).
+* For more control you can use [`persist`](https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.persist.html#pyspark.sql.DataFrame.persist). `persist` requires a [`StorageLevel`](https://spark.apache.org/docs/latest/api/python/reference/api/pyspark.StorageLevel.html). `persist` is most typically used to control replication factor.
+"""
 
     def snippet(self, auto_df):
         from pyspark import StorageLevel
@@ -3369,6 +3415,7 @@ class performance_spark_sample(snippet):
         self.category = "Performance"
         self.dataset = "UNUSED"
         self.priority = 400
+        self.docmd = "IGNORE"
 
     def snippet(self, df):
         df = (
@@ -4185,6 +4232,9 @@ class management_specific_version(snippet):
         self.category = "Data Management"
         self.dataset = "UNUSED"
         self.priority = 400
+        self.docmd = """
+To load a specific version of a Delta table, use the `versionAsOf` option. This example also shows how to query the metadata to get available versions.
+"""
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import desc
@@ -4219,6 +4269,13 @@ class management_specific_timestamp(snippet):
         self.category = "Data Management"
         self.dataset = "UNUSED"
         self.priority = 410
+        self.docmd = """
+To load a Delta table as of a timestamp, use the `timestampAsOf` option. This example also shows how to query the metadata to get available timestamps.
+
+Usage Notes:
+* If the timestamp you specify is earlier than any valid timestamp, the table will fail to load with an error like `The provided timestamp (...) is before the earliest version available to this table`.
+* Otherwise, the table version is based on rounding the timestamp you specify down to the nearest valid timestamp less than or equal to the timestamp you specify.
+"""
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import desc
@@ -4252,7 +4309,7 @@ class management_compact_table(snippet):
         self.dataset = "UNUSED"
         self.priority = 500
         self.docmd = """
-Vacuuming (sometimes called compacting) a table is done by loading the tables' `DeltaTable` and running `vacuum`. This process combines small files into larger files and cleans up old metadata. As of Spark 3.2 7 days or 168 hours is the minimum retention window.
+Vacuuming (sometimes called compacting) a table is done by loading the tables' `DeltaTable` and running `vacuum`. This process combines small files into larger files and cleans up old metadata. As of Spark 3.2, 7 days or 168 hours is the minimum retention window.
 """
 
     def snippet(self, auto_df):
@@ -4277,6 +4334,9 @@ class management_write_custom_metadata(snippet):
         self.category = "Data Management"
         self.dataset = "auto-mpg.csv"
         self.priority = 600
+        self.docmd = """
+Delta tables let your application add custom key/value pairs to writes. You might do this to track workflow IDs or other data to identify the source of writes.
+"""
 
     def snippet(self, auto_df):
         import os
@@ -4299,6 +4359,7 @@ class management_read_custom_metadata(snippet):
         self.category = "Data Management"
         self.dataset = "UNUSED"
         self.priority = 610
+        self.docmd = "IGNORE"
 
     def snippet(self, df):
         dt = DeltaTable.forPath(spark, "delta_table_metadata")
