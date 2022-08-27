@@ -24,7 +24,10 @@ Grouping:
 
 Joining DataFrames:
     priority: 12
-    description: Joining and stacking DataFrames.
+    description: Spark allows DataFrames to be joined similarly to how tables are joined in an RDBMS. The diagram below shows join types available in Spark.
+
+
+                 ![Spark Join Types](images/jointypes.jpg)
 
 File Processing:
     priority: 14
@@ -40,7 +43,7 @@ Dealing with Dates:
 
 Unstructured Analytics:
     priority: 20
-    description: Analyzing unstructured data like JSON, XML, etc.
+    description: Analyzing unstructured data like [JSON](https://spark.apache.org/docs/latest/sql-data-sources-json.html), XML, etc.
 
 Pandas:
     priority: 22
@@ -98,13 +101,13 @@ Preamble:
 
         Make note of these helpful links:
 
-        - [PySpark DataFrame Operations](http://spark.apache.org/docs/latest/api/python/reference/pyspark.sql.html#dataframe-apis)
+        - [PySpark DataFrame Operations](https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/dataframe.html)
 
         - [Built-in Spark SQL Functions](https://spark.apache.org/docs/latest/api/sql/index.html)
 
         - [MLlib Main Guide](http://spark.apache.org/docs/latest/ml-guide.html)
 
-        - [Structured Streaming Guide](https://spark.apache.org/docs/latest/api/python/reference/pyspark.ss.html)
+        - [Structured Streaming Guide](https://spark.apache.org/docs/latest/api/python/reference/pyspark.ss/index.html)
 
         - [PySpark SQL Functions Source](https://spark.apache.org/docs/latest/api/python/_modules/pyspark/sql/functions.html)
 
