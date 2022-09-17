@@ -27,7 +27,7 @@ Joining DataFrames:
     description: Spark allows DataFrames to be joined similarly to how tables are joined in an RDBMS. The diagram below shows join types available in Spark.
 
 
-                 ![Spark Join Types](images/jointypes.jpg)
+                 ![Spark Join Types](images/jointypes.webp)
 
 File Processing:
     priority: 14
@@ -67,7 +67,34 @@ Time Series:
 
 Machine Learning:
     priority: 32
-    description: Machine Learning
+    description: >
+        Machine Learning is a deep subject, too much to cover in this cheatsheet which is intended for code you can easily paste into your apps. The examples below will show basics of ML in Spark. It is helpful to understand the terminology of ML like Features, Estimators and Models. If you want some background on these things consider courses like "Google crash course in ML" or Udemy's "Machine Learning Course with Python".
+
+
+        A brief introduction to Spark ML terms:
+
+        * Feature: A Feature is an individual measurement. For example if you want to predict height based on age and sex, a combination of age and sex is a Feature.
+
+        * Vector: A Vector is a special Spark data type similar to an array of numbers. Spark ML algorithms require Features to be loaded into Vectors for training and predictions.
+
+        * Vector Column: Model training requires considering many Features at the same time. Spark ML operates on `DataFrame`s. Before training can happen you need to construct a `DataFrame` column of type Vector. See examples below.
+
+        * Label: Supervised ML algorithms like regression and classification require a label when training. In Spark you will put labels in a column in a `DataFrame` such that each row has both a Feature and its associated Label.
+
+        * Model: A Model is an algorithm capable of turning Feature vectors into values, usually thought of as predictions.
+
+        * Estimator: An Estimator builds a mathematical model that transforms input values into outputs. Estimators do double duty in Spark, some Estimators like regression and classification build statistical models. Some Estimators are purely for data preparation like the StringIndexer which builds a Model containing a dictionary that maps strings to numbers in a deterministic way.
+
+        * Fitting: Fitting is the process of building a Model using an Estimator and an input DataFrame you provide.
+
+        * Transformer: Transformers create new DataFrames using the `transform` API, which applies algorithms to the input DataFrame and outputs a DataFrame with additional columns. The nature of the `transform` could be statistical or it could be a simple algorithm, depending on the type of Estimator that created the Model.
+
+        * Pipelines: Pipelines are a series of Estimators that apply a series of `transform`s to a `DataFrame` before calling `fit` on the final Estimator in the Pipeline. The Pipeline is itself an Estimator. When you `fit` a Pipeline, Spark `fit`s the first Estimator in the Pipeline using an input `DataFrame` you provide. This produces a Model. If there are additional Estimators in the Pipeline, the newly created Model's `transform` method is called against the input `DataFrame` to create a new `DataFrame`. The process then begins again with the newly created `DataFrame` being passed to the next Estimator's `fit` method. Fitting a Pipeline produces a `PipelineModel`.
+
+
+        This image helps visualize the relationship between Spark ML classes.
+
+        ![Hierarchy of Spark ML Classes](images/mlhierarchy.webp)
 
 Performance:
     priority: 34

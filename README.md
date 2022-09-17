@@ -8,14 +8,15 @@ These snippets use DataFrames loaded from various data sources:
 - "Auto MPG Data Set" available from the [UCI Machine Learning Repository](https://archive.ics.uci.edu/ml/datasets/auto+mpg).
 - customer_spend.csv, a generated time series dataset.
 - date_examples.csv, a generated dataset with various date and time formats.
+- weblog.csv, a cleaned version of this [web log dataset](https://www.kaggle.com/datasets/shawon10/web-log-dataset).
 
-These snippets were tested against the Spark 3.2.1 API. This page was last updated 2022-03-13 08:55:24.
+These snippets were tested against the Spark 3.2.2 API. This page was last updated 2022-09-17 23:12:03.
 
 Make note of these helpful links:
-- [PySpark DataFrame Operations](http://spark.apache.org/docs/latest/api/python/reference/pyspark.sql.html#dataframe-apis)
+- [PySpark DataFrame Operations](https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/dataframe.html)
 - [Built-in Spark SQL Functions](https://spark.apache.org/docs/latest/api/sql/index.html)
 - [MLlib Main Guide](http://spark.apache.org/docs/latest/ml-guide.html)
-- [Structured Streaming Guide](https://spark.apache.org/docs/latest/api/python/reference/pyspark.ss.html)
+- [Structured Streaming Guide](https://spark.apache.org/docs/latest/api/python/reference/pyspark.ss/index.html)
 - [PySpark SQL Functions Source](https://spark.apache.org/docs/latest/api/python/_modules/pyspark/sql/functions.html)
 
 Try in a Notebook
@@ -43,12 +44,13 @@ Table of contents
       * [Load a DataFrame from JSON Lines (jsonl) Formatted Data](#load-a-dataframe-from-json-lines-jsonl-formatted-data)
       * [Save a DataFrame into a Hive catalog table](#save-a-dataframe-into-a-hive-catalog-table)
       * [Load a Hive catalog table into a DataFrame](#load-a-hive-catalog-table-into-a-dataframe)
+      * [Load a DataFrame from a SQL query](#load-a-dataframe-from-a-sql-query)
       * [Load a CSV file from Amazon S3](#load-a-csv-file-from-amazon-s3)
       * [Load a CSV file from Oracle Cloud Infrastructure (OCI) Object Storage](#load-a-csv-file-from-oracle-cloud-infrastructure-oci-object-storage)
       * [Read an Oracle DB table into a DataFrame using a Wallet](#read-an-oracle-db-table-into-a-dataframe-using-a-wallet)
       * [Write a DataFrame to an Oracle DB table using a Wallet](#write-a-dataframe-to-an-oracle-db-table-using-a-wallet)
-      * [Read a Postgres table into a DataFrame](#read-a-postgres-table-into-a-dataframe)
       * [Write a DataFrame to a Postgres table](#write-a-dataframe-to-a-postgres-table)
+      * [Read a Postgres table into a DataFrame](#read-a-postgres-table-into-a-dataframe)
    * [Data Handling Options](#data-handling-options)
       * [Provide the schema when loading a DataFrame from CSV](#provide-the-schema-when-loading-a-dataframe-from-csv)
       * [Save a DataFrame to CSV, overwriting existing data](#save-a-dataframe-to-csv-overwriting-existing-data)
@@ -66,6 +68,7 @@ Table of contents
       * [Drop a column](#drop-a-column)
       * [Change a column name](#change-a-column-name)
       * [Change multiple column names](#change-multiple-column-names)
+      * [Change all column names at once](#change-all-column-names-at-once)
       * [Convert a DataFrame column to a Python list](#convert-a-dataframe-column-to-a-python-list)
       * [Convert a scalar query to a Python value](#convert-a-scalar-query-to-a-python-value)
       * [Consume a DataFrame row-wise as Python dictionaries](#consume-a-dataframe-row-wise-as-python-dictionaries)
@@ -85,6 +88,7 @@ Table of contents
       * [DataFrame Flatmap example](#dataframe-flatmap-example)
       * [Create a custom UDF](#create-a-custom-udf)
    * [Transforming Data](#transforming-data)
+      * [Run a SparkSQL Statement on a DataFrame](#run-a-sparksql-statement-on-a-dataframe)
       * [Extract data from a string using a regular expression](#extract-data-from-a-string-using-a-regular-expression)
       * [Fill NULL values in specific columns](#fill-null-values-in-specific-columns)
       * [Fill NULL values with column average](#fill-null-values-with-column-average)
@@ -156,7 +160,8 @@ Table of contents
       * [Unnest an array of complex structures](#unnest-an-array-of-complex-structures)
    * [Pandas](#pandas)
       * [Convert Spark DataFrame to Pandas DataFrame](#convert-spark-dataframe-to-pandas-dataframe)
-      * [Convert Pandas DataFrame to Spark DataFrame](#convert-pandas-dataframe-to-spark-dataframe)
+      * [Convert Pandas DataFrame to Spark DataFrame with Schema Detection](#convert-pandas-dataframe-to-spark-dataframe-with-schema-detection)
+      * [Convert Pandas DataFrame to Spark DataFrame using a Custom Schema](#convert-pandas-dataframe-to-spark-dataframe-using-a-custom-schema)
       * [Convert N rows from a DataFrame to a Pandas DataFrame](#convert-n-rows-from-a-dataframe-to-a-pandas-dataframe)
       * [Grouped Aggregation with Pandas](#grouped-aggregation-with-pandas)
       * [Use a Pandas Grouped Map Function via applyInPandas](#use-a-pandas-grouped-map-function-via-applyinpandas)
@@ -175,14 +180,18 @@ Table of contents
       * [Load a Delta Table by Version ID (Time Travel Query)](#load-a-delta-table-by-version-id-time-travel-query)
       * [Load a Delta Table by Timestamp (Time Travel Query)](#load-a-delta-table-by-timestamp-time-travel-query)
       * [Compact a Delta Table](#compact-a-delta-table)
+      * [Add custom metadata to a Delta table write](#add-custom-metadata-to-a-delta-table-write)
+      * [Read custom Delta table metadata](#read-custom-delta-table-metadata)
    * [Spark Streaming](#spark-streaming)
       * [Connect to Kafka using SASL PLAIN authentication](#connect-to-kafka-using-sasl-plain-authentication)
       * [Create a windowed Structured Stream over input CSV files](#create-a-windowed-structured-stream-over-input-csv-files)
       * [Create an unwindowed Structured Stream over input CSV files](#create-an-unwindowed-structured-stream-over-input-csv-files)
       * [Add the current timestamp to a DataFrame](#add-the-current-timestamp-to-a-dataframe)
+      * [Session analytics on a DataFrame](#session-analytics-on-a-dataframe)
       * [Call a UDF only when a threshold is reached](#call-a-udf-only-when-a-threshold-is-reached)
       * [Streaming Machine Learning](#streaming-machine-learning)
       * [Control stream processing frequency](#control-stream-processing-frequency)
+      * [Write a streaming DataFrame to a database](#write-a-streaming-dataframe-to-a-database)
    * [Time Series](#time-series)
       * [Zero fill missing values in a timeseries](#zero-fill-missing-values-in-a-timeseries)
       * [First Time an ID is Seen](#first-time-an-id-is-seen)
@@ -191,18 +200,19 @@ Table of contents
       * [Cumulative Average](#cumulative-average)
       * [Cumulative Average in a Period](#cumulative-average-in-a-period)
    * [Machine Learning](#machine-learning)
-      * [Save a model](#save-a-model)
-      * [Load a model and use it for predictions](#load-a-model-and-use-it-for-predictions)
-      * [A basic Linear Regression model](#a-basic-linear-regression-model)
+      * [Prepare data for training with a VectorAssembler](#prepare-data-for-training-with-a-vectorassembler)
       * [A basic Random Forest Regression model](#a-basic-random-forest-regression-model)
-      * [A basic Random Forest Classification model](#a-basic-random-forest-classification-model)
-      * [Encode string variables before using a VectorAssembler](#encode-string-variables-before-using-a-vectorassembler)
-      * [Get feature importances of a trained model](#get-feature-importances-of-a-trained-model)
-      * [Automatically encode categorical variables](#automatically-encode-categorical-variables)
       * [Hyperparameter tuning](#hyperparameter-tuning)
+      * [Encode string variables as numbers](#encode-string-variables-as-numbers)
+      * [One-hot encode a categorical variable](#one-hot-encode-a-categorical-variable)
+      * [Optimize a model after a data preparation pipeline](#optimize-a-model-after-a-data-preparation-pipeline)
+      * [Evaluate Model Performance](#evaluate-model-performance)
+      * [Get feature importances of a trained model](#get-feature-importances-of-a-trained-model)
       * [Plot Hyperparameter tuning metrics](#plot-hyperparameter-tuning-metrics)
-      * [A Random Forest Classification model with Hyperparameter Tuning](#a-random-forest-classification-model-with-hyperparameter-tuning)
       * [Compute correlation matrix](#compute-correlation-matrix)
+      * [Save a model](#save-a-model)
+      * [Load a model and use it for transformations](#load-a-model-and-use-it-for-transformations)
+      * [Load a classification model and use it to compute confidences for output labels](#load-a-classification-model-and-use-it-to-compute-confidences-for-output-labels)
    * [Performance](#performance)
       * [Get the Spark version](#get-the-spark-version)
       * [Log messages using Spark's Log4J](#log-messages-using-spark-s-log4j)
@@ -214,9 +224,10 @@ Table of contents
       * [Coalesce DataFrame partitions](#coalesce-dataframe-partitions)
       * [Set the number of shuffle partitions](#set-the-number-of-shuffle-partitions)
       * [Sample a subset of a DataFrame](#sample-a-subset-of-a-dataframe)
+      * [Run multiple concurrent jobs in different pools](#run-multiple-concurrent-jobs-in-different-pools)
       * [Print Spark configuration properties](#print-spark-configuration-properties)
       * [Set Spark configuration properties](#set-spark-configuration-properties)
-      * [Run multiple concurrent jobs in different pools](#run-multiple-concurrent-jobs-in-different-pools)
+      * [Publish Metrics to Graphite](#publish-metrics-to-graphite)
       * [Increase Spark driver/executor heap space](#increase-spark-driver-executor-heap-space)
 <!--te-->
     
@@ -228,9 +239,9 @@ Loading data stored in filesystems or databases, and saving it.
 Load a DataFrame from CSV
 -------------------------
 
+See https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameReader.html for a list of supported options.
+
 ```python
-# See https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameReader.html
-# for a list of supported options.
 df = spark.read.format("csv").option("header", True).load("data/auto-mpg.csv")
 ```
 ```
@@ -255,9 +266,9 @@ only showing top 10 rows
 Load a DataFrame from a Tab Separated Value (TSV) file
 ------------------------------------------------------
 
+See https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameReader.html for a list of supported options.
+
 ```python
-# See https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameReader.html
-# for a list of supported options.
 df = (
     spark.read.format("csv")
     .option("header", True)
@@ -287,9 +298,9 @@ only showing top 10 rows
 Save a DataFrame in CSV format
 ------------------------------
 
+See https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameWriter.html for a list of supported options.
+
 ```python
-# See https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameWriter.html
-# for a list of supported options.
 auto_df.write.csv("output.csv")
 ```
 
@@ -330,10 +341,9 @@ auto_df.write.parquet("output.parquet")
 Load a DataFrame from JSON Lines (jsonl) Formatted Data
 -------------------------------------------------------
 
+JSON Lines / jsonl format uses one JSON document per line. If you have data with mostly regular structure this is better than nesting it in an array. See [jsonlines.org](https://jsonlines.org/)
+
 ```python
-# JSON Lines / jsonl format uses one JSON document per line.
-# If you have data with mostly regular structure this is better than nesting it in an array.
-# See https://jsonlines.org/
 df = spark.read.json("data/weblog.jsonl")
 ```
 ```
@@ -358,6 +368,9 @@ only showing top 10 rows
 Save a DataFrame into a Hive catalog table
 ------------------------------------------
 
+Save a DataFrame to a Hive-compatible catalog. Use `table` to save in the session's current database or `database.table` to save
+in a specific database.
+
 ```python
 auto_df.write.mode("overwrite").saveAsTable("autompg")
 ```
@@ -365,9 +378,9 @@ auto_df.write.mode("overwrite").saveAsTable("autompg")
 
 Load a Hive catalog table into a DataFrame
 ------------------------------------------
+Load a DataFrame from a particular table. Use `table` to load from the session's current database or `database.table` to load from a specific database.
 
 ```python
-# Load the table previously saved.
 df = spark.table("autompg")
 ```
 ```
@@ -389,8 +402,34 @@ df = spark.table("autompg")
 only showing top 10 rows
 ```
 
+Load a DataFrame from a SQL query
+---------------------------------
+
+This example shows loading a DataFrame from a query run over the a table in a Hive-compatible catalog.
+
+```python
+df = sqlContext.sql(
+    "select carname, mpg, horsepower from autompg where horsepower > 100 and mpg > 25"
+)
+```
+```
+# Code snippet result:
++----------+----+----------+
+|   carname| mpg|horsepower|
++----------+----+----------+
+|  bmw 2002|26.0|     113.0|
+|chevrol...|28.8|     115.0|
+|oldsmob...|26.8|     115.0|
+|dodge colt|27.9|     105.0|
+|datsun ...|32.7|     132.0|
+|oldsmob...|26.6|     105.0|
++----------+----+----------+
+```
+
 Load a CSV file from Amazon S3
 ------------------------------
+
+This example shows how to load a CSV file from AWS S3. This example uses a credential pair and the `SimpleAWSCredentialsProvider`. For other authentication options, refer to the [Hadoop-AWS module documentation](https://hadoop.apache.org/docs/stable/hadoop-aws/tools/hadoop-aws/index.html).
 
 ```python
 import configparser
@@ -420,6 +459,8 @@ df = (
 Load a CSV file from Oracle Cloud Infrastructure (OCI) Object Storage
 ---------------------------------------------------------------------
 
+This example shows loading data from Oracle Cloud Infrastructure Object Storage using an API key.
+
 ```python
 import oci
 
@@ -441,10 +482,9 @@ df = spark.read.format("csv").option("header", True).load(PATH)
 Read an Oracle DB table into a DataFrame using a Wallet
 -------------------------------------------------------
 
+Get the tnsname from tnsnames.ora. The wallet path should point to an extracted wallet file. The wallet files need to be available on all nodes.
+
 ```python
-# Key variables you need.
-# Get the tnsname from tnsnames.ora.
-# Wallet path should point to an extracted wallet file.
 password = "my_password"
 table = "source_table"
 tnsname = "my_tns_name"
@@ -465,10 +505,9 @@ df = spark.read.jdbc(url=url, table=table, properties=properties)
 Write a DataFrame to an Oracle DB table using a Wallet
 ------------------------------------------------------
 
+Get the tnsname from tnsnames.ora. The wallet path should point to an extracted wallet file. The wallet files need to be available on all nodes.
+
 ```python
-# Key variables you need.
-# Get the tnsname from tnsnames.ora.
-# Wallet path should point to an extracted wallet file.
 password = "my_password"
 table = "target_table"
 tnsname = "my_tns_name"
@@ -488,36 +527,23 @@ df.write.jdbc(url=url, table=table, mode="Append", properties=properties)
 ```
 
 
-Read a Postgres table into a DataFrame
---------------------------------------
-
-```python
-# You need a compatible postgresql JDBC JAR.
-pg_database = os.environ.get("PGDATABASE")
-pg_host = os.environ.get("PGHOST")
-pg_password = os.environ.get("PGPASSWORD")
-pg_user = os.environ.get("PGUSER")
-table = "test"
-
-properties = {
-    "driver": "org.postgresql.Driver",
-    "user": pg_user,
-    "password": pg_password,
-}
-url = f"jdbc:postgresql://{pg_host}:5432/{pg_database}"
-df = spark.read.jdbc(url=url, table=table, properties=properties)
-```
-
-
 Write a DataFrame to a Postgres table
 -------------------------------------
 
+You need a Postgres JDBC driver to connect to a Postgres database.
+
+Options include:
+- Add `org.postgresql:postgresql:<version>` to `spark.jars.packages`
+- Provide the JDBC driver using `spark-submit --jars`
+- Add the JDBC driver to your Spark runtime (not recommended)
+
+If you use Delta Lake there is a special procedure for specifying `spark.jars.packages`, see the source code that generates this file for details.
+
 ```python
-# You need a compatible postgresql JDBC JAR.
-pg_database = os.environ.get("PGDATABASE")
-pg_host = os.environ.get("PGHOST")
-pg_password = os.environ.get("PGPASSWORD")
-pg_user = os.environ.get("PGUSER")
+pg_database = os.environ.get("PGDATABASE") or "postgres"
+pg_host = os.environ.get("PGHOST") or "localhost"
+pg_password = os.environ.get("PGPASSWORD") or "password"
+pg_user = os.environ.get("PGUSER") or "postgres"
 table = "autompg"
 
 properties = {
@@ -530,6 +556,50 @@ auto_df.write.jdbc(url=url, table=table, mode="Append", properties=properties)
 ```
 
 
+Read a Postgres table into a DataFrame
+--------------------------------------
+
+You need a Postgres JDBC driver to connect to a Postgres database.
+
+Options include:
+- Add `org.postgresql:postgresql:<version>` to `spark.jars.packages`
+- Provide the JDBC driver using `spark-submit --jars`
+- Add the JDBC driver to your Spark runtime (not recommended)
+
+```python
+pg_database = os.environ.get("PGDATABASE") or "postgres"
+pg_host = os.environ.get("PGHOST") or "localhost"
+pg_password = os.environ.get("PGPASSWORD") or "password"
+pg_user = os.environ.get("PGUSER") or "postgres"
+table = "autompg"
+
+properties = {
+    "driver": "org.postgresql.Driver",
+    "user": pg_user,
+    "password": pg_password,
+}
+url = f"jdbc:postgresql://{pg_host}:5432/{pg_database}"
+df = spark.read.jdbc(url=url, table=table, properties=properties)
+```
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+----------+------+------------+---------+------+----------+
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|
+|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|
+|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|
+|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|
+|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|
+|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|
+|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|
+|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|
+|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|
+|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|
++----+---------+------------+----------+------+------------+---------+------+----------+
+only showing top 10 rows
+```
+
 Data Handling Options
 =====================
 Special data handling scenarios.
@@ -537,9 +607,9 @@ Special data handling scenarios.
 Provide the schema when loading a DataFrame from CSV
 ----------------------------------------------------
 
+See https://spark.apache.org/docs/latest/api/python/_modules/pyspark/sql/types.html for a list of types.
+
 ```python
-# See https://spark.apache.org/docs/latest/api/python/_modules/pyspark/sql/types.html
-# for a list of types.
 from pyspark.sql.types import (
     DoubleType,
     IntegerType,
@@ -598,15 +668,21 @@ auto_df.write.mode("overwrite").csv("output.csv")
 Save a DataFrame to CSV with a header
 -------------------------------------
 
+See https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameWriter.html for a list of supported options.
+
 ```python
-# See https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameWriter.html
-# for a list of supported options.
 auto_df.coalesce(1).write.csv("header.csv", header="true")
 ```
 
 
 Save a DataFrame in a single CSV file
 -------------------------------------
+
+This example outputs CSV data to a single file. The file will be written in a directory called single.csv and have a random name. There is no way to change this behavior.
+
+If you need to write to a single file with a name you choose, consider converting it to a Pandas dataframe and saving it using Pandas.
+
+Either way all data will be collected on one node before being written so be careful not to run out of memory.
 
 ```python
 auto_df.coalesce(1).write.csv("single.csv")
@@ -615,6 +691,12 @@ auto_df.coalesce(1).write.csv("single.csv")
 
 Save DataFrame as a dynamic partitioned table
 ---------------------------------------------
+
+When you write using dynamic partitioning, the output partitions are determined bby the values of a column rather than specified in code.
+
+The values of the partitions will appear as subdirectories and are not contained in the output files, i.e. they become "virtual columns". When you read a partition table these virtual columns will be part of the DataFrame.
+
+Dynamic partitioning has the potential to create many small files, this will impact performance negatively. Be sure the partition columns do not have too many distinct values and limit the use of multiple virtual columns.
 
 ```python
 spark.conf.set("spark.sql.sources.partitionOverwriteMode", "dynamic")
@@ -627,6 +709,10 @@ auto_df.write.mode("append").partitionBy("modelyear").saveAsTable(
 Overwrite specific partitions
 -----------------------------
 
+Enabling dynamic partitioning lets you add or overwrite partitions based on DataFrame contents. Without dynamic partitioning the overwrite will overwrite the entire table.
+
+With dynamic partitioning, partitions with keys in the DataFrame are overwritten, but partitions not in the DataFrame are untouched.
+
 ```python
 spark.conf.set("spark.sql.sources.partitionOverwriteMode", "dynamic")
 your_dataframe.write.mode("overwrite").insertInto("your_table")
@@ -635,6 +721,8 @@ your_dataframe.write.mode("overwrite").insertInto("your_table")
 
 Load a CSV file with a money column into a DataFrame
 ----------------------------------------------------
+
+Spark is not that smart when it comes to parsing numbers, not allowing things like commas. If you need to load monetary amounts the safest option is to use a parsing library like `money_parser`.
 
 ```python
 from pyspark.sql.functions import udf
@@ -687,6 +775,8 @@ Adding, removing and modifying DataFrame columns.
 Add a new column to a DataFrame
 -------------------------------
 
+`withColumn` returns a new DataFrame with a column added to the source DataFrame. `withColumn` can be chained together multiple times.
+
 ```python
 from pyspark.sql.functions import upper, lower
 
@@ -716,6 +806,8 @@ only showing top 10 rows
 Modify a DataFrame column
 -------------------------
 
+Modify a column in-place using `withColumn`, specifying the output column name to be the same as the existing column name.
+
 ```python
 from pyspark.sql.functions import col, concat, lit
 
@@ -742,6 +834,8 @@ only showing top 10 rows
 
 Add a column with multiple conditions
 -------------------------------------
+
+To set a new column's values when using `withColumn`, use the `when` / `otherwise` idiom. Multiple `when` conditions can be chained together.
 
 ```python
 from pyspark.sql.functions import col, when
@@ -802,7 +896,7 @@ only showing top 10 rows
 
 Concatenate columns
 -------------------
-
+TODO
 ```python
 from pyspark.sql.functions import concat, col, lit
 
@@ -882,6 +976,8 @@ only showing top 10 rows
 Change multiple column names
 ----------------------------
 
+If you need to change multiple column names you can chain `withColumnRenamed` calls together. If you want to change all column names see "Change all column names at once".
+
 ```python
 df = auto_df.withColumnRenamed("horsepower", "horses").withColumnRenamed(
     "modelyear", "year"
@@ -906,8 +1002,42 @@ df = auto_df.withColumnRenamed("horsepower", "horses").withColumnRenamed(
 only showing top 10 rows
 ```
 
+Change all column names at once
+-------------------------------
+
+To rename all columns use toDF with the desired column names in the argument list. This example puts an X in front of all column names.
+
+```python
+df = auto_df.toDF(*["X" + name for name in auto_df.columns])
+```
+```
+# Code snippet result:
++----+----------+-------------+-----------+-------+-------------+----------+-------+----------+
+|Xmpg|Xcylinders|Xdisplacement|Xhorsepower|Xweight|Xacceleration|Xmodelyear|Xorigin|  Xcarname|
++----+----------+-------------+-----------+-------+-------------+----------+-------+----------+
+|18.0|         8|        307.0|      130.0|  3504.|         12.0|        70|      1|chevrol...|
+|15.0|         8|        350.0|      165.0|  3693.|         11.5|        70|      1|buick s...|
+|18.0|         8|        318.0|      150.0|  3436.|         11.0|        70|      1|plymout...|
+|16.0|         8|        304.0|      150.0|  3433.|         12.0|        70|      1|amc reb...|
+|17.0|         8|        302.0|      140.0|  3449.|         10.5|        70|      1|ford to...|
+|15.0|         8|        429.0|      198.0|  4341.|         10.0|        70|      1|ford ga...|
+|14.0|         8|        454.0|      220.0|  4354.|          9.0|        70|      1|chevrol...|
+|14.0|         8|        440.0|      215.0|  4312.|          8.5|        70|      1|plymout...|
+|14.0|         8|        455.0|      225.0|  4425.|         10.0|        70|      1|pontiac...|
+|15.0|         8|        390.0|      190.0|  3850.|          8.5|        70|      1|amc amb...|
++----+----------+-------------+-----------+-------+-------------+----------+-------+----------+
+only showing top 10 rows
+```
+
 Convert a DataFrame column to a Python list
 -------------------------------------------
+
+Steps below:
+
+- `select` the target column, this example uses `carname`.
+- Access the DataFrame's rdd using `.rdd`
+- Use `flatMap` to convert the rdd's `Row` objects into simple values.
+- Use `collect` to assemble everything into a list.
 
 ```python
 names = auto_df.select("carname").rdd.flatMap(lambda x: x).collect()
@@ -921,6 +1051,13 @@ print(str(names[:10]))
 Convert a scalar query to a Python value
 ----------------------------------------
 
+If you have a `DataFrame` with one row and one column, how do you access its value?
+
+Steps below:
+- Create a DataFrame with one row and one column, this example uses an average but it could be anything.
+- Call the DataFrame's `first` method, this returns the first `Row` of the DataFrame.
+- `Row`s can be accessed like arrays, so we extract the zeroth value of the first `Row` using `first()[0]`.
+
 ```python
 average = auto_df.agg(dict(mpg="avg")).first()[0]
 print(str(average))
@@ -932,6 +1069,12 @@ print(str(average))
 
 Consume a DataFrame row-wise as Python dictionaries
 ---------------------------------------------------
+
+Steps below:
+
+- `collect` all DataFrame Rows in the driver.
+- Iterate over the Rows.
+- Call the Row's `asDict` method to convert the Row to a Python dictionary.
 
 ```python
 first_three = auto_df.limit(3)
@@ -975,6 +1118,8 @@ only showing top 10 rows
 Create an empty dataframe with a specified schema
 -------------------------------------------------
 
+You can create an empty `DataFrame` the same way you create other in-line `DataFrame`s, but using an empty list.
+
 ```python
 from pyspark.sql.types import StructField, StructType, LongType, StringType
 
@@ -996,6 +1141,8 @@ df = spark.createDataFrame([], schema)
 
 Create a constant dataframe
 ---------------------------
+
+Constant `DataFrame`s are mostly useful for unit tests.
 
 ```python
 import datetime
@@ -1124,6 +1271,19 @@ print(auto_df.dtypes)
 Convert an RDD to Data Frame
 ----------------------------
 
+If you have an `rdd` how do you convert it to a `DataFrame`? The `rdd` method `toDf` can be used, but the `rdd` must be a collection of `Row` objects.
+
+Steps below:
+- Create an `rdd` to be converted to a `DataFrame`.
+- Use the `rdd`'s `map` method:
+  - The example uses a lambda function to convert `rdd` elements to `Row`s.
+  - The `Row` constructor request key/value pairs with the key serving as the "column name".
+  - Each `rdd` entry is converted to a dictionary and the dictionary is unpacked to create the `Row`.
+  - `map` creates a new `rdd` containing all the `Row` objects.
+  - This new `rdd` is converted to a `DataFrame` using the `toDF` method.
+
+The second example is a variation on the first, modifying source `rdd` entries while creating the target `rdd`.
+
 ```python
 from pyspark.sql import Row
 
@@ -1159,6 +1319,8 @@ only showing top 10 rows
 
 Print the contents of an RDD
 ----------------------------
+
+To see an `RDD`'s contents, convert the output of the `take` method to a string.
 
 ```python
 rdd = auto_df.rdd
@@ -1197,6 +1359,8 @@ only showing top 10 rows
 Process each row of a DataFrame
 -------------------------------
 
+Use the `foreach` function to process each row of a `DataFrame` using a Python function. The function will get one argument, a `Row` object. The `Row` will have properties whose names map to the `DataFrame`'s columns.
+
 ```python
 import os
 
@@ -1210,6 +1374,8 @@ auto_df.foreach(foreach_function)
 
 DataFrame Map example
 ---------------------
+
+You can run `map` on a `DataFrame` by accessing its underlying `RDD`. It is much more common to use `foreach` directly on the `DataFrame` itself. This can be useful if you have code written specifically for `RDD`s that you need to use against a `DataFrame`.
 
 ```python
 def map_function(row):
@@ -1241,6 +1407,10 @@ only showing top 10 rows
 
 DataFrame Flatmap example
 -------------------------
+
+Use `flatMap` when you have a UDF that produces a list of `Rows` per input `Row`. `flatMap` is an `RDD` operation so we need to access the `DataFrame`'s `RDD`, call `flatMap` and convert the resulting `RDD` back into a `DataFrame`. Spark will handle "flatting" arrays into the output `RDD`.
+
+Note also that you can [`yield`](https://docs.python.org/3/reference/expressions.html#yield-expressions) results rather than returning full lists which can simplify code considerably.
 
 ```python
 from pyspark.sql.types import Row
@@ -1277,6 +1447,8 @@ only showing top 10 rows
 Create a custom UDF
 -------------------
 
+Create a UDF by providing a function to the udf function. This example shows a [lambda function](https://docs.python.org/3/reference/expressions.html#lambdas-1). You can also use ordinary functions for more complex UDFs.
+
 ```python
 from pyspark.sql.functions import col, udf
 from pyspark.sql.types import StringType
@@ -1306,6 +1478,43 @@ only showing top 10 rows
 Transforming Data
 =================
 Data conversions and other modifications.
+
+Run a SparkSQL Statement on a DataFrame
+---------------------------------------
+
+You can run arbitrary SQL statements on a `DataFrame` provided you:
+
+1. Register the `DataFrame` as a temporary table using `registerTempTable`.
+2. Use `sqlContext.sql` and use the temp table name you specified as the table source.
+
+You can also join `DataFrames` if you register them. If you're porting complex SQL from another application this can be a lot easier than converting it to use `DataFrame` SQL APIs.
+
+```python
+from pyspark.sql.functions import col, regexp_extract
+
+auto_df.registerTempTable("auto_df")
+df = sqlContext.sql(
+    "select modelyear, avg(mpg) from auto_df group by modelyear"
+)
+```
+```
+# Code snippet result:
++---------+----------+
+|modelyear|  avg(mpg)|
++---------+----------+
+|       73|      17.1|
+|       71|     21.25|
+|       70|17.6896...|
+|       75|20.2666...|
+|       78|24.0611...|
+|       77|    23.375|
+|       82|31.7096...|
+|       81|30.3344...|
+|       79|25.0931...|
+|       72|18.7142...|
++---------+----------+
+only showing top 10 rows
+```
 
 Extract data from a string using a regular expression
 -----------------------------------------------------
@@ -1402,6 +1611,8 @@ only showing top 10 rows
 Fill NULL values with group average
 -----------------------------------
 
+Sometimes NULL values in a column cause problems and it's better to guess at a value than leave it NULL. There are several strategies for doing with this. This example shows replacing NULL values with the average value within that column.
+
 ```python
 from pyspark.sql.functions import coalesce
 
@@ -1455,6 +1666,8 @@ df = source.select("id", json_tuple(col("json"), "a", "b"))
 
 Query a JSON column
 -------------------
+
+If you have JSON text data embedded in a String column, `json_tuple` will parse that text and extract fields within the JSON text.
 
 ```python
 from pyspark.sql.functions import col, json_tuple
@@ -1593,6 +1806,8 @@ only showing top 10 rows
 Filter values based on keys in another DataFrame
 ------------------------------------------------
 
+If you have `DataFrame` 1 containing values you want to remove from `DataFrame` 2, join them using the `left_anti` join strategy.
+
 ```python
 from pyspark.sql.functions import col
 
@@ -1714,6 +1929,8 @@ only showing top 10 rows
 
 Multiple filter conditions
 --------------------------
+
+The key thing to remember if you have multiple filter conditions is that `filter` accepts standard Python expressions. Use bitwise operators to handle and/or conditions.
 
 ```python
 from pyspark.sql.functions import col
@@ -1888,6 +2105,8 @@ df = (
 Filter groups based on an aggregate value, equivalent to SQL HAVING clause
 --------------------------------------------------------------------------
 
+To filter values after an aggregation simply use `.filter` on the `DataFrame` after the aggregate, using the column name the aggregate generates.
+
 ```python
 from pyspark.sql.functions import col, desc
 
@@ -1942,6 +2161,8 @@ only showing top 10 rows
 Aggregate multiple columns
 --------------------------
 
+The `agg` method allows you to easily run multiple aggregations by accepting a dictionary with keys being the column name and values being the aggregation type. This example uses this to aggregate 3 columns in one expression.
+
 ```python
 expressions = dict(horsepower="avg", weight="max", displacement="max")
 df = auto_df.groupBy("modelyear").agg(expressions)
@@ -1967,6 +2188,12 @@ only showing top 10 rows
 
 Aggregate multiple columns with custom orderings
 ------------------------------------------------
+
+If you want to specify sort columns you have two choices:
+* You can chain `orderBy` operations.
+* You can take advantage of `orderBy`'s support for multiple arguments.
+
+`orderBy` doesn't accept a list. If you need to build orderings dynamically put them in a list and splat them into `orderBy`'s arguments like in the example below.
 
 ```python
 from pyspark.sql.functions import asc, desc_nulls_last
@@ -2018,6 +2245,8 @@ df = auto_df.select(max(col("horsepower")).alias("max_horsepower"))
 Sum a list of columns
 ---------------------
 
+The `agg` method allows you to easily run multiple aggregations by accepting a dictionary with keys being the column name and values being the aggregation type. This example uses this to sum 3 columns in one expression.
+
 ```python
 exprs = {x: "sum" for x in ("weight", "cylinders", "mpg")}
 df = auto_df.agg(exprs)
@@ -2054,6 +2283,8 @@ df = auto_df.groupBy("cylinders").agg(sum("weight").alias("total_weight"))
 
 Aggregate all numeric columns
 -----------------------------
+
+`DataFrames` store the data types of each column in a property called `dtypes`. This example computes the sum of all numeric columns.
 
 ```python
 numerics = set(["decimal", "double", "float", "integer", "long", "short"])
@@ -2128,6 +2359,14 @@ df = auto_df.groupBy("cylinders").count().where(col("count") > 100)
 Find the top N per row group (use N=1 for maximum)
 --------------------------------------------------
 
+To find the top N per group we:
+
+* Build a `Window`
+* Partition by the target group
+* Order by the value we want to rank
+* Use `row_number` to add the numeric rank
+* Use `where` to filter any row number less than or equal to N
+
 ```python
 from pyspark.sql.functions import col, row_number
 from pyspark.sql.window import Window
@@ -2164,6 +2403,8 @@ only showing top 10 rows
 Group key/values into a list
 ----------------------------
 
+The [`collect_list`](https://spark.apache.org/docs/latest/api/sql/index.html#collect_list) function returns an `ArrayType` column containing all values seen per grouping key. The array entries are not unique, you can use `collect_set` if you need unique values.
+
 ```python
 from pyspark.sql.functions import col, collect_list
 
@@ -2187,6 +2428,8 @@ df = auto_df.groupBy("cylinders").agg(
 Compute a histogram
 -------------------
 
+Spark's `RDD` object supports computing histograms. This example computes the DataFrame column called horsepower to an RDD before calling `histogram`.
+
 ```python
 from pyspark.sql.functions import col
 
@@ -2205,6 +2448,8 @@ print(histogram)
 
 Compute global percentiles
 --------------------------
+
+The `ntile` function computes percentiles. Specify how many with an integer argument, for example use 4 to compute quartiles.
 
 ```python
 from pyspark.sql.functions import col, ntile
@@ -2235,6 +2480,8 @@ only showing top 10 rows
 Compute percentiles within a partition
 --------------------------------------
 
+If you need to compute partition-wise percentiles, for example percentiles broken down by years, add `partitionBy` to your `Window`.
+
 ```python
 from pyspark.sql.functions import col, ntile
 from pyspark.sql.window import Window
@@ -2263,6 +2510,8 @@ only showing top 10 rows
 
 Compute percentiles after aggregating
 -------------------------------------
+
+If you need to compute percentiles of an aggregate, for example ranking averages, compute the aggregate in a second `DataFrame`, then compute percentiles.
 
 ```python
 from pyspark.sql.functions import col, ntile
@@ -2294,6 +2543,10 @@ only showing top 10 rows
 Filter rows with values below a target percentile
 -------------------------------------------------
 
+To filter out all rows with a value outside a target percentile range:
+* Get the numeric percentile value using the `percentile` function and extracting it from the resulting `DataFrame`.
+* In a second step filter anything larger than (or smaller than, depending on what you want) that value.
+
 ```python
 from pyspark.sql.functions import col, lit
 import pyspark.sql.functions as F
@@ -2324,6 +2577,8 @@ only showing top 10 rows
 
 Aggregate and rollup
 --------------------
+
+`rollup` functions like `groupBy` but produces additional summary rows. Specify the grouping sets just like you do with `groupBy`.
 
 ```python
 from pyspark.sql.functions import avg, col, count, desc
@@ -2361,6 +2616,8 @@ df = (
 
 Aggregate and cube
 ------------------
+
+`cube` functions like `groupBy` but produces additional summary rows. Specify the grouping sets just like you do with `groupBy`.
 
 ```python
 from pyspark.sql.functions import avg, col, count, desc
@@ -2403,10 +2660,14 @@ df = (
 
 Joining DataFrames
 ==================
-Joining and stacking DataFrames.
+Spark allows DataFrames to be joined similarly to how tables are joined in an RDBMS. The diagram below shows join types available in Spark.
+
+![Spark Join Types](images/jointypes.webp)
 
 Join two DataFrames by column name
 ----------------------------------
+
+The second argument to `join` can be a string if that column name exists in both DataFrames.
 
 ```python
 from pyspark.sql.functions import udf
@@ -2448,6 +2709,8 @@ only showing top 10 rows
 Join two DataFrames with an expression
 --------------------------------------
 
+The boolean expression given to `join` determines the matching condition.
+
 ```python
 from pyspark.sql.functions import udf
 from pyspark.sql.types import StringType
@@ -2487,6 +2750,8 @@ only showing top 10 rows
 
 Multiple join conditions
 ------------------------
+
+If you need to join on multiple conditions, combine them with bitwise operators in the join expression. It's worth noting that most Python boolean expressions can be used as the join expression.
 
 ```python
 from pyspark.sql.functions import udf
@@ -2532,6 +2797,8 @@ only showing top 10 rows
 Various Spark join types
 ------------------------
 
+This snippet shows how to use the various join strategies Spark supports. By default the join type is inner. See the diagram at the top of this section for a visual comparison of what these will produce.
+
 ```python
 # Inner join on one column.
 joined = auto_df.join(auto_df, "carname")
@@ -2573,6 +2840,8 @@ only showing top 10 rows
 Concatenate two DataFrames
 --------------------------
 
+Spark's union operator is similar to SQL UNION ALL.
+
 ```python
 df1 = spark.read.format("csv").option("header", True).load("data/part1.csv")
 df2 = spark.read.format("csv").option("header", True).load("data/part2.csv")
@@ -2599,6 +2868,13 @@ only showing top 10 rows
 
 Load multiple files into a single DataFrame
 -------------------------------------------
+
+If you have a collection of files you need to load into one DataFrame, it's more efficient to load them all rather than union a collection of DataFrames together.
+
+Ways to do this include:
+- If you load a directory, Spark attempts to combine all files in that director into one DataFrame.
+- You can pass a list of paths to the `load` function.
+- You can pass wildcards to the `load` function.
 
 ```python
 # Approach 1: Use a list.
@@ -2633,6 +2909,8 @@ only showing top 10 rows
 Subtract DataFrames
 -------------------
 
+Spark's `subtract` operator is similar to SQL's `MINUS` operator.
+
 ```python
 from pyspark.sql.functions import col
 
@@ -2663,6 +2941,8 @@ Loading File Metadata and Processing Files.
 
 Load Local File Details into a DataFrame
 ----------------------------------------
+
+This example loads details of local files into a DataFrame. This is a common setup to processing files using `foreach`.
 
 ```python
 from pyspark.sql.types import (
@@ -2711,33 +2991,45 @@ df = spark.createDataFrame(entries, schema)
 ```
 ```
 # Code snippet result:
-+----------+----------+-----+----------+
-|      file|      path| size|     mtime|
-+----------+----------+-----+----------+
-|  manpaths|/etc/ma...|   36|2020-01...|
-| rc.common|/etc/rc...| 1560|2020-01...|
-|auto_ma...|/etc/au...|  195|2020-01...|
-| csh.login|/etc/cs...|  121|2020-01...|
-|syslog....|/etc/sy...|  133|2021-12...|
-|krb5.ke...|/etc/kr...| 1946|2021-12...|
-|    nanorc|/etc/na...|   11|2020-01...|
-|csh.logout|/etc/cs...|   39|2020-01...|
-|aliases.db|/etc/al...|16384|2020-01...|
-|bashrc_...|/etc/ba...| 9270|2020-01...|
-+----------+----------+-----+----------+
++----------+----------+----+----------+
+|      file|      path|size|     mtime|
++----------+----------+----+----------+
+|      mtab| /etc/mtab|   0|2022-09...|
+|     fstab|/etc/fstab|1431|2022-07...|
+|  crypttab|/etc/cr...|   0|2022-06...|
+|resolv....|/etc/re...| 377|2022-09...|
+|login.defs|/etc/lo...|2575|2022-06...|
+|     issue|/etc/issue|  23|2022-08...|
+| issue.net|/etc/is...|  22|2022-08...|
+|GREP_CO...|/etc/GR...|  94|2019-03...|
+|oracle-...|/etc/or...|  32|2022-08...|
+|os-release|/etc/os...| 479|2022-08...|
++----------+----------+----+----------+
 only showing top 10 rows
 ```
 
 Load Files from Oracle Cloud Infrastructure into a DataFrame
 ------------------------------------------------------------
 
+This example loads details of files in an OCI Object Storage bucket into a DataFrame.
+
 ```python
+import oci
 from pyspark.sql.types import (
     StructField,
     StructType,
     LongType,
     StringType,
     TimestampType,
+)
+
+def get_authenticated_client(client):
+    config = oci.config.from_file()
+    authenticated_client = client(config)
+    return authenticated_client
+
+object_store_client = get_authenticated_client(
+    oci.object_storage.ObjectStorageClient
 )
 
 # Requires an object_store_client object.
@@ -2782,6 +3074,12 @@ only showing top 10 rows
 
 Transform Many Images using Pillow
 ----------------------------------
+
+In addition to data processing Spark can be used for other types of parallel processing. This example transforms images. The process is:
+
+* Get a list of files.
+* Create a DataFrame containing the file names.
+* Use `foreach` to call a Python UDF. Each call of the UDF gets a file name.
 
 ```python
 from PIL import Image
@@ -2836,17 +3134,30 @@ only showing top 10 rows
 Drop rows with Null values
 --------------------------
 
+A `DataFrame`'s [`na`](https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.na.html#pyspark.sql.DataFrame.na) property returns a special class for dealing with missing values.
+
+This class's [`drop`](https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrameNaFunctions.drop.html#pyspark.sql.DataFrameNaFunctions.drop) method returns a new `DataFrame` with nulls omitted. `thresh` controls the number of nulls before the row gets dropped and `subset` controls the columns to consider.
+
 ```python
-# thresh controls the number of nulls before the row gets dropped.
-# subset controls the columns to consider.
-df = auto_df.na.drop(thresh=2, subset=("horsepower",))
+df = auto_df.na.drop(thresh=1, subset=("horsepower",))
 ```
 ```
 # Code snippet result:
-+---+---------+------------+----------+------+------------+---------+------+-------+
-|mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|carname|
-+---+---------+------------+----------+------+------------+---------+------+-------+
-+---+---------+------------+----------+------+------------+---------+------+-------+
++----+---------+------------+----------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+----------+------+------------+---------+------+----------+
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|
+|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|
+|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|
+|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|
+|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|
+|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|
+|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|
+|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|
+|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|
+|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|
++----+---------+------------+----------+------+------------+---------+------+----------+
+only showing top 10 rows
 ```
 
 Count all Null or NaN values in a DataFrame
@@ -2964,6 +3275,8 @@ df = df.withColumn("date_col", from_unixtime(col("ts_col")))
 Load a CSV file with complex dates into a DataFrame
 ---------------------------------------------------
 
+Spark's ability to deal with date formats is poor relative to most databases. You can fill in the gap using the `dateparser` Python add-in which is able to figure out most common date formats.
+
 ```python
 from pyspark.sql.functions import udf
 from pyspark.sql.types import TimestampType
@@ -2986,13 +3299,13 @@ df = df.withColumn("parsed", date_convert(df.date))
 |      date|    parsed|
 +----------+----------+
 |2012-01...|2012-01...|
-|2012-01...|2011-12...|
 |2012-01...|2012-01...|
 |2012-01...|2012-01...|
-|2012-01...|2011-12...|
+|2012-01...|2012-01...|
+|2012-01...|2012-01...|
 |2012-01...|2012-01...|
 |01-01-2...|2012-01...|
-|01-01-2...|2011-12...|
+|01-01-2...|2012-01...|
 |01-01-2...|2012-01...|
 |01-01-2...|2012-01...|
 +----------+----------+
@@ -3001,10 +3314,33 @@ only showing top 10 rows
 
 Unstructured Analytics
 ======================
-Analyzing unstructured data like JSON, XML, etc.
+Analyzing unstructured data like [JSON](https://spark.apache.org/docs/latest/sql-data-sources-json.html), XML, etc.
 
 Flatten top level text fields in a JSONl document
 -------------------------------------------------
+
+When Spark loads JSON data into a `DataFrame`, the `DataFrame`'s columns are complex types (`StructType` and `ArrayType`) representing the JSON object.
+
+Spark allows you to traverse complex types in a select operation by providing multiple `StructField` names separated by a `.`.  Names used to in `StructField`s will correspond to the JSON member names.
+
+For example, if you load this document:
+```
+{
+  "Image": {
+    "Width":  800,
+    "Height": 600,
+    "Title":  "View from 15th Floor",
+    "Thumbnail": {
+       "Url":    "http://www.example.com/image/481989943",
+       "Height": 125,
+       "Width":  "100"
+    },
+    "IDs": [116, 943, 234, 38793]
+  }
+}
+```
+
+The resulting DataFrame will have one StructType column named Image. The Image column will have these selectable fields: `Image.Width`, `Image.Height`, `Image.Title`, `Image.Thumbnail.Url`, `Image.Thumbnail.Height`, `Image.Thumbnail.Width`, `Image.IDs`.
 
 ```python
 from pyspark.sql.functions import col
@@ -3045,6 +3381,8 @@ only showing top 10 rows
 
 Flatten top level text fields from a JSON column
 ------------------------------------------------
+
+If you have JSON text in a DataFrame's column, you can parse that column into its own DataFrame as follows.
 
 ```python
 from pyspark.sql.functions import col, from_json, schema_of_json
@@ -3098,6 +3436,12 @@ only showing top 10 rows
 
 Unnest an array of complex structures
 -------------------------------------
+
+When you need to access JSON array elements you will usually use the table generating functions [explode](https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.explode.html#pyspark.sql.functions.explode) or [posexplode](https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.posexplode.html#pyspark.sql.functions.posexplode).
+
+`explode` and `posexplode` are called table generating functions because they produce one output row for each array entry, in other words a row goes in and a table comes out. The output column has the same data type as the data type in the array. When dealing with JSON this data type could be a boolean, integer, float or StructType.
+
+The example below uses `explode` to flatten an array of StructTypes, then selects certain key fields from the output structures.
 
 ```python
 from pyspark.sql.functions import col, explode
@@ -3174,8 +3518,35 @@ pandas_df = auto_df.toPandas()
 [398 rows x 9 columns]
 ```
 
-Convert Pandas DataFrame to Spark DataFrame
--------------------------------------------
+Convert Pandas DataFrame to Spark DataFrame with Schema Detection
+-----------------------------------------------------------------
+
+```python
+df = spark.createDataFrame(pandas_df)
+```
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+----------+------+------------+---------+------+----------+
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|
+|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|
+|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|
+|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|
+|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|
+|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|
+|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|
+|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|
+|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|
+|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|
++----+---------+------------+----------+------+------------+---------+------+----------+
+only showing top 10 rows
+```
+
+Convert Pandas DataFrame to Spark DataFrame using a Custom Schema
+-----------------------------------------------------------------
+
+`createDataFrame` supports Pandas DataFrames as input, but require you to specify the schema manually.
 
 ```python
 # This code converts everything to strings.
@@ -3209,6 +3580,10 @@ only showing top 10 rows
 Convert N rows from a DataFrame to a Pandas DataFrame
 -----------------------------------------------------
 
+If you only want the first rows of a Spark DataFrame to be converted to a Pandas DataFrame, use the `limit` function to select how many you want.
+
+Be aware that rows in a Spark DataFrame have no guaranteed order unless you explicitly order them.
+
 ```python
 N = 10
 pdf = auto_df.limit(N).toPandas()
@@ -3230,6 +3605,8 @@ pdf = auto_df.limit(N).toPandas()
 
 Grouped Aggregation with Pandas
 -------------------------------
+
+If you need to define a custom analytical function (UDAF), Pandas gives an easy way to do that. Be aware that the aggregation will run on a random executor, which needs to be large enough to hold the entire column in memory.
 
 ```python
 from pyspark.sql.functions import pandas_udf
@@ -3256,6 +3633,8 @@ df = auto_df.groupby("cylinders").agg(mean_udaf(auto_df["mpg"]))
 
 Use a Pandas Grouped Map Function via applyInPandas
 ---------------------------------------------------
+
+You may want to run column-wise operations in Pandas for simplicity or other reasons. The example below shows rescaling a column to lie between 0 and 100 which is clunky in Spark and easy in Pandas. On the other hand if the columns are very tall (you have lots of data) you will run out of memory and your application will crash. Ultimately it's a tradeoff between simplicity and scale.
 
 ```python
 def rescale(pdf):
@@ -3291,6 +3670,8 @@ Extracting key statistics out of a body of data.
 Compute the number of NULLs across all columns
 ----------------------------------------------
 
+This example creates a new DataFrame consisting of the colunm name and number of NULLs in the column. The example takes advantage of the fact that Spark's `select` method accepts an array. The array is built using a Python [list comprehension](https://docs.python.org/3/tutorial/datastructures.html#list-comprehensions).
+
 ```python
 from pyspark.sql.functions import col, count, when
 
@@ -3310,6 +3691,8 @@ df = auto_df.select(
 Compute average values of all numeric columns
 ---------------------------------------------
 
+This example uses Spark's `agg` function to aggregate multiple columns at once using a dictionary containing column name and aggregate function. This example uses the `avg` aggregate function.
+
 ```python
 numerics = set(["decimal", "double", "float", "integer", "long", "short"])
 exprs = {x[0]: "avg" for x in auto_df_fixed.dtypes if x[1] in numerics}
@@ -3326,6 +3709,8 @@ df = auto_df_fixed.agg(exprs)
 
 Compute minimum values of all numeric columns
 ---------------------------------------------
+
+This example uses Spark's `agg` function to aggregate multiple columns at once using a dictionary containing column name and aggregate function. This example uses the `min` aggregate function.
 
 ```python
 numerics = set(["decimal", "double", "float", "integer", "long", "short"])
@@ -3344,6 +3729,8 @@ df = auto_df_fixed.agg(exprs)
 Compute maximum values of all numeric columns
 ---------------------------------------------
 
+This example uses Spark's `agg` function to aggregate multiple columns at once using a dictionary containing column name and aggregate function. This example uses the `max` aggregate function.
+
 ```python
 numerics = set(["decimal", "double", "float", "integer", "long", "short"])
 exprs = {x[0]: "max" for x in auto_df_fixed.dtypes if x[1] in numerics}
@@ -3360,6 +3747,8 @@ df = auto_df_fixed.agg(exprs)
 
 Compute median values of all numeric columns
 --------------------------------------------
+
+Median can be computed using SQL's `percentile` function with a value of 0.5.
 
 ```python
 import pyspark.sql.functions as F
@@ -3389,10 +3778,9 @@ df = auto_df_fixed.agg(*aggregates)
 Identify Outliers in a DataFrame
 --------------------------------
 
+This example removes outliers using the Median Absolute Deviation. Outliers are identified by variances in a numeric column. Tune outlier sensitivity using z_score_threshold.
+
 ```python
-# This approach uses the Median Absolute Deviation.
-# Outliers are based on variances in a single numeric column.
-# Tune outlier sensitivity using z_score_threshold.
 from pyspark.sql.functions import col, sqrt
 
 target_column = "mpg"
@@ -3452,6 +3840,12 @@ Upserts, updates and deletes on data.
 Save to a Delta Table
 ---------------------
 
+[Delta Lake](https://delta.io/) is a table format and a set of extensions enabling data management on top of object stores. Delta table format is an extension of [Apache Parquet](https://parquet.apache.org/). "Data management" here means the ability to update or delete table data after it's written without needing to understand the underlying file layout. When you use Delta tables you can treat them much like RDBMS tables.
+
+To create a Delta table save it in Delta format.
+
+Your Spark session needs to be "Delta enabled". See `cheatsheet.py` (the code that generates this cheatsheet) for more information on how to do this.
+
 ```python
 auto_df.write.mode("overwrite").format("delta").saveAsTable("delta_table")
 ```
@@ -3459,6 +3853,10 @@ auto_df.write.mode("overwrite").format("delta").saveAsTable("delta_table")
 
 Update records in a DataFrame using Delta Tables
 ------------------------------------------------
+
+The `update` operation behaves like SQL's `UPDATE` statement. `update` is possible on a `DeltaTable` but not on a `DataFrame`.
+
+Be sure to read Delta Lake's documentation on [concurrency control](https://docs.delta.io/latest/concurrency-control.html) before using transactions in any application.
 
 ```python
 from pyspark.sql.functions import expr
@@ -3499,6 +3897,10 @@ only showing top 10 rows
 Merge into a Delta table
 ------------------------
 
+The `merge` operation behaves like SQL's `MERGE` statement. `merge` allows a combination of inserts, updates and deletes to be performed on a table with ACID consistency. `merge` is possible on a `DeltaTable` but not on a `DataFrame`.
+
+Be sure to read Delta Lake's documentation on [concurrency control](https://docs.delta.io/latest/concurrency-control.html) before using transactions in any application.
+
 ```python
 from pyspark.sql.functions import col, expr
 
@@ -3535,17 +3937,19 @@ df = dt.history().select("version operation operationMetrics".split())
 ```
 ```
 # Code snippet result:
-+-------+---------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-|version|operation|operationMetrics                                                                                                                                                                                                                                                                     |
-+-------+---------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-|2      |MERGE    |{numTargetRowsCopied -> 373, numTargetRowsDeleted -> 0, numTargetFilesAdded -> 1, executionTimeMs -> 3313, numTargetRowsInserted -> 0, scanTimeMs -> 1882, numTargetRowsUpdated -> 25, numOutputRows -> 398, numSourceRows -> 398, numTargetFilesRemoved -> 1, rewriteTimeMs -> 1428}|
-|1      |WRITE    |{numFiles -> 1, numOutputRows -> 398, numOutputBytes -> 12032}                                                                                                                                                                                                                       |
-|0      |WRITE    |{numFiles -> 1, numOutputRows -> 398, numOutputBytes -> 12032}                                                                                                                                                                                                                       |
-+-------+---------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
++-------+---------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|version|operation|operationMetrics                                                                                                                                                                                                                                                                                                   |
++-------+---------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+|2      |MERGE    |{numTargetRowsCopied -> 373, numTargetRowsDeleted -> 0, numTargetFilesAdded -> 1, executionTimeMs -> 1203, numTargetRowsInserted -> 0, scanTimeMs -> 642, numTargetRowsUpdated -> 25, numOutputRows -> 398, numTargetChangeFilesAdded -> 0, numSourceRows -> 398, numTargetFilesRemoved -> 1, rewriteTimeMs -> 558}|
+|1      |WRITE    |{numFiles -> 1, numOutputRows -> 398, numOutputBytes -> 12032}                                                                                                                                                                                                                                                     |
+|0      |WRITE    |{numFiles -> 1, numOutputRows -> 398, numOutputBytes -> 12032}                                                                                                                                                                                                                                                     |
++-------+---------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 ```
 
 Show Table Version History
 --------------------------
+
+Delta tables maintain a lot of metadata, ranging from things like operation times, actions, version history, custom metadata and more. This example shows how to use `DeltaTable`'s `history` command to load version history into a `DataFrame` and view it.
 
 ```python
 # Load our table.
@@ -3560,14 +3964,16 @@ df = dt.history().select("version timestamp operation".split())
 +-------+----------+---------+
 |version| timestamp|operation|
 +-------+----------+---------+
-|      2|2022-03...|    MERGE|
-|      1|2022-03...|    WRITE|
-|      0|2022-03...|    WRITE|
+|      2|2022-09...|    MERGE|
+|      1|2022-09...|    WRITE|
+|      0|2022-09...|    WRITE|
 +-------+----------+---------+
 ```
 
 Load a Delta Table by Version ID (Time Travel Query)
 ----------------------------------------------------
+
+To load a specific version of a Delta table, use the `versionAsOf` option. This example also shows how to query the metadata to get available versions.
 
 ```python
 from pyspark.sql.functions import desc
@@ -3597,6 +4003,12 @@ Most recent version is 2
 Load a Delta Table by Timestamp (Time Travel Query)
 ---------------------------------------------------
 
+To load a Delta table as of a timestamp, use the `timestampAsOf` option. This example also shows how to query the metadata to get available timestamps.
+
+Usage Notes:
+* If the timestamp you specify is earlier than any valid timestamp, the table will fail to load with an error like `The provided timestamp (...) is before the earliest version available to this table`.
+* Otherwise, the table version is based on rounding the timestamp you specify down to the nearest valid timestamp less than or equal to the timestamp you specify.
+
 ```python
 from pyspark.sql.functions import desc
 
@@ -3617,11 +4029,13 @@ df = (
 ```
 ```
 # Code snippet result:
-Most recent timestamp is 2022-03-13 08:57:10.063000
+Most recent timestamp is 2022-09-17 23:12:43.623000
 ```
 
 Compact a Delta Table
 ---------------------
+
+Vacuuming (sometimes called compacting) a table is done by loading the tables' `DeltaTable` and running `vacuum`. This process combines small files into larger files and cleans up old metadata. As of Spark 3.2, 7 days or 168 hours is the minimum retention window.
 
 ```python
 output_path = "delta_tests"
@@ -3641,10 +4055,62 @@ df = dt.history().select("version timestamp".split()).orderBy("version")
 +-------+----------+
 |version| timestamp|
 +-------+----------+
-|      0|2022-03...|
-|      1|2022-03...|
-|      2|2022-03...|
+|      0|2022-09...|
+|      1|2022-09...|
+|      2|2022-09...|
 +-------+----------+
+```
+
+Add custom metadata to a Delta table write
+------------------------------------------
+
+Delta tables let your application add custom key/value pairs to writes. You might do this to track workflow IDs or other data to identify the source of writes.
+
+```python
+import os
+import time
+
+extra_properties = dict(
+    user=os.environ.get("USER"),
+    write_timestamp=time.time(),
+)
+auto_df.write.mode("append").option("userMetadata", extra_properties).format(
+    "delta"
+).save("delta_table_metadata")
+```
+```
+# Code snippet result:
++----+---------+------------+----------+------+------------+---------+------+----------+
+| mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
++----+---------+------------+----------+------+------------+---------+------+----------+
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|
+|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|
+|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|
+|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|
+|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|
+|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|
+|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|
+|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|
+|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|
+|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|
++----+---------+------------+----------+------+------------+---------+------+----------+
+only showing top 10 rows
+```
+
+Read custom Delta table metadata
+--------------------------------
+
+```python
+dt = DeltaTable.forPath(spark, "delta_table_metadata")
+df = dt.history().select("version timestamp userMetadata".split())
+```
+```
+# Code snippet result:
++-------+-----------------------+------------------------------------------------------+
+|version|              timestamp|                                          userMetadata|
++-------+-----------------------+------------------------------------------------------+
+|      0|2022-09-17 23:13:10.107|{'user': 'opc', 'write_timestamp': 1663456389.9404569}|
++-------+-----------------------+------------------------------------------------------+
 ```
 
 Spark Streaming
@@ -3653,6 +4119,10 @@ Spark Streaming (Focuses on Structured Streaming).
 
 Connect to Kafka using SASL PLAIN authentication
 ------------------------------------------------
+
+Replace USERNAME and PASSWORD with your actual values.
+
+This is for test/dev only, for production you should put credentials in a [JAAS Login Configuration File](https://docs.oracle.com/javase/7/docs/technotes/guides/security/jgss/tutorials/LoginConfigFile.html).
 
 ```python
 options = {
@@ -3798,6 +4268,8 @@ Batch: 3
 Create an unwindowed Structured Stream over input CSV files
 -----------------------------------------------------------
 
+This example shows how to deal with an input collection of CSV files. The key thing is you need to specify the schema explicitly, other than that you can use normal streaming operations.
+
 ```python
 from pyspark.sql.functions import avg, count, desc
 from pyspark.sql.types import (
@@ -3874,6 +4346,8 @@ Batch: 2
 Add the current timestamp to a DataFrame
 ----------------------------------------
 
+Your data needs a timestamp column for windowing. If your source data doesn't include a timestamp you can add one. This example adds the current system time as of DataFrame creation, which may be appropriate if you are not reading historical data.
+
 ```python
 from pyspark.sql.functions import current_timestamp
 
@@ -3884,34 +4358,65 @@ df = auto_df.withColumn("timestamp", current_timestamp())
 +----+---------+------------+----------+------+------------+---------+------+----------+----------+
 | mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname| timestamp|
 +----+---------+------------+----------+------+------------+---------+------+----------+----------+
-|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|2022-03...|
-|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|2022-03...|
-|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|2022-03...|
-|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|2022-03...|
-|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|2022-03...|
-|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|2022-03...|
-|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|2022-03...|
-|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|2022-03...|
-|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|2022-03...|
-|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|2022-03...|
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|2022-09...|
+|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|2022-09...|
+|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|2022-09...|
+|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|2022-09...|
+|17.0|        8|       302.0|     140.0| 3449.|        10.5|       70|     1|ford to...|2022-09...|
+|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|2022-09...|
+|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|2022-09...|
+|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|2022-09...|
+|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|2022-09...|
+|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|2022-09...|
 +----+---------+------------+----------+------+------------+---------+------+----------+----------+
+only showing top 10 rows
+```
+
+Session analytics on a DataFrame
+--------------------------------
+
+Session windows divide an input stream by both a time dimension and a grouping key. The length of the window depends on how long the grouping key is "active", the length of the window is extended each time the grouping key is seen without a timeout.
+
+This example shows weblog traffic split by IP address, with a 5 minute timeout per session. This sessionization would allow you compute things like average number of visits per session.
+
+```python
+from pyspark.sql.functions import hash, session_window
+
+hits_per_session = (
+    weblog_df.groupBy("ip", session_window("time", "5 minutes"))
+    .count()
+    .withColumn("session", hash("ip", "session_window"))
+)
+```
+```
+# Code snippet result:
++----------+--------------------------------------------------+-----+-----------+
+|        ip|                                    session_window|count|    session|
++----------+--------------------------------------------------+-----+-----------+
+|10.128.2.1|{2017-11-08 01:36:22.025, 2017-11-08 01:41:22.025}|    2|-1080724651|
+|10.128.2.1|{2017-11-08 05:01:22.025, 2017-11-08 05:06:22.025}|    2| -897175836|
+|10.128.2.1|{2017-11-08 08:32:30.025, 2017-11-08 08:37:30.025}|    2|  507460583|
+|10.128.2.1|  {2017-11-08 11:33:01.05, 2017-11-08 11:38:01.05}|    2|  604565291|
+|10.128.2.1|{2017-11-08 17:28:10.025, 2017-11-08 17:33:10.025}|    2| 1375765679|
+|10.128.2.1|{2017-11-08 23:12:14.025, 2017-11-08 23:17:14.025}|    2|-1970606095|
+|10.128.2.1|{2017-11-09 00:22:38.025, 2017-11-09 00:28:08.025}|    4|-1716036228|
+|10.128.2.1|{2017-11-09 03:35:44.025, 2017-11-09 03:41:12.025}|    4|-1207137059|
+|10.128.2.1|{2017-11-09 10:28:36.025, 2017-11-09 10:33:36.025}|    2| 1103795919|
+|10.128.2.1|{2017-11-09 11:36:13.025, 2017-11-09 11:41:13.025}|    2| 1703118270|
++----------+--------------------------------------------------+-----+-----------+
 only showing top 10 rows
 ```
 
 Call a UDF only when a threshold is reached
 -------------------------------------------
 
-```python
-"""
-It's common you want to call a UDF when measure hits a threshold. You want
-to call the UDF when a row hits a condition and skip it otherwise. PySpark
-does not support calling UDFs conditionally (or short-circuiting) as of 3.1.2.
+It's common you want to call a UDF when measure hits a threshold. You want to call the UDF when a row hits a condition and skip it otherwise. PySpark does not support calling UDFs conditionally (or short-circuiting) as of 3.1.2.
 
-To deal with this put a short-circuit field in the UDF and call the UDF
-with the condition. If the short-circuit is true return immediately.
+To deal with this put a short-circuit field in the UDF and call the UDF with the condition. If the short-circuit is true return immediately.
 
 This example performs an action when a running average exceeds 100.
-"""
+
+```python
 from pyspark.sql.types import BooleanType
 from pyspark.sql.functions import udf
 
@@ -3952,20 +4457,17 @@ tagged.writeStream.outputMode("complete").format(
 Streaming Machine Learning
 --------------------------
 
-```python
-"""
 MLlib pipelines can be loaded and used in streaming jobs.
 
-When training, define a Pipeline like:
-    pipeline = Pipeline(stages=[a, b, ...])
+When training, define a Pipeline like: `pipeline = Pipeline(stages=[a, b, ...])`
 
 Fit it, then save the resulting model:
-    pipeline_model = pipeline.fit(train_df)
-    pipeline_model.write().overwrite().save("path/to/pipeline")
+- `pipeline_model = pipeline.fit(train_df)`
+- `pipeline_model.write().overwrite().save("path/to/pipeline")`
 
 The pipeline model can then be used as shown below.
-"""
 
+```python
 from pyspark.ml import PipelineModel
 
 pipeline_model = PipelineModel.load("path/to/pipeline")
@@ -3977,16 +4479,61 @@ df.writeStream.format("console").start().awaitTermination()
 Control stream processing frequency
 -----------------------------------
 
+Use the processingTime option of trigger to control how frequently microbatches run. You can specify milliseconds or a string interval.
+
 ```python
-"""
-Use the processingTime option of trigger to control how frequently microbatches
-run. You can specify milliseconds or a string interval.
-"""
 df.writeStream.outputMode("complete").format("console").trigger(
     processingTime="10 seconds"
 ).start().awaitTermination()
 ```
 
+
+Write a streaming DataFrame to a database
+-----------------------------------------
+
+Streaming directly to databases is not supported but you can use foreachBatch to write individual DataFrames to your database. If a task fails you will see the same data with the same epoch_id multiple times and your code will need to handle this.
+
+```python
+import time
+
+pg_database = os.environ.get("PGDATABASE") or "postgres"
+pg_host = os.environ.get("PGHOST") or "localhost"
+pg_password = os.environ.get("PGPASSWORD") or "password"
+pg_user = os.environ.get("PGUSER") or "postgres"
+url = f"jdbc:postgresql://{pg_host}:5432/{pg_database}"
+table = "streaming"
+properties = {
+    "driver": "org.postgresql.Driver",
+    "user": pg_user,
+    "password": pg_password,
+}
+
+def foreach_batch_function(my_df, epoch_id):
+    my_df.write.jdbc(url=url, table=table, mode="Append", properties=properties)
+
+df = (
+    spark.readStream.format("rate")
+    .option("rowPerSecond", 100)
+    .option("numPartitions", 2)
+    .load()
+)
+query = df.writeStream.foreachBatch(foreach_batch_function).start()
+
+# Wait for some data to be processed and exit.
+for i in range(10):
+    time.sleep(5)
+    if len(query.recentProgress) > 0:
+        query.stop()
+        break
+
+df = spark.read.jdbc(url=url, table=table, properties=properties)
+result = "{} rows written to database".format(df.count())
+print(result)
+```
+```
+# Code snippet result:
+4 rows written to database
+```
 
 Time Series
 ===========
@@ -3994,6 +4541,27 @@ Techniques for dealing with time series data.
 
 Zero fill missing values in a timeseries
 ----------------------------------------
+
+Imagine you have a time series dataset that contains:
+
+* Customer ID
+* Year-Month (YYYY-MM)
+* Amount customer spent in that month.
+
+This data is useful to compute things like biggest spender, most frequent buyer, etc.
+
+Imagine though that this dataset doesn't contain a record for customers who didn't buy anything in that month. This will create all kinds of problems, for example the average monthly spend will skew up because no zero values will be included in the average. To answer questions like these we need to create zero-value records for anything that is missing.
+
+In SQL this is handled with the [Partitioned Outer Join](https://www.oracle.com/ocom/groups/public/@otn/documents/webcontent/270646.htm). This example shows you how you can roll you own in Spark:
+* Get the distinct list of Customer IDs
+* Get the distinct list of dates (all possible YYYY-MM vales)
+* Cross-join these two lists to produce all possible customer ID / date combinations
+* Perform a right outer join between the original `DataFrame` and the cross joined "all combinations" list
+* If the right outer join produces a null, replace it with a zero
+
+The output of this is a row for each customer ID / date combination. The value for spend_dollars is either the value from the original `DataFrame` or 0 if there was no corresponding row in the original `DataFrame`.
+
+You may want to filter the results to remove any rows belonging to a customer before their first actual purchase. Refer to the code for "First Time an ID is Seen" for how to find that information.
 
 ```python
 from pyspark.sql.functions import coalesce, lit
@@ -4014,15 +4582,15 @@ df = spend_df.join(
 |      date|customer_id|coalesce(spend_dollars, 0)|
 +----------+-----------+--------------------------+
 |2022-07-31|         31|                   16.4400|
-|2020-04-30|         31|                    0.0000|
-|2022-01-31|         31|                   25.1100|
-|2021-09-30|         31|                    2.1400|
-|2021-05-31|         31|                   34.3900|
-|2022-02-28|         31|                   59.7800|
-|2021-07-31|         31|                    8.2700|
-|2020-07-31|         31|                    0.0000|
-|2021-04-30|         31|                   20.7000|
-|2021-10-31|         31|                   62.1500|
+|2022-07-31|         85|                    6.3500|
+|2022-07-31|         65|                    6.9800|
+|2022-07-31|         53|                    0.0000|
+|2022-07-31|         78|                  185.6200|
+|2022-07-31|         34|                    0.0000|
+|2022-07-31|         81|                   43.0800|
+|2022-07-31|         28|                   17.6400|
+|2022-07-31|         76|                   47.3200|
+|2022-07-31|         26|                   24.2300|
 +----------+-----------+--------------------------+
 only showing top 10 rows
 ```
@@ -4059,6 +4627,8 @@ only showing top 10 rows
 Cumulative Sum
 --------------
 
+A comulative sum can be computed using using the standard `sum` function windowed from unbounded preceeding rows to the current row.
+
 ```python
 from pyspark.sql.functions import sum
 from pyspark.sql.window import Window
@@ -4092,6 +4662,8 @@ only showing top 10 rows
 
 Cumulative Sum in a Period
 --------------------------
+
+A comulative sum within particular periods be computed using using the standard `sum` function, windowed from unbounded preceeding rows to the current row and using multiple partitioning keys, one of which represents time periods.
 
 ```python
 from pyspark.sql.functions import sum, year
@@ -4128,6 +4700,8 @@ only showing top 10 rows
 Cumulative Average
 ------------------
 
+A comulative average can be computed using using the standard `avg` function windowed from unbounded preceeding rows to the current row.
+
 ```python
 from pyspark.sql.functions import avg
 from pyspark.sql.window import Window
@@ -4161,6 +4735,8 @@ only showing top 10 rows
 
 Cumulative Average in a Period
 ------------------------------
+
+A comulative average within particular periods be computed using using the standard `avg` function, windowed from unbounded preceeding rows to the current row and using multiple partitioning keys, one of which represents time periods.
 
 ```python
 from pyspark.sql.functions import avg, year
@@ -4196,169 +4772,96 @@ only showing top 10 rows
 
 Machine Learning
 ================
-Machine Learning
+Machine Learning is a deep subject, too much to cover in this cheatsheet which is intended for code you can easily paste into your apps. The examples below will show basics of ML in Spark. It is helpful to understand the terminology of ML like Features, Estimators and Models. If you want some background on these things consider courses like "Google crash course in ML" or Udemy's "Machine Learning Course with Python".
 
-Save a model
-------------
+A brief introduction to Spark ML terms:
+* Feature: A Feature is an individual measurement. For example if you want to predict height based on age and sex, a combination of age and sex is a Feature.
+* Vector: A Vector is a special Spark data type similar to an array of numbers. Spark ML algorithms require Features to be loaded into Vectors for training and predictions.
+* Vector Column: Model training requires considering many Features at the same time. Spark ML operates on `DataFrame`s. Before training can happen you need to construct a `DataFrame` column of type Vector. See examples below.
+* Label: Supervised ML algorithms like regression and classification require a label when training. In Spark you will put labels in a column in a `DataFrame` such that each row has both a Feature and its associated Label.
+* Model: A Model is an algorithm capable of turning Feature vectors into values, usually thought of as predictions.
+* Estimator: An Estimator builds a mathematical model that transforms input values into outputs. Estimators do double duty in Spark, some Estimators like regression and classification build statistical models. Some Estimators are purely for data preparation like the StringIndexer which builds a Model containing a dictionary that maps strings to numbers in a deterministic way.
+* Fitting: Fitting is the process of building a Model using an Estimator and an input DataFrame you provide.
+* Transformer: Transformers create new DataFrames using the `transform` API, which applies algorithms to the input DataFrame and outputs a DataFrame with additional columns. The nature of the `transform` could be statistical or it could be a simple algorithm, depending on the type of Estimator that created the Model.
+* Pipelines: Pipelines are a series of Estimators that apply a series of `transform`s to a `DataFrame` before calling `fit` on the final Estimator in the Pipeline. The Pipeline is itself an Estimator. When you `fit` a Pipeline, Spark `fit`s the first Estimator in the Pipeline using an input `DataFrame` you provide. This produces a Model. If there are additional Estimators in the Pipeline, the newly created Model's `transform` method is called against the input `DataFrame` to create a new `DataFrame`. The process then begins again with the newly created `DataFrame` being passed to the next Estimator's `fit` method. Fitting a Pipeline produces a `PipelineModel`.
+
+This image helps visualize the relationship between Spark ML classes.
+![Hierarchy of Spark ML Classes](images/mlhierarchy.webp)
+
+
+Prepare data for training with a VectorAssembler
+------------------------------------------------
+
+Spark Estimators for tasks like regression, classification or clustering use numeric arrays as inputs. Spark is centered around the idea of a `DataFrame` which is a 2-dimensional structure with strongly-typed columns. You might think these Estimators would take these 2-dimensional structures as inputs but that's not how it works.
+
+Instead these Estimators require special type of column called a Vector Column. The Vector is like an array of numbers packed into a single cell. Combining this with Vectors in other rows in the `DataFrame` gives a 2-dimensional array.
+
+One essential step in using these estimators is to load the data in your `DataFrame` into a `vector` column. This is usually done using a `VectorAssembler`.
+
+This example assembles the cylinders, displacement and acceleration columns from the Auto MPG dataset into a vector column called `features`. If you look at the `features` column in the output you will see it is composed of the values of these source columns. Later examples will use the `features` column to `fit` predictive Models.
 
 ```python
 from pyspark.ml.feature import VectorAssembler
-from pyspark.ml.regression import RandomForestRegressor
 
 vectorAssembler = VectorAssembler(
     inputCols=[
         "cylinders",
         "displacement",
-        "horsepower",
-        "weight",
         "acceleration",
     ],
     outputCol="features",
     handleInvalid="skip",
 )
 assembled = vectorAssembler.transform(auto_df_fixed)
-
-# Random test/train split.
-train_df, test_df = assembled.randomSplit([0.7, 0.3])
-
-# Define the model.
-rf = RandomForestRegressor(
-    numTrees=50,
-    featuresCol="features",
-    labelCol="mpg",
+assembled = assembled.select(
+    ["cylinders", "displacement", "acceleration", "features"]
 )
-
-# Train the model.
-rf_model = rf.fit(train_df)
-rf_model.write().overwrite().save("rf_regression.model")
-```
-
-
-Load a model and use it for predictions
----------------------------------------
-
-```python
-from pyspark.ml.feature import VectorAssembler
-from pyspark.ml.regression import RandomForestRegressionModel
-
-# Model type and assembled features need to agree with the trained model.
-rf_model = RandomForestRegressionModel.load("rf_regression.model")
-vectorAssembler = VectorAssembler(
-    inputCols=[
-        "cylinders",
-        "displacement",
-        "horsepower",
-        "weight",
-        "acceleration",
-    ],
-    outputCol="features",
-    handleInvalid="skip",
-)
-assembled = vectorAssembler.transform(auto_df_fixed)
-
-predictions = rf_model.transform(assembled).select(
-    "carname", "mpg", "prediction"
-)
+print("Data type for features column is:", assembled.dtypes[-1][1])
 ```
 ```
 # Code snippet result:
-+----------+----+----------+
-|   carname| mpg|prediction|
-+----------+----+----------+
-|chevrol...|18.0|16.6118...|
-|buick s...|15.0|14.2915...|
-|plymout...|18.0|15.1508...|
-|amc reb...|16.0|15.5965...|
-|ford to...|17.0|16.4334...|
-|ford ga...|15.0|13.7456...|
-|chevrol...|14.0|13.4012...|
-|plymout...|14.0|14.1575...|
-|pontiac...|14.0|13.4012...|
-|amc amb...|15.0|14.2642...|
-+----------+----+----------+
-only showing top 10 rows
-```
-
-A basic Linear Regression model
--------------------------------
-
-```python
-from pyspark.ml.feature import VectorAssembler
-from pyspark.ml.regression import LinearRegression
-
-vectorAssembler = VectorAssembler(
-    inputCols=[
-        "cylinders",
-        "displacement",
-        "horsepower",
-        "weight",
-        "acceleration",
-    ],
-    outputCol="features",
-    handleInvalid="skip",
-)
-assembled = vectorAssembler.transform(auto_df_fixed)
-assembled = assembled.select(["features", "mpg", "carname"])
-
-# Random test/train split.
-train_df, test_df = assembled.randomSplit([0.7, 0.3])
-
-# Define the model.
-lr = LinearRegression(
-    featuresCol="features",
-    labelCol="mpg",
-    maxIter=10,
-    regParam=0.3,
-    elasticNetParam=0.8,
-)
-
-# Train the model.
-lr_model = lr.fit(train_df)
-
-# Stats for training.
-print(
-    "RMSE={} r2={}".format(
-        lr_model.summary.rootMeanSquaredError, lr_model.summary.r2
-    )
-)
-
-# Make predictions.
-df = lr_model.transform(test_df)
-```
-```
-# Code snippet result:
-+----------+----+----------+----------+
-|  features| mpg|   carname|prediction|
-+----------+----+----------+----------+
-|[4.0,79...|30.0|peugeot...|30.0847...|
-|[4.0,85...|29.0|chevrol...|31.3284...|
-|[4.0,85...|33.5|datsun ...|30.5980...|
-|[4.0,85...|32.0|datsun ...|30.4062...|
-|[4.0,85...|39.4|datsun ...|30.0653...|
-|[4.0,90...|43.1|volkswa...|31.7586...|
-|[4.0,90...|29.0| vw rabbit|30.6016...|
-|[4.0,91...|36.1|honda c...|31.7983...|
-|[4.0,91...|37.3|fiat st...|29.8349...|
-|[4.0,91...|26.0|plymout...|30.5188...|
-+----------+----+----------+----------+
++---------+------------+------------+----------------+
+|cylinders|displacement|acceleration|features        |
++---------+------------+------------+----------------+
+|8.0      |307.0       |12.0        |[8.0,307.0,12.0]|
+|8.0      |350.0       |11.5        |[8.0,350.0,11.5]|
+|8.0      |318.0       |11.0        |[8.0,318.0,11.0]|
+|8.0      |304.0       |12.0        |[8.0,304.0,12.0]|
+|8.0      |302.0       |10.5        |[8.0,302.0,10.5]|
+|8.0      |429.0       |10.0        |[8.0,429.0,10.0]|
+|8.0      |454.0       |9.0         |[8.0,454.0,9.0] |
+|8.0      |440.0       |8.5         |[8.0,440.0,8.5] |
+|8.0      |455.0       |10.0        |[8.0,455.0,10.0]|
+|8.0      |390.0       |8.5         |[8.0,390.0,8.5] |
++---------+------------+------------+----------------+
 only showing top 10 rows
 ```
 
 A basic Random Forest Regression model
 --------------------------------------
 
+Random Forest models are popular because they often give good results without a lot of effort. Random Forests can be used for Regression and Classification tasks. This simple example shows building a `RandomForestRegressionModel` to model Miles Per Gallon using a subset of source feature.
+
+The process is:
+* Use a `VectorAssembler` to pack interesting `DataFrame` column values into a `Vector`.
+* Define the `RandomForestRegressor` estimator with a fixed number of trees. The features column will be the vector column built using the `VectorAssembler` and the value we are trying to predict is `mpg`.
+* `fit` the `RandomForestRegressor` estimator using the `DataFrame`. This produces a `RandomForestRegressionModel`.
+* Save the `Model`. Later examples will use it.
+
+Graphically this simple process looks like this:
+![Diagram of simplified Model fitting](images/mlsimple.webp)
+
+This example does not make predictions, see "Load a model and use it for transformations" or "Load a model and use it for predictions" to see how to make predictions with Models.
+
 ```python
 from pyspark.ml.feature import VectorAssembler
 from pyspark.ml.regression import RandomForestRegressor
-from pyspark.ml.evaluation import RegressionEvaluator
 
 vectorAssembler = VectorAssembler(
     inputCols=[
         "cylinders",
         "displacement",
         "horsepower",
-        "weight",
-        "acceleration",
     ],
     outputCol="features",
     handleInvalid="skip",
@@ -4366,335 +4869,50 @@ vectorAssembler = VectorAssembler(
 assembled = vectorAssembler.transform(auto_df_fixed)
 assembled = assembled.select(["features", "mpg", "carname"])
 
-# Random test/train split.
-train_df, test_df = assembled.randomSplit([0.7, 0.3])
-
-# Define the model.
+# Define the estimator.
 rf = RandomForestRegressor(
     numTrees=20,
     featuresCol="features",
     labelCol="mpg",
 )
 
-# Train the model.
-rf_model = rf.fit(train_df)
+# Fit the model.
+rf_model = rf.fit(assembled)
 
-# Make predictions.
-df = rf_model.transform(test_df)
-
-# Evaluate the model.
-r2 = RegressionEvaluator(
-    labelCol="mpg", predictionCol="prediction", metricName="r2"
-).evaluate(df)
-rmse = RegressionEvaluator(
-    labelCol="mpg", predictionCol="prediction", metricName="rmse"
-).evaluate(df)
-print("RMSE={} r2={}".format(rmse, r2))
-
-```
-```
-# Code snippet result:
-+----------+----+----------+----------+
-|  features| mpg|   carname|prediction|
-+----------+----+----------+----------+
-|[3.0,70...|18.0| maxda rx3|28.7440...|
-|[3.0,70...|19.0|mazda r...|26.1376...|
-|[3.0,80...|21.5|mazda rx-4|26.5120...|
-|[4.0,76...|31.0|toyota ...|33.9993...|
-|[4.0,78...|32.8|mazda g...|33.7947...|
-|[4.0,83...|32.0|datsun 710|34.3994...|
-|[4.0,85...|31.8|datsun 210|34.4604...|
-|[4.0,86...|39.0|plymout...|34.9254...|
-|[4.0,86...|34.1|maxda g...|34.9564...|
-|[4.0,89...|29.8|vokswag...|34.8279...|
-+----------+----+----------+----------+
-only showing top 10 rows
-```
-
-A basic Random Forest Classification model
-------------------------------------------
-
-```python
-from pyspark.ml.classification import RandomForestClassifier
-from pyspark.ml.evaluation import MulticlassClassificationEvaluator
-from pyspark.ml.feature import VectorAssembler
-
-label_column = "cover_type"
-vectorAssembler = VectorAssembler(
-    inputCols=covtype_df.columns,
-    outputCol="features",
-    handleInvalid="skip",
-)
-assembled = vectorAssembler.transform(covtype_df)
-
-# Random test/train split.
-train_df, test_df = assembled.randomSplit([0.7, 0.3])
-
-# Define the model.
-rf = RandomForestClassifier(
-    numTrees=50,
-    featuresCol="features",
-    labelCol=label_column,
-)
-
-# Train the model.
-rf_model = rf.fit(train_df)
-
-# Make predictions.
-predictions = rf_model.transform(test_df)
-
-# Select (prediction, true label) and compute test error
-evaluator = MulticlassClassificationEvaluator(
-    labelCol=label_column, predictionCol="prediction", metricName="accuracy"
-)
-accuracy = evaluator.evaluate(predictions)
-print("Test Error = %g" % (1.0 - accuracy))
-df = predictions.select([label_column, "prediction"])
-```
-```
-# Code snippet result:
-+----------+----------+
-|cover_type|prediction|
-+----------+----------+
-|         3|       3.0|
-|         3|       3.0|
-|         3|       3.0|
-|         3|       3.0|
-|         3|       3.0|
-|         6|       3.0|
-|         6|       3.0|
-|         6|       3.0|
-|         6|       3.0|
-|         6|       3.0|
-+----------+----------+
-only showing top 10 rows
-```
-
-Encode string variables before using a VectorAssembler
-------------------------------------------------------
-
-```python
-from pyspark.ml import Pipeline
-from pyspark.ml.feature import StringIndexer, VectorAssembler
-from pyspark.ml.regression import RandomForestRegressor
-from pyspark.ml.evaluation import RegressionEvaluator
-from pyspark.sql.functions import udf
-from pyspark.sql.types import StringType
-
-# Add manufacturer name we will use as a string column.
-first_word_udf = udf(lambda x: x.split()[0], StringType())
-df = auto_df_fixed.withColumn(
-    "manufacturer", first_word_udf(auto_df_fixed.carname)
-)
-
-# Strings must be indexed or we will get:
-# pyspark.sql.utils.IllegalArgumentException: Data type string of column manufacturer is not supported.
-#
-# We also encode outside of the main pipeline or else we risk getting:
-#  Caused by: org.apache.spark.SparkException: Unseen label: XXX. To handle unseen labels, set Param handleInvalid to keep.
-#
-# This is because training data is selected randomly and may not have all possible categories.
-manufacturer_encoded = StringIndexer(
-    inputCol="manufacturer", outputCol="manufacturer_encoded"
-)
-encoded_df = manufacturer_encoded.fit(df).transform(df)
-
-# Set up our main ML pipeline.
-columns_to_assemble = [
-    "manufacturer_encoded",
-    "cylinders",
-    "displacement",
-    "horsepower",
-    "weight",
-    "acceleration",
-]
-vector_assembler = VectorAssembler(
-    inputCols=columns_to_assemble,
-    outputCol="features",
-    handleInvalid="skip",
-)
-
-# Random test/train split.
-train_df, test_df = encoded_df.randomSplit([0.7, 0.3])
-
-# Define the model.
-rf = RandomForestRegressor(
-    numTrees=20,
-    featuresCol="features",
-    labelCol="mpg",
-)
-
-# Run the pipeline.
-pipeline = Pipeline(stages=[vector_assembler, rf])
-model = pipeline.fit(train_df)
-
-# Make predictions.
-df = model.transform(test_df).select("carname", "mpg", "prediction")
-
-# Select (prediction, true label) and compute test error
-rmse = RegressionEvaluator(
-    labelCol="mpg", predictionCol="prediction", metricName="rmse"
-).evaluate(df)
-print("RMSE={}".format(rmse))
+# Save the model.
+rf_model.write().overwrite().save("rf_regression_simple.model")
 
 ```
 ```
 # Code snippet result:
 +----------+----+----------+
-|   carname| mpg|prediction|
+|  features| mpg|   carname|
 +----------+----+----------+
-| ford f250|10.0|13.2290...|
-|oldsmob...|11.0|16.9678...|
-|ford co...|12.0|13.4351...|
-|ford gr...|13.0|16.2898...|
-|chevrol...|13.0|15.4739...|
-|chevrol...|13.0|15.3495...|
-|chevrol...|13.0|14.3390...|
-|  ford ltd|13.0|13.9583...|
-|chevrol...|13.0|13.7570...|
-|ford gr...|14.0|15.4633...|
+|[8.0,30...|18.0|chevrol...|
+|[8.0,35...|15.0|buick s...|
+|[8.0,31...|18.0|plymout...|
+|[8.0,30...|16.0|amc reb...|
+|[8.0,30...|17.0|ford to...|
+|[8.0,42...|15.0|ford ga...|
+|[8.0,45...|14.0|chevrol...|
+|[8.0,44...|14.0|plymout...|
+|[8.0,45...|14.0|pontiac...|
+|[8.0,39...|15.0|amc amb...|
 +----------+----+----------+
-only showing top 10 rows
-```
-
-Get feature importances of a trained model
-------------------------------------------
-
-```python
-from pyspark.ml import Pipeline
-from pyspark.ml.feature import StringIndexer, VectorAssembler
-from pyspark.ml.regression import RandomForestRegressor
-from pyspark.sql.functions import udf
-from pyspark.sql.types import StringType
-
-# Add manufacturer name we will use as a string column.
-first_word_udf = udf(lambda x: x.split()[0], StringType())
-df = auto_df_fixed.withColumn(
-    "manufacturer", first_word_udf(auto_df_fixed.carname)
-)
-manufacturer_encoded = StringIndexer(
-    inputCol="manufacturer", outputCol="manufacturer_encoded"
-)
-encoded_df = manufacturer_encoded.fit(df).transform(df)
-
-# Set up our main ML pipeline.
-columns_to_assemble = [
-    "manufacturer_encoded",
-    "cylinders",
-    "displacement",
-    "horsepower",
-    "weight",
-    "acceleration",
-]
-vector_assembler = VectorAssembler(
-    inputCols=columns_to_assemble,
-    outputCol="features",
-    handleInvalid="skip",
-)
-
-# Random test/train split.
-train_df, test_df = encoded_df.randomSplit([0.7, 0.3])
-
-# Define the model.
-rf = RandomForestRegressor(
-    numTrees=20,
-    featuresCol="features",
-    labelCol="mpg",
-)
-
-# Run the pipeline.
-pipeline = Pipeline(stages=[vector_assembler, rf])
-model = pipeline.fit(train_df)
-
-# Make predictions.
-predictions = model.transform(test_df).select("carname", "mpg", "prediction")
-
-# Get feature importances.
-real_model = model.stages[1]
-for feature, importance in zip(
-    columns_to_assemble, real_model.featureImportances
-):
-    print("{} contributes {:0.3f}%".format(feature, importance * 100))
-
-```
-```
-# Code snippet result:
-manufacturer_encoded contributes 9.159%
-cylinders contributes 20.001%
-displacement contributes 33.358%
-horsepower contributes 11.923%
-weight contributes 22.362%
-acceleration contributes 3.197%
-```
-
-Automatically encode categorical variables
-------------------------------------------
-
-```python
-from pyspark.ml.feature import VectorAssembler, VectorIndexer
-from pyspark.ml.regression import RandomForestRegressor
-from pyspark.sql.functions import countDistinct
-
-# Remove non-numeric columns.
-df = auto_df_fixed.drop("carname")
-
-# Profile this DataFrame to get a good value for maxCategories.
-grouped = df.agg(*(countDistinct(c) for c in df.columns))
-grouped.show()
-
-# Assemble all columns except mpg into a vector.
-feature_columns = list(df.columns)
-feature_columns.remove("mpg")
-vector_assembler = VectorAssembler(
-    inputCols=feature_columns,
-    outputCol="features",
-    handleInvalid="skip",
-)
-assembled = vector_assembler.transform(df)
-
-# From profiling the dataset, 15 is a good value for max categories.
-indexer = VectorIndexer(
-    inputCol="features", outputCol="indexed", maxCategories=15
-)
-indexed = indexer.fit(assembled).transform(assembled)
-
-# Build and train the model.
-train_df, test_df = indexed.randomSplit([0.7, 0.3])
-rf = RandomForestRegressor(
-    numTrees=50,
-    featuresCol="features",
-    labelCol="mpg",
-)
-rf_model = rf.fit(train_df)
-
-# Get feature importances.
-for feature, importance in zip(feature_columns, rf_model.featureImportances):
-    print("{} contributes {:0.3f}%".format(feature, importance * 100))
-
-# Make predictions.
-df = rf_model.transform(test_df).select("mpg", "prediction")
-```
-```
-# Code snippet result:
-+----+----------+
-| mpg|prediction|
-+----+----------+
-|11.0|12.8097...|
-|11.0|13.2055...|
-|12.0|13.3509...|
-|12.0|13.1467...|
-|12.0|12.8700...|
-|13.0|14.9091...|
-|13.0|15.7799...|
-|13.0|14.6798...|
-|13.0|14.7337...|
-|13.0|13.4198...|
-+----+----------+
 only showing top 10 rows
 ```
 
 Hyperparameter tuning
 ---------------------
+
+A key factor in the quality of a Random Forest model is a good choice of the number of trees parameter. The previous example arbitrarily set this parameter to 20. In practice it is better to try many parameters and choose the best one.
+
+Spark automates this using using a `CrossValidator`. The `CrossValidator` performs a parallel search of possible parameters and evaluates their performance using random test/training splits of input data. When all parameter combinations are tried the best `Model` is identified and made available in a property called `bestModel`.
+
+Commonly you want to transform your `DataFrame` before your estimator gets it. This is done using a `Pipeline` estimator. When you give a `Pipeline` estimator to a `CrossValidator` the `CrossValidator` will evaluate the final stage in the `Pipeline`.
+
+Graphically this process looks like:
+![Diagram of Model fitting with hyperparameter search](images/mloptimized.webp)
 
 ```python
 from pyspark.ml import Pipeline
@@ -4705,23 +4923,10 @@ from pyspark.ml.tuning import CrossValidator, ParamGridBuilder
 from pyspark.sql.functions import udf
 from pyspark.sql.types import StringType
 
-# Add manufacturer name we will use as a string column.
-first_word_udf = udf(lambda x: x.split()[0], StringType())
-df = auto_df_fixed.withColumn(
-    "manufacturer", first_word_udf(auto_df_fixed.carname)
-)
-manufacturer_encoded = StringIndexer(
-    inputCol="manufacturer", outputCol="manufacturer_encoded"
-)
-encoded_df = manufacturer_encoded.fit(df).transform(df)
-
 # Set up our main ML pipeline.
 columns_to_assemble = [
-    "manufacturer_encoded",
     "cylinders",
     "displacement",
-    "horsepower",
-    "weight",
     "acceleration",
 ]
 vector_assembler = VectorAssembler(
@@ -4732,7 +4937,6 @@ vector_assembler = VectorAssembler(
 
 # Define the model.
 rf = RandomForestRegressor(
-    numTrees=20,
     featuresCol="features",
     labelCol="mpg",
 )
@@ -4756,25 +4960,370 @@ cross_validator = CrossValidator(
 )
 
 # Run cross-validation to get the best parameters.
-fit_cross_validator = cross_validator.fit(encoded_df)
+fit_cross_validator = cross_validator.fit(auto_df_fixed)
 best_pipeline_model = fit_cross_validator.bestModel
 best_regressor = best_pipeline_model.stages[1]
 print("Best model has {} trees.".format(best_regressor.getNumTrees))
 
 # Save the Cross Validator, to capture everything including stats.
-fit_cross_validator.write().overwrite().save("fit_cross_validator.model")
-
-# Or, just save the best model.
-best_pipeline_model.write().overwrite().save("best_pipeline_model.model")
+fit_cross_validator.write().overwrite().save("rf_regression_optimized.model")
 
 ```
 ```
 # Code snippet result:
-Best model has 30 trees.
+Best model has 40 trees.
+```
+
+Encode string variables as numbers
+----------------------------------
+
+Estimators require numeric inputs. If you have a string column, use `StringIndexer` to convert it to integers using a dictionary that maps the same string to the same integer. Be aware that `StringIndexer` output is not deterministic and values can change if inputs change.
+
+```python
+from pyspark.ml.feature import StringIndexer
+from pyspark.sql.functions import udf
+from pyspark.sql.types import StringType
+
+# Add manufacturer name we will use as a string column.
+first_word_udf = udf(lambda x: x.split()[0], StringType())
+df = auto_df_fixed.withColumn(
+    "manufacturer", first_word_udf(auto_df_fixed.carname)
+)
+
+# Encode the manufactor name into numbers.
+indexer = StringIndexer(
+    inputCol="manufacturer", outputCol="manufacturer_encoded"
+)
+encoded = (
+    indexer.fit(df)
+    .transform(df)
+    .select(["manufacturer", "manufacturer_encoded"])
+)
+```
+```
+# Code snippet result:
++------------+--------------------+
+|manufacturer|manufacturer_encoded|
++------------+--------------------+
+|   chevrolet|                 1.0|
+|       buick|                 8.0|
+|    plymouth|                 2.0|
+|         amc|                 3.0|
+|        ford|                 0.0|
+|        ford|                 0.0|
+|   chevrolet|                 1.0|
+|    plymouth|                 2.0|
+|     pontiac|                 9.0|
+|         amc|                 3.0|
++------------+--------------------+
+only showing top 10 rows
+```
+
+One-hot encode a categorical variable
+-------------------------------------
+
+Features can be continuous or categorical. Categorical features need to be handled carefully when you fit your estimator. Consider the "Auto MPG" dataset:
+
+* There is a column called displacement. A displacement of 400 is twice as much as a displacement of 200. This is a continuous feature.
+* There is a column called origin. Cars originating from the US get a value of 1. Cars originating from Europe get a value of 2. Despite anything you may have read, Europe is not twice as much as the US. Instead this is a categorical feature and no relationship can be learned by comparing values.
+
+If your estimator decides that Europe is twice as much as the US it will make all kinds of other wrong conclusions. There are a few ways of handling categorical features, one popular approach is called "One-Hot Encoding".
+
+If we one-hot encode the origin column we replace it with vectors which encode each possible value of the category. The length of the vector is equal to the number of possible distinct values minus one. At most one of vector's values is set to 1 at any given time. (This is usually called "dummy encoding" which is slightly different from one-hot encoding.) With values encoded this way your estimator won't draw false linear relationships in the feature.
+
+One-hot encoding is easy and may lead to good results but there are different ways to handle categorical values depending on the circumstances. For other tools the pros use look up terms like "deviation coding" or "difference coding".
+
+```python
+from pyspark.ml.feature import OneHotEncoder
+
+# Turn the model year into categories.
+year_encoder = OneHotEncoder(
+    inputCol="modelyear", outputCol="modelyear_encoded"
+)
+encoded = (
+    year_encoder.fit(auto_df_fixed)
+    .transform(auto_df_fixed)
+    .select(["modelyear", "modelyear_encoded"])
+)
+```
+```
+# Code snippet result:
++---------+-----------------+
+|modelyear|modelyear_encoded|
++---------+-----------------+
+|70       |(82,[70],[1.0])  |
+|70       |(82,[70],[1.0])  |
+|70       |(82,[70],[1.0])  |
+|70       |(82,[70],[1.0])  |
+|70       |(82,[70],[1.0])  |
+|70       |(82,[70],[1.0])  |
+|70       |(82,[70],[1.0])  |
+|70       |(82,[70],[1.0])  |
+|70       |(82,[70],[1.0])  |
+|70       |(82,[70],[1.0])  |
++---------+-----------------+
+only showing top 10 rows
+```
+
+Optimize a model after a data preparation pipeline
+--------------------------------------------------
+
+In general it is best to split data preparation and estimator fitting into 2 distinct pipelines.
+
+Here's a simple examnple of why: imagine you have a string measure that can take 100 different possible values. Before you can `fit` your estimator you need to convert these strings to integers using a `StringIndexer`. The `CrossValidator` will randomly partition your `DataFrame` into training and test sets, then `fit` a `StringIndexer` against the training set to produce a `StringIndexerModel`. If the training set doesn't contain all possible 100 values, when the `StringIndexerModel` is used to `transform` the test set it will encounter unknown values and fail. The `StringIndexer` needs to be `fit` against the full dataset before any estimator fitting. There are other examples and in general the safe choice is to do all data preparation before estimator fitting.
+
+In complex applications different teams are responsible for data preparation (also called "feature engineering") and model development. In this case the feature engineering team will create feature `DataFrame`s and save them into a so-called "Feature Store". A model development team will load `DataFrame`s from the feature store in entirely different applications. The process below divides feature engineering and model development into 2 separate `Pipeline`s but doesn't go so far as to save between Pipelines 1 and 2.
+
+In general this end-to-end looks like:
+![End to end data prep and fitting pipelines](images/mlsimpleend2end.webp)
+
+```python
+from pyspark.ml import Pipeline
+from pyspark.ml.evaluation import RegressionEvaluator
+from pyspark.ml.feature import OneHotEncoder, StringIndexer, VectorAssembler
+from pyspark.ml.regression import RandomForestRegressor
+from pyspark.ml.tuning import CrossValidator, ParamGridBuilder
+from pyspark.sql.functions import udf
+from pyspark.sql.types import StringType
+
+### Phase 1.
+# Add manufacturer name we will use as a string column.
+first_word_udf = udf(lambda x: x.split()[0], StringType())
+df = auto_df_fixed.withColumn(
+    "manufacturer", first_word_udf(auto_df_fixed.carname)
+)
+
+# Encode the manufactor name into numbers.
+manufacturer_encoder = StringIndexer(
+    inputCol="manufacturer", outputCol="manufacturer_encoded"
+)
+# Turn the model year into categories.
+year_encoder = OneHotEncoder(
+    inputCol="modelyear", outputCol="modelyear_encoded"
+)
+
+# Run data preparation as a pipeline.
+data_prep_pipeline = Pipeline(stages=[manufacturer_encoder, year_encoder])
+prepared = data_prep_pipeline.fit(df).transform(df)
+
+### Phase 2.
+# Assemble vectors.
+columns_to_assemble = [
+    "cylinders",
+    "displacement",
+    "horsepower",
+    "weight",
+    "acceleration",
+    "manufacturer_encoded",
+    "modelyear_encoded",
+]
+vector_assembler = VectorAssembler(
+    inputCols=columns_to_assemble,
+    outputCol="features",
+    handleInvalid="skip",
+)
+
+# Define the model.
+rf = RandomForestRegressor(
+    featuresCol="features",
+    labelCol="mpg",
+)
+
+# Define the Pipeline.
+pipeline = Pipeline(stages=[vector_assembler, rf])
+
+# Run cross-validation to get the best parameters.
+paramGrid = (
+    ParamGridBuilder().addGrid(rf.numTrees, list(range(20, 100, 10))).build()
+)
+cross_validator = CrossValidator(
+    estimator=pipeline,
+    estimatorParamMaps=paramGrid,
+    evaluator=RegressionEvaluator(
+        labelCol="mpg", predictionCol="prediction", metricName="rmse"
+    ),
+    numFolds=2,
+    parallelism=4,
+)
+fit_cross_validator = cross_validator.fit(prepared)
+
+# Save the Cross Validator, to capture everything including stats.
+fit_cross_validator.write().overwrite().save("rf_regression_full.model")
+```
+
+
+Evaluate Model Performance
+--------------------------
+
+After you `fit` a model you usually want to evaluate how accurate it is. There are standard ways of evaluating model performance, which vary by the category of model.
+
+Some categories of models:
+* Regression models, used when the value to predict is a continuous value.
+* Classification models, when when the value to predict can only assume a finite set of values.
+* Binary classification models, a special case of classification models that are easier to evaluate.
+* Clustering models.
+
+Regression models can be evaluated with `RegressionEvaluator`, which provides these metrics:
+* [Root-mean-squared error](https://en.wikipedia.org/wiki/Root-mean-square_deviation) or RMSE.
+* [Mean-squared error](https://en.wikipedia.org/wiki/Mean_squared_error) or MSE.
+* [R squared](https://en.wikipedia.org/wiki/Coefficient_of_determination) or r2.
+* [Mean absolute error](https://en.wikipedia.org/wiki/Mean_absolute_error) or mae.
+* [Explained variance](https://en.wikipedia.org/wiki/Explained_variation) or var.
+
+Among these, rmse and r2 are the most commonly used metrics. Lower values of rmse are better, higher values of r2 are better, up to the maximum possible r2 score of 1.
+
+Binary classification models are evaluated using `BinaryClassificationEvaluator`, which provides these measures:
+* Area under [Receiver Operating Characteristic](https://en.wikipedia.org/wiki/Receiver_operating_characteristic) curve.
+* Area under [Precision Recall](https://en.wikipedia.org/wiki/Precision_and_recall) curve.
+
+The ROC curve is commonly plotted when using binary classifiers. A perfect model would look like an upside-down "L" leading to area under ROC of 1.
+
+Multiclass classification evaluation is much more complex, a `MulticlassClassificationEvaluator` is provided with options including:
+* [F1 score](https://en.wikipedia.org/wiki/F-score).
+* [Accuracy](https://en.wikipedia.org/wiki/Accuracy_and_precision).
+* [True positive rate](https://en.wikipedia.org/wiki/Sensitivity_and_specificity) by label.
+* [False positive rate](https://en.wikipedia.org/wiki/Sensitivity_and_specificity) by label.
+* [Precision by label](https://en.wikipedia.org/wiki/Precision_and_recall).
+* [Recall by label](https://en.wikipedia.org/wiki/Precision_and_recall).
+* F measure by label, which computes the F score for a particular label.
+* Weighted true positive rate, like true positive rate, but allows each measure to have a weight.
+* Weighted false positive rate, like false positive rate, but allows each measure to have a weight.
+* Weighted precision, like precision, but allows each measure to have a weight.
+* Weighted recall, like recall, but allows each measure to have a weight.
+* Weighted f measure, like F1 score, but allows each measure to have a weight.
+* [Log loss](https://en.wikipedia.org/wiki/Loss_functions_for_classification) (short for Logistic Loss)
+* [Hamming loss](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.hamming_loss.html)
+
+The F1 score is the default. An F1 score of 1 is the best possible score.
+
+For clustering models, Spark offers `ClusteringEvaluator` with one measure:
+* [silhouette](https://en.wikipedia.org/wiki/Silhouette_%28clustering%29)
+
+The example below loads 2 regression models fit earlier and compares their metrics. `rf_regression_simple.model` considered 3 columns of the input dataset while `rf_regression_full.model` considered 7. We can expect that `rf_regression_full.model` will have better metrics.
+
+```python
+from pyspark.ml import Pipeline
+from pyspark.ml.evaluation import RegressionEvaluator
+from pyspark.ml.feature import OneHotEncoder, StringIndexer, VectorAssembler
+from pyspark.ml.regression import RandomForestRegressionModel
+from pyspark.ml.tuning import CrossValidatorModel
+from pyspark.sql.functions import udf
+from pyspark.sql.types import StringType
+
+# Metrics supported by RegressionEvaluator.
+metrics = "rmse mse r2 mae".split()
+
+# Load the simple model and compute its predictions.
+simple_assembler = VectorAssembler(
+    inputCols=[
+        "cylinders",
+        "displacement",
+        "horsepower",
+    ],
+    outputCol="features",
+    handleInvalid="skip",
+)
+simple_input = simple_assembler.transform(auto_df_fixed).select(
+    ["features", "mpg"]
+)
+rf_simple_model = RandomForestRegressionModel.load("rf_regression_simple.model")
+simple_predictions = rf_simple_model.transform(simple_input)
+
+# Load the complex model and compute its predictions.
+first_word_udf = udf(lambda x: x.split()[0], StringType())
+df = auto_df_fixed.withColumn(
+    "manufacturer", first_word_udf(auto_df_fixed.carname)
+)
+manufacturer_encoder = StringIndexer(
+    inputCol="manufacturer", outputCol="manufacturer_encoded"
+)
+year_encoder = OneHotEncoder(
+    inputCol="modelyear", outputCol="modelyear_encoded"
+)
+data_prep_pipeline = Pipeline(stages=[manufacturer_encoder, year_encoder])
+prepared = data_prep_pipeline.fit(df).transform(df)
+columns_to_assemble = [
+    "cylinders",
+    "displacement",
+    "horsepower",
+    "weight",
+    "acceleration",
+    "manufacturer_encoded",
+    "modelyear_encoded",
+]
+complex_assembler = VectorAssembler(
+    inputCols=columns_to_assemble,
+    outputCol="features",
+    handleInvalid="skip",
+)
+complex_input = complex_assembler.transform(prepared).select(
+    ["features", "mpg"]
+)
+cv_model = CrossValidatorModel.load("rf_regression_full.model")
+best_pipeline = cv_model.bestModel
+rf_complex_model = best_pipeline.stages[-1]
+complex_predictions = rf_complex_model.transform(complex_input)
+
+# Evaluate performances.
+evaluator = RegressionEvaluator(predictionCol="prediction", labelCol="mpg")
+performances = [
+    ["simple", simple_predictions, dict()],
+    ["complex", complex_predictions, dict()],
+]
+for label, predictions, tracker in performances:
+    for metric in metrics:
+        tracker[metric] = evaluator.evaluate(
+            predictions, {evaluator.metricName: metric}
+        )
+print(performances)
+```
+```
+# Code snippet result:
+[['simple', DataFrame[features: vector, mpg: double, prediction: double], {'rmse': 3.441466679967791, 'mse': 11.843692909328531, 'r2': 0.8050829634584001, 'mae': 2.537098679502045}], ['complex', DataFrame[features: vector, mpg: double, prediction: double], {'rmse': 2.6583813910759475, 'mse': 7.066991620418889, 'r2': 0.8836953073283911, 'mae': 1.997412855106985}]]
+```
+
+Get feature importances of a trained model
+------------------------------------------
+
+Most classifiers and regressors include a property called `featureImportances`. `featureImportances` is an array that:
+* Contains floating point values.
+* The value corresponds to how important a feature is in the model's predictions relative to other features.
+* The sum of the array equals one.
+
+```python
+from pyspark.ml.tuning import CrossValidatorModel
+
+# Load the model we fit earlier.
+model = CrossValidatorModel.load("rf_regression_full.model")
+
+# Get the best model.
+best_pipeline = model.bestModel
+
+# Get the names of assembled columns.
+assembler = best_pipeline.stages[0]
+original_columns = assembler.getInputCols()
+
+# Get feature importances.
+real_model = best_pipeline.stages[1]
+for feature, importance in zip(original_columns, real_model.featureImportances):
+    print("{} contributes {:0.3f}%".format(feature, importance * 100))
+
+```
+```
+# Code snippet result:
+cylinders contributes 23.397%
+displacement contributes 22.557%
+horsepower contributes 16.613%
+weight contributes 20.015%
+acceleration contributes 3.910%
+manufacturer_encoded contributes 8.464%
+modelyear_encoded contributes 0.000%
 ```
 
 Plot Hyperparameter tuning metrics
 ----------------------------------
+
+An easy way to get a plot of your `DataFrame` is to convert it into a Pandas DataFrame and use the `plot` method Pandas offers. Note that this saves it to the driver's local filesystem and you may need to copy it to another location.
 
 ```python
 from pyspark.ml import Pipeline
@@ -4860,58 +5409,10 @@ ax.figure.savefig("hyperparameters.png")
 ```
 ![Hyperparameter Search](hyperparameters.png)
 
-A Random Forest Classification model with Hyperparameter Tuning
----------------------------------------------------------------
-
-```python
-from pyspark.ml.classification import RandomForestClassifier
-from pyspark.ml.evaluation import MulticlassClassificationEvaluator
-from pyspark.ml.feature import VectorAssembler
-from pyspark.ml import Pipeline
-from pyspark.ml.tuning import CrossValidator, ParamGridBuilder
-
-label_column = "cover_type"
-vector_assembler = VectorAssembler(
-    inputCols=covtype_df.columns,
-    outputCol="features",
-    handleInvalid="skip",
-)
-
-# Define the model.
-rf = RandomForestClassifier(
-    numTrees=50,
-    featuresCol="features",
-    labelCol=label_column,
-)
-
-# Run the pipeline.
-pipeline = Pipeline(stages=[vector_assembler, rf])
-
-# Hyperparameter search.
-paramGrid = (
-    ParamGridBuilder().addGrid(rf.numTrees, list(range(50, 80, 10))).build()
-)
-crossval = CrossValidator(
-    estimator=pipeline,
-    estimatorParamMaps=paramGrid,
-    evaluator=MulticlassClassificationEvaluator(
-        labelCol=label_column, predictionCol="prediction"
-    ),
-    numFolds=2,
-    parallelism=4,
-)
-
-# Run cross-validation and choose the best set of parameters.
-model = crossval.fit(covtype_df)
-
-# Identify the best hyperparameters.
-real_model = model.bestModel.stages[1]
-print("Best model has {} trees.".format(real_model.getNumTrees))
-```
-
-
 Compute correlation matrix
 --------------------------
+
+Spark has a few statistics packages like `Correlation`. Like with many Estimators, `Correlation` requires a vector column.
 
 ```python
 from pyspark.ml.feature import VectorAssembler
@@ -4952,6 +5453,123 @@ modelyear     -0.345647     -0.369855   -0.416361 -0.309120      0.290316   1.00
 origin        -0.568932     -0.614535   -0.455171 -0.585005      0.212746   0.181528  1.000000
 ```
 
+Save a model
+------------
+
+To save a model call `fit` on the `Estimator` to build a `Model`, then save the `Model`.
+
+```python
+from pyspark.ml.feature import VectorAssembler
+from pyspark.ml.regression import RandomForestRegressor
+from pyspark.ml.classification import RandomForestClassifier
+
+vectorAssembler = VectorAssembler(
+    inputCols=[
+        "cylinders",
+        "displacement",
+        "horsepower",
+    ],
+    outputCol="features",
+    handleInvalid="skip",
+)
+assembled = vectorAssembler.transform(auto_df_fixed)
+
+# Random test/train split.
+train_df, test_df = assembled.randomSplit([0.7, 0.3])
+
+# A regression model.
+rf_regressor = RandomForestRegressor(
+    numTrees=50,
+    featuresCol="features",
+    labelCol="mpg",
+)
+
+# A classification model.
+rf_classifier = RandomForestClassifier(
+    numTrees=50,
+    featuresCol="features",
+    labelCol="origin",
+)
+
+# Fit the models.
+rf_regressor_model = rf_regressor.fit(train_df)
+rf_regressor_model.write().overwrite().save("rf_regressor_saveload.model")
+rf_classifier_model = rf_classifier.fit(train_df)
+rf_classifier_model.write().overwrite().save("rf_classifier_saveload.model")
+```
+
+
+Load a model and use it for transformations
+-------------------------------------------
+
+When you are loading a Model, the class you use to call `load` needs to end in `Model`.
+
+The example below loads a `RandomForestRegressionModel` which was the output of the `fit` call on a `RandomForestRegression` estimator. Many people try to load this using the `RandomForestRegression` class but this is the Estimator class and won't work, instead we use the `RandomForestRegressionModel` class.
+
+After we load the Model we can use its `transform` method to convert a `DataFrame` into a new `DataFrame` containing a prediction column. The input `DataFrame` needs to have the same structure as the `DataFrame` use to `fit` the Estimator.
+
+```python
+from pyspark.ml.feature import VectorAssembler
+from pyspark.ml.regression import RandomForestRegressionModel
+
+# Model type and assembled features need to agree with the trained model.
+rf_model = RandomForestRegressionModel.load("rf_regressor_saveload.model")
+
+# The input DataFrame needs the same structure we used when we fit.
+vectorAssembler = VectorAssembler(
+    inputCols=[
+        "cylinders",
+        "displacement",
+        "horsepower",
+    ],
+    outputCol="features",
+    handleInvalid="skip",
+)
+assembled = vectorAssembler.transform(auto_df_fixed)
+predictions = rf_model.transform(assembled).select(
+    "carname", "mpg", "prediction"
+)
+```
+```
+# Code snippet result:
++-------------------------+----+------------------+
+|carname                  |mpg |prediction        |
++-------------------------+----+------------------+
+|chevrolet chevelle malibu|18.0|16.006603920626578|
+|buick skylark 320        |15.0|14.22081363309075 |
+|plymouth satellite       |18.0|14.9648622321075  |
+|amc rebel sst            |16.0|15.799134889159259|
+|ford torino              |17.0|16.132384077190974|
+|ford galaxie 500         |15.0|13.998961169182145|
+|chevrolet impala         |14.0|13.998961169182145|
+|plymouth fury iii        |14.0|13.998961169182145|
+|pontiac catalina         |14.0|13.998961169182145|
+|amc ambassador dpl       |15.0|14.062044502515478|
++-------------------------+----+------------------+
+only showing top 10 rows
+```
+
+Load a classification model and use it to compute confidences for output labels
+-------------------------------------------------------------------------------
+
+Classification `Model`s let you get confidence levels for each possible output class using the `predictProbability` method. This is Spark's equivalent of sklearn's `predict_proba`.
+
+```python
+from pyspark.ml.linalg import Vectors
+from pyspark.ml.classification import RandomForestClassificationModel
+
+# Model type and assembled features need to agree with the trained model.
+rf_model = RandomForestClassificationModel.load("rf_classifier_saveload.model")
+
+input_vector = Vectors.dense([8, 307.0, 130.0])
+prediction = rf_model.predictProbability(input_vector)
+print("Predictions are", prediction)
+```
+```
+# Code snippet result:
+Predictions are [0.0,0.9985439647403311,0.00029600821044671317,0.0011600270492221926]
+```
+
 Performance
 ===========
 A few performance tips and tricks.
@@ -4964,11 +5582,16 @@ print(spark.sparkContext.version)
 ```
 ```
 # Code snippet result:
-3.2.1
+3.2.2
 ```
 
 Log messages using Spark's Log4J
 --------------------------------
+
+You can access the JVM of the Spark Context using `_jvm`. Caveats:
+
+- `_jvm` is an internal variable and this could break after a Spark version upgrade.
+- This is the JVM running on the Driver node. I'm not aware of a way to access Log4J on Executor nodes.
 
 ```python
 logger = spark.sparkContext._jvm.org.apache.log4j.Logger.getRootLogger()
@@ -4978,6 +5601,11 @@ logger.warn("WARNING LEVEL LOG MESSAGE")
 
 Cache a DataFrame
 -----------------
+
+By default a DataFrame is not stored anywhere and is recomputed whenever it is needed. Caching a DataFrame can improve performance if it is accessed many times. There are two ways to do this:
+
+* The DataFrame [`cache`](https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.cache.html#pyspark.sql.DataFrame.cache) method sets the DataFrame's persistence mode to the default (Memory and Disk).
+* For more control you can use [`persist`](https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.persist.html#pyspark.sql.DataFrame.persist). `persist` requires a [`StorageLevel`](https://spark.apache.org/docs/latest/api/python/reference/api/pyspark.StorageLevel.html). `persist` is most typically used to control replication factor.
 
 ```python
 from pyspark import StorageLevel
@@ -5025,12 +5653,18 @@ Show the execution plan, with costs
 
 ```python
 df = auto_df.groupBy("cylinders").count()
-execution_plan = df.explain(mode="cost")
+execution_plan = str(df.explain(mode="cost"))
+print(execution_plan)
 ```
-
+```
+# Code snippet result:
+None
+```
 
 Partition by a Column Value
 ---------------------------
+
+A DataFrame can be partitioned by a column using the `repartition` method. This method requires a target number of partitions and a column name. This allows you to control how data is distributed around the cluster, which can help speed up operations when these operations are able to run entirely on the local partition.
 
 ```python
 # rows is an iterable, e.g. itertools.chain
@@ -5073,6 +5707,8 @@ Empty partition
 Range Partition a DataFrame
 ---------------------------
 
+A DataFrame can be range partitioned using `repartitionByRange`. This method requires a number of target partitions and a partitioning key. Range partitioning gives similar benefits to key-based partitioning but may be better when keys can have small numbers of distinct values, which would lead to skew problems in key-based partitioning.
+
 ```python
 from pyspark.sql.functions import col
 
@@ -5109,34 +5745,42 @@ This partition has 94 records with years 78,79,80
 Change Number of DataFrame Partitions
 -------------------------------------
 
+`repartition` a DataFrame to change its number of partitions, potentially moving data across executors in the process. `repartition` accepts 2 optional arguments:
+* A number of partitions. If not specified, the system-wide default is used.
+* A list of partitioning columns. Data with the same value in these columns will remain in the same partition.
+
+Repartitioning is commonly used to reduce the number of output files when saving a `DataFrame`.
+
 ```python
 from pyspark.sql.functions import col
 
 df = auto_df.repartition(col("modelyear"))
 number_of_partitions = 5
-df = auto_df.repartitionByRange(number_of_partitions, col("mpg"))
+df = auto_df.repartition(number_of_partitions, col("mpg"))
 ```
 ```
 # Code snippet result:
 +----+---------+------------+----------+------+------------+---------+------+----------+
 | mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
 +----+---------+------------+----------+------+------------+---------+------+----------+
-|15.0|        8|       350.0|     165.0| 3693.|        11.5|       70|     1|buick s...|
-|16.0|        8|       304.0|     150.0| 3433.|        12.0|       70|     1|amc reb...|
-|15.0|        8|       429.0|     198.0| 4341.|        10.0|       70|     1|ford ga...|
-|14.0|        8|       454.0|     220.0| 4354.|         9.0|       70|     1|chevrol...|
-|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|
-|14.0|        8|       455.0|     225.0| 4425.|        10.0|       70|     1|pontiac...|
-|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|
-|15.0|        8|       383.0|     170.0| 3563.|        10.0|       70|     1|dodge c...|
-|14.0|        8|       340.0|     160.0| 3609.|         8.0|       70|     1|plymout...|
-|15.0|        8|       400.0|     150.0| 3761.|         9.5|       70|     1|chevrol...|
+|18.0|        8|       307.0|     130.0| 3504.|        12.0|       70|     1|chevrol...|
+|18.0|        8|       318.0|     150.0| 3436.|        11.0|       70|     1|plymout...|
+|18.0|        6|       199.0|     97.00| 2774.|        15.5|       70|     1|amc hornet|
+|26.0|        4|       97.00|     46.00| 1835.|        20.5|       70|     2|volkswa...|
+|25.0|        4|       110.0|     87.00| 2672.|        17.5|       70|     2|peugeot...|
+|25.0|        4|       104.0|     95.00| 2375.|        17.5|       70|     2|  saab 99e|
+|26.0|        4|       121.0|     113.0| 2234.|        12.5|       70|     2|  bmw 2002|
+|11.0|        8|       318.0|     210.0| 4382.|        13.5|       70|     1|dodge d200|
+|25.0|        4|       113.0|     95.00| 2228.|        14.0|       71|     3|toyota ...|
+|25.0|        4|       98.00|      null| 2046.|        19.0|       71|     1|ford pinto|
 +----+---------+------------+----------+------+------------+---------+------+----------+
 only showing top 10 rows
 ```
 
 Coalesce DataFrame partitions
 -----------------------------
+
+Coalescing reduces the number of partitions in a way that can be much more effecient than using `repartition`.
 
 ```python
 import math
@@ -5165,6 +5809,8 @@ only showing top 10 rows
 
 Set the number of shuffle partitions
 ------------------------------------
+
+When you have smaller datasets, reducing the number of shuffle partitions can speed up processing and reduce the number of small files created.
 
 ```python
 # Default shuffle partitions is usually 200.
@@ -5200,54 +5846,26 @@ df = (
 +----+---------+------------+----------+------+------------+---------+------+----------+
 | mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
 +----+---------+------------+----------+------+------------+---------+------+----------+
-|27.0|        4|       97.00|     88.00| 2130.|        14.5|       71|     3|datsun ...|
-|13.0|        8|       400.0|     170.0| 4746.|        12.0|       71|     1|ford co...|
-|35.0|        4|       72.00|     69.00| 1613.|        18.0|       71|     3|datsun ...|
-|23.0|        4|       97.00|     54.00| 2254.|        23.5|       72|     2|volkswa...|
-|14.0|        8|       318.0|     150.0| 4077.|        14.0|       72|     1|plymout...|
-|27.0|        4|       97.00|     88.00| 2100.|        16.5|       72|     3|toyota ...|
-|29.0|        4|       98.00|     83.00| 2219.|        16.5|       74|     2|  audi fox|
-|13.0|        8|       302.0|     129.0| 3169.|        12.0|       75|     1|ford mu...|
-|29.0|        4|       97.00|     75.00| 2171.|        16.0|       75|     3|toyota ...|
-|29.0|        4|       90.00|     70.00| 1937.|        14.0|       75|     2|volkswa...|
+|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|
+|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|
+|24.0|        4|       113.0|     95.00| 2372.|        15.0|       70|     3|toyota ...|
+|18.0|        6|       199.0|     97.00| 2774.|        15.5|       70|     1|amc hornet|
+|26.0|        4|       97.00|     46.00| 1835.|        20.5|       70|     2|volkswa...|
+|25.0|        4|       113.0|     95.00| 2228.|        14.0|       71|     3|toyota ...|
+|14.0|        8|       350.0|     165.0| 4209.|        12.0|       71|     1|chevrol...|
+|28.0|        4|       116.0|     90.00| 2123.|        14.0|       71|     2| opel 1900|
+|31.0|        4|       71.00|     65.00| 1773.|        19.0|       71|     3|toyota ...|
+|21.0|        4|       122.0|     86.00| 2226.|        16.5|       72|     1|ford pi...|
 +----+---------+------------+----------+------+------------+---------+------+----------+
 only showing top 10 rows
 ```
 
-Print Spark configuration properties
-------------------------------------
-
-```python
-print(spark.sparkContext.getConf().getAll())
-```
-```
-# Code snippet result:
-[('spark.jars.packages', 'io.delta:delta-core_2.12:1.1.0'), ('spark.driver.memory', '2G'), ('spark.app.startTime', '1647186922054'), ('spark.sql.warehouse.dir', 'file:/Users/cshankli/git/pyspark-cheatsheet/spark_warehouse'), ('spark.jars', 'file:///Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.1.0.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.8.jar,file:///Users/cshankli/.ivy2/jars/org.codehaus.jackson_jackson-core-asl-1.9.13.jar'), ('spark.executor.memory', '2G'), ('spark.app.initial.jar.urls', 'spark://192.168.1.199:55860/jars/org.antlr_antlr4-runtime-4.8.jar,spark://192.168.1.199:55860/jars/org.codehaus.jackson_jackson-core-asl-1.9.13.jar,spark://192.168.1.199:55860/jars/io.delta_delta-core_2.12-1.1.0.jar'), ('spark.executor.id', 'driver'), ('spark.files', 'file:///Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.1.0.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.8.jar,file:///Users/cshankli/.ivy2/jars/org.codehaus.jackson_jackson-core-asl-1.9.13.jar'), ('spark.driver.port', '55860'), ('spark.sql.extensions', 'io.delta.sql.DeltaSparkSessionExtension'), ('spark.rdd.compress', 'True'), ('spark.app.initial.file.urls', 'file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.8.jar,file:///Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.1.0.jar,file:///Users/cshankli/.ivy2/jars/org.codehaus.jackson_jackson-core-asl-1.9.13.jar'), ('spark.serializer.objectStreamReset', '100'), ('spark.driver.host', '192.168.1.199'), ('spark.master', 'local[*]'), ('spark.repl.local.jars', 'file:///Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.1.0.jar,file:///Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.8.jar,file:///Users/cshankli/.ivy2/jars/org.codehaus.jackson_jackson-core-asl-1.9.13.jar'), ('spark.submit.pyFiles', '/Users/cshankli/.ivy2/jars/io.delta_delta-core_2.12-1.1.0.jar,/Users/cshankli/.ivy2/jars/org.antlr_antlr4-runtime-4.8.jar,/Users/cshankli/.ivy2/jars/org.codehaus.jackson_jackson-core-asl-1.9.13.jar'), ('spark.submit.deployMode', 'client'), ('spark.app.name', 'cheatsheet'), ('spark.ui.showConsoleProgress', 'true'), ('spark.sql.catalog.spark_catalog', 'org.apache.spark.sql.delta.catalog.DeltaCatalog'), ('spark.app.id', 'local-1647186922789')]
-```
-
-Set Spark configuration properties
-----------------------------------
-
-```python
-key = "spark.hadoop.mapreduce.fileoutputcommitter.algorithm.version"
-value = 2
-
-# Wrong! Settings cannot be changed this way.
-# spark.sparkContext.getConf().set(key, value)
-
-# Correct.
-spark.conf.set(key, value)
-
-# Alternatively: Set at build time.
-# Some settings can only be made at build time.
-spark_builder = SparkSession.builder.appName("My App")
-spark_builder.config(key, value)
-spark = spark_builder.getOrCreate()
-```
-
-
 Run multiple concurrent jobs in different pools
 -----------------------------------------------
+
+You can run multiple concurrent Spark jobs by setting `spark.scheduler.pool` before performing an operation. You will need to use multiple threads since operations block.
+
+Pools do not need to be defined ahead of time.
 
 ```python
 import concurrent.futures
@@ -5267,10 +5885,14 @@ def launch(i, target):
     print("Job", i, "returns", target.first(), "at", datetime.datetime.now())
 
 with concurrent.futures.ThreadPoolExecutor() as executor:
+    futures = []
     for i, target in enumerate(target_frames):
         print("Starting job", i, "at", datetime.datetime.now())
-        executor.submit(launch, i, target)
+        futures.append(executor.submit(launch, i, target))
         time.sleep(0.2)
+    concurrent.futures.wait(futures)
+    for future in futures:
+        print(future.result())
 ```
 ```
 # Code snippet result:
@@ -5294,6 +5916,56 @@ Job 5 returns Row(acceleration='8.5', count=240) at 2022-03-13 08:53:09.298583
 Job 4 returns Row(weight='3574.', count=140) at 2022-03-13 08:53:09.476974
 Job 8 returns Row(carname='audi 100 ls', count=60) at 2022-03-13 08:53:09.639598
 ```
+
+Print Spark configuration properties
+------------------------------------
+
+```python
+print(spark.sparkContext.getConf().getAll())
+```
+```
+# Code snippet result:
+[('spark.app.initial.jar.urls', 'spark://arm.subnet.vcn.oraclevcn.com:43473/jars/io.delta_delta-storage-2.0.0.jar,spark://arm.subnet.vcn.oraclevcn.com:43473/jars/io.delta_delta-core_2.12-2.0.0.jar,spark://arm.subnet.vcn.oraclevcn.com:43473/jars/org.postgresql_postgresql-42.4.0.jar,spark://arm.subnet.vcn.oraclevcn.com:43473/jars/org.antlr_antlr4-runtime-4.8.jar,spark://arm.subnet.vcn.oraclevcn.com:43473/jars/org.codehaus.jackson_jackson-core-asl-1.9.13.jar,spark://arm.subnet.vcn.oraclevcn.com:43473/jars/org.checkerframework_checker-qual-3.5.0.jar'), ('spark.driver.memory', '2G'), ('spark.jars.packages', 'io.delta:delta-core_2.12:2.0.0,org.postgresql:postgresql:42.4.0'), ('spark.executor.memory', '2G'), ('spark.app.startTime', '1663456315357'), ('spark.executor.id', 'driver'), ('spark.submit.pyFiles', '/home/opc/.ivy2/jars/io.delta_delta-core_2.12-2.0.0.jar,/home/opc/.ivy2/jars/org.postgresql_postgresql-42.4.0.jar,/home/opc/.ivy2/jars/io.delta_delta-storage-2.0.0.jar,/home/opc/.ivy2/jars/org.antlr_antlr4-runtime-4.8.jar,/home/opc/.ivy2/jars/org.codehaus.jackson_jackson-core-asl-1.9.13.jar,/home/opc/.ivy2/jars/org.checkerframework_checker-qual-3.5.0.jar'), ('spark.repl.local.jars', 'file:///home/opc/.ivy2/jars/io.delta_delta-core_2.12-2.0.0.jar,file:///home/opc/.ivy2/jars/org.postgresql_postgresql-42.4.0.jar,file:///home/opc/.ivy2/jars/io.delta_delta-storage-2.0.0.jar,file:///home/opc/.ivy2/jars/org.antlr_antlr4-runtime-4.8.jar,file:///home/opc/.ivy2/jars/org.codehaus.jackson_jackson-core-asl-1.9.13.jar,file:///home/opc/.ivy2/jars/org.checkerframework_checker-qual-3.5.0.jar'), ('spark.files', 'file:///home/opc/.ivy2/jars/io.delta_delta-core_2.12-2.0.0.jar,file:///home/opc/.ivy2/jars/org.postgresql_postgresql-42.4.0.jar,file:///home/opc/.ivy2/jars/io.delta_delta-storage-2.0.0.jar,file:///home/opc/.ivy2/jars/org.antlr_antlr4-runtime-4.8.jar,file:///home/opc/.ivy2/jars/org.codehaus.jackson_jackson-core-asl-1.9.13.jar,file:///home/opc/.ivy2/jars/org.checkerframework_checker-qual-3.5.0.jar'), ('spark.sql.extensions', 'io.delta.sql.DeltaSparkSessionExtension'), ('spark.rdd.compress', 'True'), ('spark.app.initial.file.urls', 'file:///home/opc/.ivy2/jars/org.checkerframework_checker-qual-3.5.0.jar,file:///home/opc/.ivy2/jars/io.delta_delta-storage-2.0.0.jar,file:///home/opc/.ivy2/jars/io.delta_delta-core_2.12-2.0.0.jar,file:///home/opc/.ivy2/jars/org.postgresql_postgresql-42.4.0.jar,file:///home/opc/.ivy2/jars/org.codehaus.jackson_jackson-core-asl-1.9.13.jar,file:///home/opc/.ivy2/jars/org.antlr_antlr4-runtime-4.8.jar'), ('spark.serializer.objectStreamReset', '100'), ('spark.jars', 'file:///home/opc/.ivy2/jars/io.delta_delta-core_2.12-2.0.0.jar,file:///home/opc/.ivy2/jars/org.postgresql_postgresql-42.4.0.jar,file:///home/opc/.ivy2/jars/io.delta_delta-storage-2.0.0.jar,file:///home/opc/.ivy2/jars/org.antlr_antlr4-runtime-4.8.jar,file:///home/opc/.ivy2/jars/org.codehaus.jackson_jackson-core-asl-1.9.13.jar,file:///home/opc/.ivy2/jars/org.checkerframework_checker-qual-3.5.0.jar'), ('spark.master', 'local[*]'), ('spark.submit.deployMode', 'client'), ('spark.sql.warehouse.dir', 'file:/home/opc/pyspark-cheatsheet/spark_warehouse'), ('spark.driver.port', '43473'), ('spark.app.name', 'cheatsheet'), ('spark.driver.host', 'arm.subnet.vcn.oraclevcn.com'), ('spark.app.id', 'local-1663456316246'), ('spark.ui.showConsoleProgress', 'true'), ('spark.sql.catalog.spark_catalog', 'org.apache.spark.sql.delta.catalog.DeltaCatalog')]
+```
+
+Set Spark configuration properties
+----------------------------------
+
+```python
+key = "spark.hadoop.mapreduce.fileoutputcommitter.algorithm.version"
+value = 2
+
+# Wrong! Settings cannot be changed this way.
+# spark.sparkContext.getConf().set(key, value)
+
+# Correct.
+spark.conf.set(key, value)
+
+# Alternatively: Set at build time.
+# Some settings can only be made at build time.
+spark_builder = SparkSession.builder.appName("My App")
+spark_builder.config(key, value)
+spark = spark_builder.getOrCreate()
+```
+
+
+Publish Metrics to Graphite
+---------------------------
+
+To publish metrics to Graphite, create a file called graphite_metrics.properties with these contents:
+
+- *.sink.graphite.class=org.apache.spark.metrics.sink.GraphiteSink
+- *.sink.graphite.host=<graphite_ip_address>
+- *.sink.graphite.port=2003
+- *.sink.graphite.period=10
+- *.sink.graphite.unit=seconds
+
+Then set spark.metrics.conf to the file graphite_metrics.properties. For example: `$ spark-submit --conf spark.metrics.conf=graphite_metrics.properties myapp.jar`. The documentation has more information about [monitoring Spark jobs](https://spark.apache.org/docs/latest/monitoring.html)
+
+```python
+pass
+```
+
 
 Increase Spark driver/executor heap space
 -----------------------------------------

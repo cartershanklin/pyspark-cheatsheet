@@ -620,6 +620,9 @@ class loadsave_money(snippet):
         self.category = "Data Handling Options"
         self.dataset = "UNUSED"
         self.priority = 600
+        self.docmd = """
+Spark is not that smart when it comes to parsing numbers, not allowing things like commas. If you need to load monetary amounts the safest option is to use a parsing library like `money_parser`.
+"""
 
     def snippet(self, df):
         from pyspark.sql.functions import udf
@@ -921,6 +924,9 @@ class dfo_empty_dataframe(snippet):
         self.category = "DataFrame Operations"
         self.dataset = "NA"
         self.priority = 900
+        self.docmd = """
+You can create an empty `DataFrame` the same way you create other in-line `DataFrame`s, but using an empty list.
+"""
 
     def load_data(self):
         pass
@@ -958,6 +964,9 @@ class dfo_print_contents_rdd(snippet):
         self.category = "DataFrame Operations"
         self.dataset = "auto-mpg.csv"
         self.priority = 1600
+        self.docmd = """
+To see an `RDD`'s contents, convert the output of the `take` method to a string.
+"""
 
     def snippet(self, auto_df):
         rdd = auto_df.rdd
@@ -985,6 +994,9 @@ class dfo_column_conditional(snippet):
         self.category = "DataFrame Operations"
         self.dataset = "auto-mpg.csv"
         self.priority = 300
+        self.docmd = """
+To set a new column's values when using `withColumn`, use the `when` / `otherwise` idiom. Multiple `when` conditions can be chained together.
+"""
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import col, when
@@ -1021,6 +1033,9 @@ class dfo_foreach(snippet):
         self.category = "DataFrame Operations"
         self.dataset = "auto-mpg.csv"
         self.priority = 1800
+        self.docmd = """
+Use the `foreach` function to process each row of a `DataFrame` using a Python function. The function will get one argument, a `Row` object. The `Row` will have properties whose names map to the `DataFrame`'s columns.
+"""
 
     def snippet(self, auto_df):
         import os
@@ -1039,6 +1054,9 @@ class dfo_map(snippet):
         self.category = "DataFrame Operations"
         self.dataset = "auto-mpg.csv"
         self.priority = 1900
+        self.docmd = """
+You can run `map` on a `DataFrame` by accessing its underlying `RDD`. It is much more common to use `foreach` directly on the `DataFrame` itself. This can be useful if you have code written specifically for `RDD`s that you need to use against a `DataFrame`.
+"""
 
     def snippet(self, auto_df):
         def map_function(row):
@@ -1137,6 +1155,7 @@ class dfo_size(snippet):
         self.category = "DataFrame Operations"
         self.dataset = "auto-mpg.csv"
         self.priority = 1200
+        self.docmd = "IGNORE"
 
     def snippet(self, auto_df):
         print("{} rows".format(auto_df.count()))
@@ -1212,6 +1231,15 @@ class group_topn_per_group(snippet):
         self.category = "Grouping"
         self.dataset = "auto-mpg.csv"
         self.priority = 1200
+        self.docmd = """
+To find the top N per group we:
+
+* Build a `Window`
+* Partition by the target group
+* Order by the value we want to rank
+* Use `row_number` to add the numeric rank
+* Use `where` to filter any row number less than or equal to N
+"""
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import col, row_number
@@ -1237,6 +1265,9 @@ class group_basic_ntile(snippet):
         self.dataset = "auto-mpg.csv"
         self.preconvert = True
         self.priority = 1500
+        self.docmd = """
+The `ntile` function computes percentiles. Specify how many with an integer argument, for example use 4 to compute quartiles.
+"""
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import col, ntile
@@ -1255,6 +1286,9 @@ class group_ntile_partition(snippet):
         self.dataset = "auto-mpg.csv"
         self.preconvert = True
         self.priority = 1510
+        self.docmd = """
+If you need to compute partition-wise percentiles, for example percentiles broken down by years, add `partitionBy` to your `Window`.
+"""
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import col, ntile
@@ -1273,6 +1307,9 @@ class group_ntile_after_aggregate(snippet):
         self.dataset = "auto-mpg.csv"
         self.preconvert = True
         self.priority = 1520
+        self.docmd = """
+If you need to compute percentiles of an aggregate, for example ranking averages, compute the aggregate in a second `DataFrame`, then compute percentiles.
+"""
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import col, ntile
@@ -1292,6 +1329,11 @@ class group_filter_less_than_percentile(snippet):
         self.dataset = "auto-mpg.csv"
         self.preconvert = True
         self.priority = 1530
+        self.docmd = """
+To filter out all rows with a value outside a target percentile range:
+* Get the numeric percentile value using the `percentile` function and extracting it from the resulting `DataFrame`.
+* In a second step filter anything larger than (or smaller than, depending on what you want) that value.
+"""
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import col, lit
@@ -1312,6 +1354,9 @@ class group_rollup(snippet):
         self.dataset = "auto-mpg.csv"
         self.preconvert = True
         self.priority = 1600
+        self.docmd = """
+`rollup` functions like `groupBy` but produces additional summary rows. Specify the grouping sets just like you do with `groupBy`.
+"""
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import avg, col, count, desc
@@ -1339,6 +1384,9 @@ class group_cube(snippet):
         self.dataset = "auto-mpg.csv"
         self.preconvert = True
         self.priority = 1610
+        self.docmd = """
+`cube` functions like `groupBy` but produces additional summary rows. Specify the grouping sets just like you do with `groupBy`.
+"""
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import avg, col, count, desc
@@ -1395,6 +1443,9 @@ class group_sum_columns_no_group(snippet):
         self.category = "Grouping"
         self.dataset = "auto-mpg.csv"
         self.priority = 600
+        self.docmd = """
+The `agg` method allows you to easily run multiple aggregations by accepting a dictionary with keys being the column name and values being the aggregation type. This example uses this to sum 3 columns in one expression.
+"""
 
     def snippet(self, auto_df):
         exprs = {x: "sum" for x in ("weight", "cylinders", "mpg")}
@@ -1495,6 +1546,9 @@ class group_group_having(snippet):
         self.category = "Grouping"
         self.dataset = "auto-mpg.csv"
         self.priority = 120
+        self.docmd = """
+To filter values after an aggregation simply use `.filter` on the `DataFrame` after the aggregate, using the column name the aggregate generates.
+"""
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import col, desc
@@ -1535,6 +1589,9 @@ class group_agg_multiple_columns(snippet):
         self.category = "Grouping"
         self.dataset = "auto-mpg.csv"
         self.priority = 300
+        self.docmd = """
+The `agg` method allows you to easily run multiple aggregations by accepting a dictionary with keys being the column name and values being the aggregation type. This example uses this to aggregate 3 columns in one expression.
+"""
 
     def snippet(self, auto_df):
         expressions = dict(horsepower="avg", weight="max", displacement="max")
@@ -1549,6 +1606,13 @@ class group_order_multiple_columns(snippet):
         self.category = "Grouping"
         self.dataset = "auto-mpg.csv"
         self.priority = 400
+        self.docmd = """
+If you want to specify sort columns you have two choices:
+* You can chain `orderBy` operations.
+* You can take advantage of `orderBy`'s support for multiple arguments.
+
+`orderBy` doesn't accept a list. If you need to build orderings dynamically put them in a list and splat them into `orderBy`'s arguments like in the example below.
+"""
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import asc, desc_nulls_last
@@ -1586,6 +1650,9 @@ class group_aggregate_all_numerics(snippet):
         self.dataset = "auto-mpg.csv"
         self.preconvert = True
         self.priority = 800
+        self.docmd = """
+`DataFrames` store the data types of each column in a property called `dtypes`. This example computes the sum of all numeric columns.
+"""
 
     def snippet(self, auto_df_fixed):
         numerics = set(["decimal", "double", "float", "integer", "long", "short"])
@@ -1673,6 +1740,9 @@ class sortsearch_in_list_from_df(snippet):
         self.dataset = "auto-mpg.csv"
         self.priority = 410
         self.preconvert = True
+        self.docmd = """
+If you have `DataFrame` 1 containing values you want to remove from `DataFrame` 2, join them using the `left_anti` join strategy.
+"""
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import col
@@ -1751,6 +1821,7 @@ class sortsearch_first_1k_rows(snippet):
         self.category = "Sorting and Searching"
         self.dataset = "auto-mpg.csv"
         self.priority = 900
+        self.docmd = "IGNORE"
 
     def snippet(self, auto_df):
         n = 10
@@ -1786,6 +1857,7 @@ class sortsearch_remove_duplicates(snippet):
         self.category = "Sorting and Searching"
         self.dataset = "auto-mpg.csv"
         self.priority = 1100
+        self.docmd = "IGNORE"
 
     def snippet(self, auto_df):
         df = auto_df.dropDuplicates(["carname"])
@@ -1799,6 +1871,7 @@ class sortsearch_filtering_basic(snippet):
         self.category = "Sorting and Searching"
         self.dataset = "auto-mpg.csv"
         self.priority = 100
+        self.docmd = "IGNORE"
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import col
@@ -1841,6 +1914,7 @@ class transform_regexp_extract(snippet):
         self.dataset = "auto-mpg.csv"
         self.priority = 110
         self.truncate = False
+        self.docmd = "IGNORE"
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import col, regexp_extract
@@ -1897,6 +1971,9 @@ class transform_fillna_group_avg(snippet):
         self.category = "Transforming Data"
         self.dataset = "auto-mpg.csv"
         self.priority = 300
+        self.docmd = """
+Sometimes NULL values in a column cause problems and it's better to guess at a value than leave it NULL. There are several strategies for doing with this. This example shows replacing NULL values with the average value within that column.
+"""
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import coalesce
@@ -1918,6 +1995,7 @@ class transform_json_to_key_value(snippet):
         self.category = "Transforming Data"
         self.dataset = "UNUSED"
         self.priority = 700
+        self.docmd = "IGNORE"
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import col, json_tuple
@@ -1936,6 +2014,9 @@ class transform_query_json_column(snippet):
         self.category = "Transforming Data"
         self.dataset = "UNUSED"
         self.priority = 800
+        self.docmd = """
+If you have JSON text data embedded in a String column, `json_tuple` will parse that text and extract fields within the JSON text.
+"""
 
     def snippet(self, df):
         from pyspark.sql.functions import col, json_tuple
@@ -2401,6 +2482,7 @@ class missing_filter_none_value(snippet):
         self.category = "Handling Missing Data"
         self.dataset = "auto-mpg.csv"
         self.priority = 100
+        self.docmd = "IGNORE"
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import col
@@ -2435,6 +2517,7 @@ class missing_count_of_null_nan(snippet):
         self.category = "Handling Missing Data"
         self.dataset = "auto-mpg.csv"
         self.priority = 300
+        self.docmd = "IGNORE"
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import col, count, isnan, when
@@ -2448,58 +2531,42 @@ class missing_count_of_null_nan(snippet):
         return df
 
 
-class ml_linear_regression(snippet):
+class ml_vectorassembler(snippet):
     def __init__(self):
         super().__init__()
-        self.name = "A basic Linear Regression model"
+        self.name = "Prepare data for training with a VectorAssembler"
         self.category = "Machine Learning"
-        self.dataset = "auto-mpg.csv"
+        self.dataset = "auto-mpg-fixed.csv"
         self.priority = 100
         self.preconvert = True
+        self.docmd = """
+Spark Estimators for tasks like regression, classification or clustering use numeric arrays as inputs. Spark is centered around the idea of a `DataFrame` which is a 2-dimensional structure with strongly-typed columns. You might think these Estimators would take these 2-dimensional structures as inputs but that's not how it works.
+
+Instead these Estimators require special type of column called a Vector Column. The Vector is like an array of numbers packed into a single cell. Combining this with Vectors in other rows in the `DataFrame` gives a 2-dimensional array.
+
+One essential step in using these estimators is to load the data in your `DataFrame` into a `vector` column. This is usually done using a `VectorAssembler`.
+
+This example assembles the cylinders, displacement and acceleration columns from the Auto MPG dataset into a vector column called `features`. If you look at the `features` column in the output you will see it is composed of the values of these source columns. Later examples will use the `features` column to `fit` predictive Models.
+"""
 
     def snippet(self, auto_df_fixed):
         from pyspark.ml.feature import VectorAssembler
-        from pyspark.ml.regression import LinearRegression
 
         vectorAssembler = VectorAssembler(
             inputCols=[
                 "cylinders",
                 "displacement",
-                "horsepower",
-                "weight",
                 "acceleration",
             ],
             outputCol="features",
             handleInvalid="skip",
         )
         assembled = vectorAssembler.transform(auto_df_fixed)
-        assembled = assembled.select(["features", "mpg", "carname"])
-
-        # Random test/train split.
-        train_df, test_df = assembled.randomSplit([0.7, 0.3])
-
-        # Define the model.
-        lr = LinearRegression(
-            featuresCol="features",
-            labelCol="mpg",
-            maxIter=10,
-            regParam=0.3,
-            elasticNetParam=0.8,
+        assembled = assembled.select(
+            ["cylinders", "displacement", "acceleration", "features"]
         )
-
-        # Train the model.
-        lr_model = lr.fit(train_df)
-
-        # Stats for training.
-        print(
-            "RMSE={} r2={}".format(
-                lr_model.summary.rootMeanSquaredError, lr_model.summary.r2
-            )
-        )
-
-        # Make predictions.
-        df = lr_model.transform(test_df)
-        return df
+        print("Data type for features column is:", assembled.dtypes[-1][1])
+        return (assembled, dict(truncate=False))
 
 
 class ml_random_forest_regression(snippet):
@@ -2507,22 +2574,33 @@ class ml_random_forest_regression(snippet):
         super().__init__()
         self.name = "A basic Random Forest Regression model"
         self.category = "Machine Learning"
-        self.dataset = "auto-mpg.csv"
-        self.priority = 110
+        self.dataset = "auto-mpg-fixed.csv"
+        self.priority = 200
         self.preconvert = True
+        self.docmd = """
+Random Forest models are popular because they often give good results without a lot of effort. Random Forests can be used for Regression and Classification tasks. This simple example shows building a `RandomForestRegressionModel` to model Miles Per Gallon using a subset of source feature.
+
+The process is:
+* Use a `VectorAssembler` to pack interesting `DataFrame` column values into a `Vector`.
+* Define the `RandomForestRegressor` estimator with a fixed number of trees. The features column will be the vector column built using the `VectorAssembler` and the value we are trying to predict is `mpg`.
+* `fit` the `RandomForestRegressor` estimator using the `DataFrame`. This produces a `RandomForestRegressionModel`.
+* Save the `Model`. Later examples will use it.
+
+Graphically this simple process looks like this:
+![Diagram of simplified Model fitting](images/mlsimple.webp)
+
+This example does not make predictions, see "Load a model and use it for transformations" or "Load a model and use it for predictions" to see how to make predictions with Models.
+"""
 
     def snippet(self, auto_df_fixed):
         from pyspark.ml.feature import VectorAssembler
         from pyspark.ml.regression import RandomForestRegressor
-        from pyspark.ml.evaluation import RegressionEvaluator
 
         vectorAssembler = VectorAssembler(
             inputCols=[
                 "cylinders",
                 "displacement",
                 "horsepower",
-                "weight",
-                "acceleration",
             ],
             outputCol="features",
             handleInvalid="skip",
@@ -2530,286 +2608,20 @@ class ml_random_forest_regression(snippet):
         assembled = vectorAssembler.transform(auto_df_fixed)
         assembled = assembled.select(["features", "mpg", "carname"])
 
-        # Random test/train split.
-        train_df, test_df = assembled.randomSplit([0.7, 0.3])
-
-        # Define the model.
+        # Define the estimator.
         rf = RandomForestRegressor(
             numTrees=20,
             featuresCol="features",
             labelCol="mpg",
         )
 
-        # Train the model.
-        rf_model = rf.fit(train_df)
+        # Fit the model.
+        rf_model = rf.fit(assembled)
 
-        # Make predictions.
-        df = rf_model.transform(test_df)
+        # Save the model.
+        rf_model.write().overwrite().save("rf_regression_simple.model")
 
-        # Evaluate the model.
-        r2 = RegressionEvaluator(
-            labelCol="mpg", predictionCol="prediction", metricName="r2"
-        ).evaluate(df)
-        rmse = RegressionEvaluator(
-            labelCol="mpg", predictionCol="prediction", metricName="rmse"
-        ).evaluate(df)
-        print("RMSE={} r2={}".format(rmse, r2))
-
-        return df
-
-
-class ml_random_forest_classification(snippet):
-    def __init__(self):
-        super().__init__()
-        self.name = "A basic Random Forest Classification model"
-        self.category = "Machine Learning"
-        self.dataset = "covtype.parquet"
-        self.priority = 200
-
-    def snippet(self, covtype_df):
-        from pyspark.ml.classification import RandomForestClassifier
-        from pyspark.ml.evaluation import MulticlassClassificationEvaluator
-        from pyspark.ml.feature import VectorAssembler
-
-        label_column = "cover_type"
-        vectorAssembler = VectorAssembler(
-            inputCols=covtype_df.columns,
-            outputCol="features",
-            handleInvalid="skip",
-        )
-        assembled = vectorAssembler.transform(covtype_df)
-
-        # Random test/train split.
-        train_df, test_df = assembled.randomSplit([0.7, 0.3])
-
-        # Define the model.
-        rf = RandomForestClassifier(
-            numTrees=50,
-            featuresCol="features",
-            labelCol=label_column,
-        )
-
-        # Train the model.
-        rf_model = rf.fit(train_df)
-
-        # Make predictions.
-        predictions = rf_model.transform(test_df)
-
-        # Select (prediction, true label) and compute test error
-        evaluator = MulticlassClassificationEvaluator(
-            labelCol=label_column, predictionCol="prediction", metricName="accuracy"
-        )
-        accuracy = evaluator.evaluate(predictions)
-        print("Test Error = %g" % (1.0 - accuracy))
-        df = predictions.select([label_column, "prediction"])
-        return df
-
-
-class ml_string_encode(snippet):
-    def __init__(self):
-        super().__init__()
-        self.name = "Encode string variables before using a VectorAssembler"
-        self.category = "Machine Learning"
-        self.dataset = "auto-mpg-fixed.csv"
-        self.priority = 300
-        self.preconvert = True
-
-    def snippet(self, auto_df_fixed):
-        from pyspark.ml import Pipeline
-        from pyspark.ml.feature import StringIndexer, VectorAssembler
-        from pyspark.ml.regression import RandomForestRegressor
-        from pyspark.ml.evaluation import RegressionEvaluator
-        from pyspark.sql.functions import udf
-        from pyspark.sql.types import StringType
-
-        # Add manufacturer name we will use as a string column.
-        first_word_udf = udf(lambda x: x.split()[0], StringType())
-        df = auto_df_fixed.withColumn(
-            "manufacturer", first_word_udf(auto_df_fixed.carname)
-        )
-
-        # Strings must be indexed or we will get:
-        # pyspark.sql.utils.IllegalArgumentException: Data type string of column manufacturer is not supported.
-        #
-        # We also encode outside of the main pipeline or else we risk getting:
-        #  Caused by: org.apache.spark.SparkException: Unseen label: XXX. To handle unseen labels, set Param handleInvalid to keep.
-        #
-        # This is because training data is selected randomly and may not have all possible categories.
-        manufacturer_encoded = StringIndexer(
-            inputCol="manufacturer", outputCol="manufacturer_encoded"
-        )
-        encoded_df = manufacturer_encoded.fit(df).transform(df)
-
-        # Set up our main ML pipeline.
-        columns_to_assemble = [
-            "manufacturer_encoded",
-            "cylinders",
-            "displacement",
-            "horsepower",
-            "weight",
-            "acceleration",
-        ]
-        vector_assembler = VectorAssembler(
-            inputCols=columns_to_assemble,
-            outputCol="features",
-            handleInvalid="skip",
-        )
-
-        # Random test/train split.
-        train_df, test_df = encoded_df.randomSplit([0.7, 0.3])
-
-        # Define the model.
-        rf = RandomForestRegressor(
-            numTrees=20,
-            featuresCol="features",
-            labelCol="mpg",
-        )
-
-        # Run the pipeline.
-        pipeline = Pipeline(stages=[vector_assembler, rf])
-        model = pipeline.fit(train_df)
-
-        # Make predictions.
-        df = model.transform(test_df).select("carname", "mpg", "prediction")
-
-        # Select (prediction, true label) and compute test error
-        rmse = RegressionEvaluator(
-            labelCol="mpg", predictionCol="prediction", metricName="rmse"
-        ).evaluate(df)
-        print("RMSE={}".format(rmse))
-
-        return df
-
-
-class ml_feature_importances(snippet):
-    def __init__(self):
-        super().__init__()
-        self.name = "Get feature importances of a trained model"
-        self.category = "Machine Learning"
-        self.dataset = "auto-mpg-fixed.csv"
-        self.priority = 310
-        self.preconvert = True
-
-    def snippet(self, auto_df_fixed):
-        from pyspark.ml import Pipeline
-        from pyspark.ml.feature import StringIndexer, VectorAssembler
-        from pyspark.ml.regression import RandomForestRegressor
-        from pyspark.sql.functions import udf
-        from pyspark.sql.types import StringType
-
-        # Add manufacturer name we will use as a string column.
-        first_word_udf = udf(lambda x: x.split()[0], StringType())
-        df = auto_df_fixed.withColumn(
-            "manufacturer", first_word_udf(auto_df_fixed.carname)
-        )
-        manufacturer_encoded = StringIndexer(
-            inputCol="manufacturer", outputCol="manufacturer_encoded"
-        )
-        encoded_df = manufacturer_encoded.fit(df).transform(df)
-
-        # Set up our main ML pipeline.
-        columns_to_assemble = [
-            "manufacturer_encoded",
-            "cylinders",
-            "displacement",
-            "horsepower",
-            "weight",
-            "acceleration",
-        ]
-        vector_assembler = VectorAssembler(
-            inputCols=columns_to_assemble,
-            outputCol="features",
-            handleInvalid="skip",
-        )
-
-        # Random test/train split.
-        train_df, test_df = encoded_df.randomSplit([0.7, 0.3])
-
-        # Define the model.
-        rf = RandomForestRegressor(
-            numTrees=20,
-            featuresCol="features",
-            labelCol="mpg",
-        )
-
-        # Run the pipeline.
-        pipeline = Pipeline(stages=[vector_assembler, rf])
-        model = pipeline.fit(train_df)
-
-        # Make predictions.
-        predictions = model.transform(test_df).select("carname", "mpg", "prediction")
-
-        # Get feature importances.
-        real_model = model.stages[1]
-        for feature, importance in zip(
-            columns_to_assemble, real_model.featureImportances
-        ):
-            print("{} contributes {:0.3f}%".format(feature, importance * 100))
-
-        # EXCLUDE
-        retval = []
-        for feature, importance in zip(
-            columns_to_assemble, real_model.featureImportances
-        ):
-            retval.append("{} contributes {:0.3f}%".format(feature, importance * 100))
-        print(retval)
-        return retval
-        # INCLUDE
-
-
-class ml_automated_feature_vectorization(snippet):
-    def __init__(self):
-        super().__init__()
-        self.name = "Automatically encode categorical variables"
-        self.category = "Machine Learning"
-        self.dataset = "auto-mpg-fixed.csv"
-        self.priority = 400
-        self.preconvert = True
-
-    def snippet(self, auto_df_fixed):
-        from pyspark.ml.feature import VectorAssembler, VectorIndexer
-        from pyspark.ml.regression import RandomForestRegressor
-        from pyspark.sql.functions import countDistinct
-
-        # Remove non-numeric columns.
-        df = auto_df_fixed.drop("carname")
-
-        # Profile this DataFrame to get a good value for maxCategories.
-        grouped = df.agg(*(countDistinct(c) for c in df.columns))
-        grouped.show()
-
-        # Assemble all columns except mpg into a vector.
-        feature_columns = list(df.columns)
-        feature_columns.remove("mpg")
-        vector_assembler = VectorAssembler(
-            inputCols=feature_columns,
-            outputCol="features",
-            handleInvalid="skip",
-        )
-        assembled = vector_assembler.transform(df)
-
-        # From profiling the dataset, 15 is a good value for max categories.
-        indexer = VectorIndexer(
-            inputCol="features", outputCol="indexed", maxCategories=15
-        )
-        indexed = indexer.fit(assembled).transform(assembled)
-
-        # Build and train the model.
-        train_df, test_df = indexed.randomSplit([0.7, 0.3])
-        rf = RandomForestRegressor(
-            numTrees=50,
-            featuresCol="features",
-            labelCol="mpg",
-        )
-        rf_model = rf.fit(train_df)
-
-        # Get feature importances.
-        for feature, importance in zip(feature_columns, rf_model.featureImportances):
-            print("{} contributes {:0.3f}%".format(feature, importance * 100))
-
-        # Make predictions.
-        df = rf_model.transform(test_df).select("mpg", "prediction")
-        return df
+        return assembled
 
 
 class ml_hyperparameter_tuning(snippet):
@@ -2818,8 +2630,18 @@ class ml_hyperparameter_tuning(snippet):
         self.name = "Hyperparameter tuning"
         self.category = "Machine Learning"
         self.dataset = "auto-mpg-fixed.csv"
-        self.priority = 410
+        self.priority = 300
         self.preconvert = True
+        self.docmd = """
+A key factor in the quality of a Random Forest model is a good choice of the number of trees parameter. The previous example arbitrarily set this parameter to 20. In practice it is better to try many parameters and choose the best one.
+
+Spark automates this using using a `CrossValidator`. The `CrossValidator` performs a parallel search of possible parameters and evaluates their performance using random test/training splits of input data. When all parameter combinations are tried the best `Model` is identified and made available in a property called `bestModel`.
+
+Commonly you want to transform your `DataFrame` before your estimator gets it. This is done using a `Pipeline` estimator. When you give a `Pipeline` estimator to a `CrossValidator` the `CrossValidator` will evaluate the final stage in the `Pipeline`.
+
+Graphically this process looks like:
+![Diagram of Model fitting with hyperparameter search](images/mloptimized.webp)
+"""
 
     def snippet(self, auto_df_fixed):
         from pyspark.ml import Pipeline
@@ -2830,23 +2652,10 @@ class ml_hyperparameter_tuning(snippet):
         from pyspark.sql.functions import udf
         from pyspark.sql.types import StringType
 
-        # Add manufacturer name we will use as a string column.
-        first_word_udf = udf(lambda x: x.split()[0], StringType())
-        df = auto_df_fixed.withColumn(
-            "manufacturer", first_word_udf(auto_df_fixed.carname)
-        )
-        manufacturer_encoded = StringIndexer(
-            inputCol="manufacturer", outputCol="manufacturer_encoded"
-        )
-        encoded_df = manufacturer_encoded.fit(df).transform(df)
-
         # Set up our main ML pipeline.
         columns_to_assemble = [
-            "manufacturer_encoded",
             "cylinders",
             "displacement",
-            "horsepower",
-            "weight",
             "acceleration",
         ]
         vector_assembler = VectorAssembler(
@@ -2857,7 +2666,6 @@ class ml_hyperparameter_tuning(snippet):
 
         # Define the model.
         rf = RandomForestRegressor(
-            numTrees=20,
             featuresCol="features",
             labelCol="mpg",
         )
@@ -2881,20 +2689,357 @@ class ml_hyperparameter_tuning(snippet):
         )
 
         # Run cross-validation to get the best parameters.
-        fit_cross_validator = cross_validator.fit(encoded_df)
+        fit_cross_validator = cross_validator.fit(auto_df_fixed)
         best_pipeline_model = fit_cross_validator.bestModel
         best_regressor = best_pipeline_model.stages[1]
         print("Best model has {} trees.".format(best_regressor.getNumTrees))
 
         # Save the Cross Validator, to capture everything including stats.
-        fit_cross_validator.write().overwrite().save("fit_cross_validator.model")
-
-        # Or, just save the best model.
-        best_pipeline_model.write().overwrite().save("best_pipeline_model.model")
+        fit_cross_validator.write().overwrite().save("rf_regression_optimized.model")
 
         # EXCLUDE
         retval = []
         retval.append("Best model has {} trees.".format(best_regressor.getNumTrees))
+        print(retval)
+        return retval
+        # INCLUDE
+
+
+class ml_string_encode(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Encode string variables as numbers"
+        self.category = "Machine Learning"
+        self.dataset = "auto-mpg-fixed.csv"
+        self.priority = 400
+        self.preconvert = True
+        self.docmd = """
+Estimators require numeric inputs. If you have a string column, use `StringIndexer` to convert it to integers using a dictionary that maps the same string to the same integer. Be aware that `StringIndexer` output is not deterministic and values can change if inputs change.
+"""
+
+    def snippet(self, auto_df_fixed):
+        from pyspark.ml.feature import StringIndexer
+        from pyspark.sql.functions import udf
+        from pyspark.sql.types import StringType
+
+        # Add manufacturer name we will use as a string column.
+        first_word_udf = udf(lambda x: x.split()[0], StringType())
+        df = auto_df_fixed.withColumn(
+            "manufacturer", first_word_udf(auto_df_fixed.carname)
+        )
+
+        # Encode the manufactor name into numbers.
+        indexer = StringIndexer(
+            inputCol="manufacturer", outputCol="manufacturer_encoded"
+        )
+        encoded = (
+            indexer.fit(df)
+            .transform(df)
+            .select(["manufacturer", "manufacturer_encoded"])
+        )
+        return encoded
+
+
+class ml_onehot_encode(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "One-hot encode a categorical variable"
+        self.category = "Machine Learning"
+        self.dataset = "auto-mpg-fixed.csv"
+        self.priority = 410
+        self.preconvert = True
+        self.docmd = """
+Features can be continuous or categorical. Categorical features need to be handled carefully when you fit your estimator. Consider the "Auto MPG" dataset:
+
+* There is a column called displacement. A displacement of 400 is twice as much as a displacement of 200. This is a continuous feature.
+* There is a column called origin. Cars originating from the US get a value of 1. Cars originating from Europe get a value of 2. Despite anything you may have read, Europe is not twice as much as the US. Instead this is a categorical feature and no relationship can be learned by comparing values.
+
+If your estimator decides that Europe is twice as much as the US it will make all kinds of other wrong conclusions. There are a few ways of handling categorical features, one popular approach is called "One-Hot Encoding".
+
+If we one-hot encode the origin column we replace it with vectors which encode each possible value of the category. The length of the vector is equal to the number of possible distinct values minus one. At most one of vector's values is set to 1 at any given time. (This is usually called "dummy encoding" which is slightly different from one-hot encoding.) With values encoded this way your estimator won't draw false linear relationships in the feature.
+
+One-hot encoding is easy and may lead to good results but there are different ways to handle categorical values depending on the circumstances. For other tools the pros use look up terms like "deviation coding" or "difference coding".
+"""
+
+    def snippet(self, auto_df_fixed):
+        from pyspark.ml.feature import OneHotEncoder
+
+        # Turn the model year into categories.
+        year_encoder = OneHotEncoder(
+            inputCol="modelyear", outputCol="modelyear_encoded"
+        )
+        encoded = (
+            year_encoder.fit(auto_df_fixed)
+            .transform(auto_df_fixed)
+            .select(["modelyear", "modelyear_encoded"])
+        )
+        return (encoded, dict(truncate=False))
+
+
+class ml_pipeline_encode(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Optimize a model after a data preparation pipeline"
+        self.category = "Machine Learning"
+        self.dataset = "auto-mpg-fixed.csv"
+        self.priority = 420
+        self.preconvert = True
+        self.docmd = """
+In general it is best to split data preparation and estimator fitting into 2 distinct pipelines.
+
+Here's a simple examnple of why: imagine you have a string measure that can take 100 different possible values. Before you can `fit` your estimator you need to convert these strings to integers using a `StringIndexer`. The `CrossValidator` will randomly partition your `DataFrame` into training and test sets, then `fit` a `StringIndexer` against the training set to produce a `StringIndexerModel`. If the training set doesn't contain all possible 100 values, when the `StringIndexerModel` is used to `transform` the test set it will encounter unknown values and fail. The `StringIndexer` needs to be `fit` against the full dataset before any estimator fitting. There are other examples and in general the safe choice is to do all data preparation before estimator fitting.
+
+In complex applications different teams are responsible for data preparation (also called "feature engineering") and model development. In this case the feature engineering team will create feature `DataFrame`s and save them into a so-called "Feature Store". A model development team will load `DataFrame`s from the feature store in entirely different applications. The process below divides feature engineering and model development into 2 separate `Pipeline`s but doesn't go so far as to save between Pipelines 1 and 2.
+
+In general this end-to-end looks like:
+![End to end data prep and fitting pipelines](images/mlsimpleend2end.webp)
+"""
+
+    def snippet(self, auto_df_fixed):
+        from pyspark.ml import Pipeline
+        from pyspark.ml.evaluation import RegressionEvaluator
+        from pyspark.ml.feature import OneHotEncoder, StringIndexer, VectorAssembler
+        from pyspark.ml.regression import RandomForestRegressor
+        from pyspark.ml.tuning import CrossValidator, ParamGridBuilder
+        from pyspark.sql.functions import udf
+        from pyspark.sql.types import StringType
+
+        ### Phase 1.
+        # Add manufacturer name we will use as a string column.
+        first_word_udf = udf(lambda x: x.split()[0], StringType())
+        df = auto_df_fixed.withColumn(
+            "manufacturer", first_word_udf(auto_df_fixed.carname)
+        )
+
+        # Encode the manufactor name into numbers.
+        manufacturer_encoder = StringIndexer(
+            inputCol="manufacturer", outputCol="manufacturer_encoded"
+        )
+        # Turn the model year into categories.
+        year_encoder = OneHotEncoder(
+            inputCol="modelyear", outputCol="modelyear_encoded"
+        )
+
+        # Run data preparation as a pipeline.
+        data_prep_pipeline = Pipeline(stages=[manufacturer_encoder, year_encoder])
+        prepared = data_prep_pipeline.fit(df).transform(df)
+
+        ### Phase 2.
+        # Assemble vectors.
+        columns_to_assemble = [
+            "cylinders",
+            "displacement",
+            "horsepower",
+            "weight",
+            "acceleration",
+            "manufacturer_encoded",
+            "modelyear_encoded",
+        ]
+        vector_assembler = VectorAssembler(
+            inputCols=columns_to_assemble,
+            outputCol="features",
+            handleInvalid="skip",
+        )
+
+        # Define the model.
+        rf = RandomForestRegressor(
+            featuresCol="features",
+            labelCol="mpg",
+        )
+
+        # Define the Pipeline.
+        pipeline = Pipeline(stages=[vector_assembler, rf])
+
+        # Run cross-validation to get the best parameters.
+        paramGrid = (
+            ParamGridBuilder().addGrid(rf.numTrees, list(range(20, 100, 10))).build()
+        )
+        cross_validator = CrossValidator(
+            estimator=pipeline,
+            estimatorParamMaps=paramGrid,
+            evaluator=RegressionEvaluator(
+                labelCol="mpg", predictionCol="prediction", metricName="rmse"
+            ),
+            numFolds=2,
+            parallelism=4,
+        )
+        fit_cross_validator = cross_validator.fit(prepared)
+
+        # Save the Cross Validator, to capture everything including stats.
+        fit_cross_validator.write().overwrite().save("rf_regression_full.model")
+
+
+class ml_performance(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Evaluate Model Performance"
+        self.category = "Machine Learning"
+        self.dataset = "auto-mpg-fixed.csv"
+        self.priority = 1000
+        self.preconvert = True
+        self.docmd = """
+After you `fit` a model you usually want to evaluate how accurate it is. There are standard ways of evaluating model performance, which vary by the category of model.
+
+Some categories of models:
+* Regression models, used when the value to predict is a continuous value.
+* Classification models, when when the value to predict can only assume a finite set of values.
+* Binary classification models, a special case of classification models that are easier to evaluate.
+* Clustering models.
+
+Regression models can be evaluated with `RegressionEvaluator`, which provides these metrics:
+* [Root-mean-squared error](https://en.wikipedia.org/wiki/Root-mean-square_deviation) or RMSE.
+* [Mean-squared error](https://en.wikipedia.org/wiki/Mean_squared_error) or MSE.
+* [R squared](https://en.wikipedia.org/wiki/Coefficient_of_determination) or r2.
+* [Mean absolute error](https://en.wikipedia.org/wiki/Mean_absolute_error) or mae.
+* [Explained variance](https://en.wikipedia.org/wiki/Explained_variation) or var.
+
+Among these, rmse and r2 are the most commonly used metrics. Lower values of rmse are better, higher values of r2 are better, up to the maximum possible r2 score of 1.
+
+Binary classification models are evaluated using `BinaryClassificationEvaluator`, which provides these measures:
+* Area under [Receiver Operating Characteristic](https://en.wikipedia.org/wiki/Receiver_operating_characteristic) curve.
+* Area under [Precision Recall](https://en.wikipedia.org/wiki/Precision_and_recall) curve.
+
+The ROC curve is commonly plotted when using binary classifiers. A perfect model would look like an upside-down "L" leading to area under ROC of 1.
+
+Multiclass classification evaluation is much more complex, a `MulticlassClassificationEvaluator` is provided with options including:
+* [F1 score](https://en.wikipedia.org/wiki/F-score).
+* [Accuracy](https://en.wikipedia.org/wiki/Accuracy_and_precision).
+* [True positive rate](https://en.wikipedia.org/wiki/Sensitivity_and_specificity) by label.
+* [False positive rate](https://en.wikipedia.org/wiki/Sensitivity_and_specificity) by label.
+* [Precision by label](https://en.wikipedia.org/wiki/Precision_and_recall).
+* [Recall by label](https://en.wikipedia.org/wiki/Precision_and_recall).
+* F measure by label, which computes the F score for a particular label.
+* Weighted true positive rate, like true positive rate, but allows each measure to have a weight.
+* Weighted false positive rate, like false positive rate, but allows each measure to have a weight.
+* Weighted precision, like precision, but allows each measure to have a weight.
+* Weighted recall, like recall, but allows each measure to have a weight.
+* Weighted f measure, like F1 score, but allows each measure to have a weight.
+* [Log loss](https://en.wikipedia.org/wiki/Loss_functions_for_classification) (short for Logistic Loss)
+* [Hamming loss](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.hamming_loss.html)
+
+The F1 score is the default. An F1 score of 1 is the best possible score.
+
+For clustering models, Spark offers `ClusteringEvaluator` with one measure:
+* [silhouette](https://en.wikipedia.org/wiki/Silhouette_%28clustering%29)
+
+The example below loads 2 regression models fit earlier and compares their metrics. `rf_regression_simple.model` considered 3 columns of the input dataset while `rf_regression_full.model` considered 7. We can expect that `rf_regression_full.model` will have better metrics.
+"""
+
+    def snippet(self, auto_df_fixed):
+        from pyspark.ml import Pipeline
+        from pyspark.ml.evaluation import RegressionEvaluator
+        from pyspark.ml.feature import OneHotEncoder, StringIndexer, VectorAssembler
+        from pyspark.ml.regression import RandomForestRegressionModel
+        from pyspark.ml.tuning import CrossValidatorModel
+        from pyspark.sql.functions import udf
+        from pyspark.sql.types import StringType
+
+        # Metrics supported by RegressionEvaluator.
+        metrics = "rmse mse r2 mae".split()
+
+        # Load the simple model and compute its predictions.
+        simple_assembler = VectorAssembler(
+            inputCols=[
+                "cylinders",
+                "displacement",
+                "horsepower",
+            ],
+            outputCol="features",
+            handleInvalid="skip",
+        )
+        simple_input = simple_assembler.transform(auto_df_fixed).select(
+            ["features", "mpg"]
+        )
+        rf_simple_model = RandomForestRegressionModel.load("rf_regression_simple.model")
+        simple_predictions = rf_simple_model.transform(simple_input)
+
+        # Load the complex model and compute its predictions.
+        first_word_udf = udf(lambda x: x.split()[0], StringType())
+        df = auto_df_fixed.withColumn(
+            "manufacturer", first_word_udf(auto_df_fixed.carname)
+        )
+        manufacturer_encoder = StringIndexer(
+            inputCol="manufacturer", outputCol="manufacturer_encoded"
+        )
+        year_encoder = OneHotEncoder(
+            inputCol="modelyear", outputCol="modelyear_encoded"
+        )
+        data_prep_pipeline = Pipeline(stages=[manufacturer_encoder, year_encoder])
+        prepared = data_prep_pipeline.fit(df).transform(df)
+        columns_to_assemble = [
+            "cylinders",
+            "displacement",
+            "horsepower",
+            "weight",
+            "acceleration",
+            "manufacturer_encoded",
+            "modelyear_encoded",
+        ]
+        complex_assembler = VectorAssembler(
+            inputCols=columns_to_assemble,
+            outputCol="features",
+            handleInvalid="skip",
+        )
+        complex_input = complex_assembler.transform(prepared).select(
+            ["features", "mpg"]
+        )
+        cv_model = CrossValidatorModel.load("rf_regression_full.model")
+        best_pipeline = cv_model.bestModel
+        rf_complex_model = best_pipeline.stages[-1]
+        complex_predictions = rf_complex_model.transform(complex_input)
+
+        # Evaluate performances.
+        evaluator = RegressionEvaluator(predictionCol="prediction", labelCol="mpg")
+        performances = [
+            ["simple", simple_predictions, dict()],
+            ["complex", complex_predictions, dict()],
+        ]
+        for label, predictions, tracker in performances:
+            for metric in metrics:
+                tracker[metric] = evaluator.evaluate(
+                    predictions, {evaluator.metricName: metric}
+                )
+        print(performances)
+        return str(performances)
+
+
+class ml_feature_importances(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Get feature importances of a trained model"
+        self.category = "Machine Learning"
+        self.dataset = "auto-mpg-fixed.csv"
+        self.priority = 1010
+        self.preconvert = True
+        self.docmd = """
+Most classifiers and regressors include a property called `featureImportances`. `featureImportances` is an array that:
+* Contains floating point values.
+* The value corresponds to how important a feature is in the model's predictions relative to other features.
+* The sum of the array equals one.
+"""
+
+    def snippet(self, auto_df_fixed):
+        from pyspark.ml.tuning import CrossValidatorModel
+
+        # Load the model we fit earlier.
+        model = CrossValidatorModel.load("rf_regression_full.model")
+
+        # Get the best model.
+        best_pipeline = model.bestModel
+
+        # Get the names of assembled columns.
+        assembler = best_pipeline.stages[0]
+        original_columns = assembler.getInputCols()
+
+        # Get feature importances.
+        real_model = best_pipeline.stages[1]
+        for feature, importance in zip(original_columns, real_model.featureImportances):
+            print("{} contributes {:0.3f}%".format(feature, importance * 100))
+
+        # EXCLUDE
+        retval = []
+        for feature, importance in zip(original_columns, real_model.featureImportances):
+            retval.append("{} contributes {:0.3f}%".format(feature, importance * 100))
         print(retval)
         return retval
         # INCLUDE
@@ -2906,8 +3051,11 @@ class ml_hyperparameter_tuning_plot(snippet):
         self.name = "Plot Hyperparameter tuning metrics"
         self.category = "Machine Learning"
         self.dataset = "auto-mpg-fixed.csv"
-        self.priority = 415
+        self.priority = 1100
         self.preconvert = True
+        self.docmd = """
+An easy way to get a plot of your `DataFrame` is to convert it into a Pandas DataFrame and use the `plot` method Pandas offers. Note that this saves it to the driver's local filesystem and you may need to copy it to another location.
+"""
 
     def snippet(self, auto_df_fixed):
         from pyspark.ml import Pipeline
@@ -2990,68 +3138,17 @@ class ml_hyperparameter_tuning_plot(snippet):
         return dict(image="hyperparameters.png", alt="Hyperparameter Search")
 
 
-class ml_random_forest_classification_hyper(snippet):
-    def __init__(self):
-        super().__init__()
-        self.name = "A Random Forest Classification model with Hyperparameter Tuning"
-        self.category = "Machine Learning"
-        self.dataset = "covtype.parquet"
-        self.priority = 420
-
-    def snippet(self, covtype_df):
-        from pyspark.ml.classification import RandomForestClassifier
-        from pyspark.ml.evaluation import MulticlassClassificationEvaluator
-        from pyspark.ml.feature import VectorAssembler
-        from pyspark.ml import Pipeline
-        from pyspark.ml.tuning import CrossValidator, ParamGridBuilder
-
-        label_column = "cover_type"
-        vector_assembler = VectorAssembler(
-            inputCols=covtype_df.columns,
-            outputCol="features",
-            handleInvalid="skip",
-        )
-
-        # Define the model.
-        rf = RandomForestClassifier(
-            numTrees=50,
-            featuresCol="features",
-            labelCol=label_column,
-        )
-
-        # Run the pipeline.
-        pipeline = Pipeline(stages=[vector_assembler, rf])
-
-        # Hyperparameter search.
-        paramGrid = (
-            ParamGridBuilder().addGrid(rf.numTrees, list(range(50, 80, 10))).build()
-        )
-        crossval = CrossValidator(
-            estimator=pipeline,
-            estimatorParamMaps=paramGrid,
-            evaluator=MulticlassClassificationEvaluator(
-                labelCol=label_column, predictionCol="prediction"
-            ),
-            numFolds=2,
-            parallelism=4,
-        )
-
-        # Run cross-validation and choose the best set of parameters.
-        model = crossval.fit(covtype_df)
-
-        # Identify the best hyperparameters.
-        real_model = model.bestModel.stages[1]
-        print("Best model has {} trees.".format(real_model.getNumTrees))
-
-
 class ml_covariance(snippet):
     def __init__(self):
         super().__init__()
         self.name = "Compute correlation matrix"
         self.category = "Machine Learning"
         self.dataset = "auto-mpg-fixed.csv"
-        self.priority = 600
+        self.priority = 1300
         self.preconvert = True
+        self.docmd = """
+Spark has a few statistics packages like `Correlation`. Like with many Estimators, `Correlation` requires a vector column.
+"""
 
     def snippet(self, auto_df_fixed):
         from pyspark.ml.feature import VectorAssembler
@@ -3088,23 +3185,22 @@ class ml_save_model(snippet):
         self.name = "Save a model"
         self.category = "Machine Learning"
         self.dataset = "auto-mpg-fixed.csv"
-        self.priority = 10
+        self.priority = 1400
         self.preconvert = True
         self.docmd = """
-To save a model call `fit` on the `Model` object.
+To save a model call `fit` on the `Estimator` to build a `Model`, then save the `Model`.
 """
 
     def snippet(self, auto_df_fixed):
         from pyspark.ml.feature import VectorAssembler
         from pyspark.ml.regression import RandomForestRegressor
+        from pyspark.ml.classification import RandomForestClassifier
 
         vectorAssembler = VectorAssembler(
             inputCols=[
                 "cylinders",
                 "displacement",
                 "horsepower",
-                "weight",
-                "acceleration",
             ],
             outputCol="features",
             handleInvalid="skip",
@@ -3114,50 +3210,115 @@ To save a model call `fit` on the `Model` object.
         # Random test/train split.
         train_df, test_df = assembled.randomSplit([0.7, 0.3])
 
-        # Define the model.
-        rf = RandomForestRegressor(
+        # A regression model.
+        rf_regressor = RandomForestRegressor(
             numTrees=50,
             featuresCol="features",
             labelCol="mpg",
         )
 
-        # Train the model.
-        rf_model = rf.fit(train_df)
-        rf_model.write().overwrite().save("rf_regression.model")
+        # A classification model.
+        rf_classifier = RandomForestClassifier(
+            numTrees=50,
+            featuresCol="features",
+            labelCol="origin",
+        )
+
+        # Fit the models.
+        rf_regressor_model = rf_regressor.fit(train_df)
+        rf_regressor_model.write().overwrite().save("rf_regressor_saveload.model")
+        rf_classifier_model = rf_classifier.fit(train_df)
+        rf_classifier_model.write().overwrite().save("rf_classifier_saveload.model")
 
 
-class ml_load_model(snippet):
+class ml_load_model_transform(snippet):
     def __init__(self):
         super().__init__()
-        self.name = "Load a model and use it for predictions"
+        self.name = "Load a model and use it for transformations"
         self.category = "Machine Learning"
         self.dataset = "auto-mpg-fixed.csv"
-        self.priority = 20
+        self.priority = 1410
         self.preconvert = True
+        self.docmd = """
+When you are loading a Model, the class you use to call `load` needs to end in `Model`.
+
+The example below loads a `RandomForestRegressionModel` which was the output of the `fit` call on a `RandomForestRegression` estimator. Many people try to load this using the `RandomForestRegression` class but this is the Estimator class and won't work, instead we use the `RandomForestRegressionModel` class.
+
+After we load the Model we can use its `transform` method to convert a `DataFrame` into a new `DataFrame` containing a prediction column. The input `DataFrame` needs to have the same structure as the `DataFrame` use to `fit` the Estimator.
+"""
 
     def snippet(self, auto_df_fixed):
         from pyspark.ml.feature import VectorAssembler
         from pyspark.ml.regression import RandomForestRegressionModel
 
         # Model type and assembled features need to agree with the trained model.
-        rf_model = RandomForestRegressionModel.load("rf_regression.model")
+        rf_model = RandomForestRegressionModel.load("rf_regressor_saveload.model")
+
+        # The input DataFrame needs the same structure we used when we fit.
         vectorAssembler = VectorAssembler(
             inputCols=[
                 "cylinders",
                 "displacement",
                 "horsepower",
-                "weight",
-                "acceleration",
             ],
             outputCol="features",
             handleInvalid="skip",
         )
         assembled = vectorAssembler.transform(auto_df_fixed)
-
         predictions = rf_model.transform(assembled).select(
             "carname", "mpg", "prediction"
         )
-        return predictions
+        return (predictions, dict(truncate=False))
+
+
+class ml_load_model_predict(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Load a model and use it for predictions"
+        self.category = "Machine Learning"
+        self.dataset = "auto-mpg-fixed.csv"
+        self.priority = 1420
+        self.preconvert = True
+        self.docmd = """
+Some `Model`s support predictions on individual measurements using the `predict` method. The input to `predict` is a `Vector`. The fields in the `Vector` need to match what was used in the `Vector` column when fitting the `Model`.
+"""
+
+    def snippet(self, auto_df_fixed):
+        from pyspark.ml.linalg import Vectors
+        from pyspark.ml.regression import RandomForestRegressionModel
+
+        # Model type and assembled features need to agree with the trained model.
+        rf_model = RandomForestRegressionModel.load("rf_regressor_saveload.model")
+
+        input_vector = Vectors.dense([8, 307.0, 130.0])
+        prediction = rf_model.predict(input_vector)
+        print("Prediction is", prediction)
+        return "Prediction is " + str(prediction)
+
+
+class ml_load_model_predict(snippet):
+    def __init__(self):
+        super().__init__()
+        self.name = "Load a classification model and use it to compute confidences for output labels"
+        self.category = "Machine Learning"
+        self.dataset = "auto-mpg-fixed.csv"
+        self.priority = 1430
+        self.preconvert = True
+        self.docmd = """
+Classification `Model`s let you get confidence levels for each possible output class using the `predictProbability` method. This is Spark's equivalent of sklearn's `predict_proba`.
+"""
+
+    def snippet(self, auto_df_fixed):
+        from pyspark.ml.linalg import Vectors
+        from pyspark.ml.classification import RandomForestClassificationModel
+
+        # Model type and assembled features need to agree with the trained model.
+        rf_model = RandomForestClassificationModel.load("rf_classifier_saveload.model")
+
+        input_vector = Vectors.dense([8, 307.0, 130.0])
+        prediction = rf_model.predictProbability(input_vector)
+        print("Predictions are", prediction)
+        return "Predictions are " + str(prediction)
 
 
 class performance_get_spark_version(snippet):
@@ -3360,13 +3521,20 @@ class performance_partitioning(snippet):
         self.category = "Performance"
         self.dataset = "auto-mpg.csv"
         self.priority = 320
+        self.docmd = """
+`repartition` a DataFrame to change its number of partitions, potentially moving data across executors in the process. `repartition` accepts 2 optional arguments:
+* A number of partitions. If not specified, the system-wide default is used.
+* A list of partitioning columns. Data with the same value in these columns will remain in the same partition.
+
+Repartitioning is commonly used to reduce the number of output files when saving a `DataFrame`.
+"""
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import col
 
         df = auto_df.repartition(col("modelyear"))
         number_of_partitions = 5
-        df = auto_df.repartitionByRange(number_of_partitions, col("mpg"))
+        df = auto_df.repartition(number_of_partitions, col("mpg"))
         return df
 
 
@@ -3377,6 +3545,9 @@ class performance_reduce_dataframe_partitions(snippet):
         self.category = "Performance"
         self.dataset = "auto-mpg.csv"
         self.priority = 330
+        self.docmd = """
+Coalescing reduces the number of partitions in a way that can be much more effecient than using `repartition`.
+"""
 
     def snippet(self, auto_df):
         import math
@@ -3393,6 +3564,9 @@ class performance_shuffle_partitions(snippet):
         self.category = "Performance"
         self.dataset = "auto-mpg.csv"
         self.priority = 340
+        self.docmd = """
+When you have smaller datasets, reducing the number of shuffle partitions can speed up processing and reduce the number of small files created.
+"""
 
     def snippet(self, auto_df):
         # Default shuffle partitions is usually 200.
@@ -3448,6 +3622,7 @@ class performance_spark_change_configuration(snippet):
         self.dataset = "UNUSED"
         self.priority = 510
         self.skip_run = True
+        self.docmd = "IGNORE"
 
     def snippet(self, df):
         key = "spark.hadoop.mapreduce.fileoutputcommitter.algorithm.version"
@@ -3493,6 +3668,11 @@ Job 0 returns Row(mpg='20.5', count=660) at 2022-03-13 08:53:09.286087
 Job 5 returns Row(acceleration='8.5', count=240) at 2022-03-13 08:53:09.298583
 Job 4 returns Row(weight='3574.', count=140) at 2022-03-13 08:53:09.476974
 Job 8 returns Row(carname='audi 100 ls', count=60) at 2022-03-13 08:53:09.639598
+"""
+        self.docmd = """
+You can run multiple concurrent Spark jobs by setting `spark.scheduler.pool` before performing an operation. You will need to use multiple threads since operations block.
+
+Pools do not need to be defined ahead of time.
 """
 
     def snippet(self, auto_df):
@@ -3554,6 +3734,7 @@ class performance_increase_heap_space(snippet):
         self.category = "Performance"
         self.dataset = "auto-mpg.csv"
         self.priority = 10000
+        self.docmd = "IGNORE"
 
     def snippet(self, df):
         # Memory configuration depends entirely on your runtime.
@@ -3604,6 +3785,9 @@ class pandas_pandas_dataframe_to_spark_dataframe_custom(snippet):
         self.category = "Pandas"
         self.dataset = "auto-mpg.csv"
         self.priority = 120
+        self.docmd = """
+`createDataFrame` supports Pandas DataFrames as input, but require you to specify the schema manually.
+"""
 
     def snippet(self, auto_df):
         # EXCLUDE
@@ -3628,6 +3812,9 @@ class pandas_udaf(snippet):
         self.preconvert = True
         self.priority = 300
         self.dataset = "auto-mpg.csv"
+        self.docmd = """
+If you need to define a custom analytical function (UDAF), Pandas gives an easy way to do that. Be aware that the aggregation will run on a random executor, which needs to be large enough to hold the entire column in memory.
+"""
 
     def snippet(self, auto_df):
         from pyspark.sql.functions import pandas_udf
@@ -3649,6 +3836,9 @@ class pandas_rescale_column(snippet):
         self.dataset = "auto-mpg.csv"
         self.preconvert = True
         self.priority = 400
+        self.docmd = """
+You may want to run column-wise operations in Pandas for simplicity or other reasons. The example below shows rescaling a column to lie between 0 and 100 which is clunky in Spark and easy in Pandas. On the other hand if the columns are very tall (you have lots of data) you will run out of memory and your application will crash. Ultimately it's a tradeoff between simplicity and scale.
+"""
 
     def snippet(self, auto_df):
         def rescale(pdf):
@@ -3794,11 +3984,11 @@ class profile_outliers(snippet):
         self.dataset = "auto-mpg.csv"
         self.priority = 600
         self.preconvert = True
+        self.docmd = """
+This example removes outliers using the Median Absolute Deviation. Outliers are identified by variances in a numeric column. Tune outlier sensitivity using z_score_threshold.
+"""
 
     def snippet(self, auto_df):
-        # This approach uses the Median Absolute Deviation.
-        # Outliers are based on variances in a single numeric column.
-        # Tune outlier sensitivity using z_score_threshold.
         from pyspark.sql.functions import col, sqrt
 
         target_column = "mpg"
@@ -3844,6 +4034,28 @@ class timeseries_zero_fill(snippet):
         self.dataset = "customer_spend.csv"
         self.priority = 100
         self.preconvert = True
+        self.docmd = """
+Imagine you have a time series dataset that contains:
+
+* Customer ID
+* Year-Month (YYYY-MM)
+* Amount customer spent in that month.
+
+This data is useful to compute things like biggest spender, most frequent buyer, etc.
+
+Imagine though that this dataset doesn't contain a record for customers who didn't buy anything in that month. This will create all kinds of problems, for example the average monthly spend will skew up because no zero values will be included in the average. To answer questions like these we need to create zero-value records for anything that is missing.
+
+In SQL this is handled with the [Partitioned Outer Join](https://www.oracle.com/ocom/groups/public/@otn/documents/webcontent/270646.htm). This example shows you how you can roll you own in Spark:
+* Get the distinct list of Customer IDs
+* Get the distinct list of dates (all possible YYYY-MM vales)
+* Cross-join these two lists to produce all possible customer ID / date combinations
+* Perform a right outer join between the original `DataFrame` and the cross joined "all combinations" list
+* If the right outer join produces a null, replace it with a zero
+
+The output of this is a row for each customer ID / date combination. The value for spend_dollars is either the value from the original `DataFrame` or 0 if there was no corresponding row in the original `DataFrame`.
+
+You may want to filter the results to remove any rows belonging to a customer before their first actual purchase. Refer to the code for "First Time an ID is Seen" for how to find that information.
+"""
 
     def snippet(self, spend_df):
         from pyspark.sql.functions import coalesce, lit
@@ -3868,6 +4080,7 @@ class timeseries_first_seen(snippet):
         self.dataset = "customer_spend.csv"
         self.priority = 150
         self.preconvert = True
+        self.docmd = "IGNORE"
 
     def snippet(self, spend_df):
         from pyspark.sql.functions import first
@@ -3886,6 +4099,9 @@ class timeseries_running_sum(snippet):
         self.dataset = "customer_spend.csv"
         self.priority = 200
         self.preconvert = True
+        self.docmd = """
+A comulative sum can be computed using using the standard `sum` function windowed from unbounded preceeding rows to the current row.
+"""
 
     def snippet(self, spend_df):
         from pyspark.sql.functions import sum
@@ -3909,6 +4125,9 @@ class timeseries_running_sum_period(snippet):
         self.dataset = "customer_spend.csv"
         self.priority = 210
         self.preconvert = True
+        self.docmd = """
+A comulative sum within particular periods be computed using using the standard `sum` function, windowed from unbounded preceeding rows to the current row and using multiple partitioning keys, one of which represents time periods.
+"""
 
     def snippet(self, spend_df):
         from pyspark.sql.functions import sum, year
@@ -3933,6 +4152,9 @@ class timeseries_running_average(snippet):
         self.dataset = "customer_spend.csv"
         self.priority = 300
         self.preconvert = True
+        self.docmd = """
+A comulative average can be computed using using the standard `avg` function windowed from unbounded preceeding rows to the current row.
+"""
 
     def snippet(self, spend_df):
         from pyspark.sql.functions import avg
@@ -3956,6 +4178,9 @@ class timeseries_running_average_period(snippet):
         self.dataset = "customer_spend.csv"
         self.priority = 310
         self.preconvert = True
+        self.docmd = """
+A comulative average within particular periods be computed using using the standard `avg` function, windowed from unbounded preceeding rows to the current row and using multiple partitioning keys, one of which represents time periods.
+"""
 
     def snippet(self, spend_df):
         from pyspark.sql.functions import avg, year
@@ -3979,6 +4204,9 @@ class fileprocessing_load_files(snippet):
         self.category = "File Processing"
         self.dataset = "UNUSED"
         self.priority = 100
+        self.docmd = """
+This example loads details of local files into a DataFrame. This is a common setup to processing files using `foreach`.
+"""
 
     def snippet(self, df):
         from pyspark.sql.types import (
@@ -4034,10 +4262,19 @@ class fileprocessing_load_files_oci(snippet):
         self.category = "File Processing"
         self.dataset = "UNUSED"
         self.priority = 200
+        self.docmd = """
+This example loads details of files in an OCI Object Storage bucket into a DataFrame.
+"""
 
     def snippet(self, df):
-        # EXCLUDE
         import oci
+        from pyspark.sql.types import (
+            StructField,
+            StructType,
+            LongType,
+            StringType,
+            TimestampType,
+        )
 
         def get_authenticated_client(client):
             config = oci.config.from_file()
@@ -4046,14 +4283,6 @@ class fileprocessing_load_files_oci(snippet):
 
         object_store_client = get_authenticated_client(
             oci.object_storage.ObjectStorageClient
-        )
-        # INCLUDE
-        from pyspark.sql.types import (
-            StructField,
-            StructType,
-            LongType,
-            StringType,
-            TimestampType,
         )
 
         # Requires an object_store_client object.
@@ -4086,6 +4315,13 @@ class fileprocessing_transform_images(snippet):
         self.category = "File Processing"
         self.dataset = "UNUSED"
         self.priority = 300
+        self.docmd = """
+In addition to data processing Spark can be used for other types of parallel processing. This example transforms images. The process is:
+
+* Get a list of files.
+* Create a DataFrame containing the file names.
+* Use `foreach` to call a Python UDF. Each call of the UDF gets a file name.
+"""
 
     def snippet(self, df):
         from PIL import Image
@@ -4477,6 +4713,7 @@ Batch: 3
 |{2021-03-20 05:28:00, 2021-03-20 05:29:00}|pontiac     |202.5             |1.6162433096685E9   |2    |
 +------------------------------------------+------------+------------------+--------------------+-----+
 """
+        self.docmd = "IGNORE"
 
     def snippet(self, df):
         from pyspark.sql.functions import avg, count, current_timestamp, window
@@ -4564,6 +4801,9 @@ Batch: 2
 |       71|107.03703703703704|   28|
 |       70|147.82758620689654|   29|
 +---------+------------------+-----+
+"""
+        self.docmd = """
+This example shows how to deal with an input collection of CSV files. The key thing is you need to specify the schema explicitly, other than that you can use normal streaming operations.
 """
 
     def snippet(self, df):

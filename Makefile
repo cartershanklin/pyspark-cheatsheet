@@ -1,5 +1,5 @@
 clean:
-	rm -rf best_pipeline_model.model delta_tests fit_cross_validator.model header.csv output.csv output.parquet single.csv spark_warehouse
+	rm -rf *.model delta_tests delta_table_metadata header.csv output.csv output.parquet single.csv spark_warehouse
 
 readme:
 	${PYSPARK_PYTHON} cheatsheet.py
