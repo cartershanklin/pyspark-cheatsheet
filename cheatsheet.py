@@ -3296,7 +3296,7 @@ Some `Model`s support predictions on individual measurements using the `predict`
         return "Prediction is " + str(prediction)
 
 
-class ml_load_model_predict(snippet):
+class ml_load_model_predictproba(snippet):
     def __init__(self):
         super().__init__()
         self.name = "Load a classification model and use it to compute confidences for output labels"

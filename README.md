@@ -10,7 +10,7 @@ These snippets use DataFrames loaded from various data sources:
 - date_examples.csv, a generated dataset with various date and time formats.
 - weblog.csv, a cleaned version of this [web log dataset](https://www.kaggle.com/datasets/shawon10/web-log-dataset).
 
-These snippets were tested against the Spark 3.2.2 API. This page was last updated 2022-09-17 23:12:03.
+These snippets were tested against the Spark 3.2.2 API. This page was last updated 2022-09-19 15:31:03.
 
 Make note of these helpful links:
 - [PySpark DataFrame Operations](https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/dataframe.html)
@@ -212,6 +212,7 @@ Table of contents
       * [Compute correlation matrix](#compute-correlation-matrix)
       * [Save a model](#save-a-model)
       * [Load a model and use it for transformations](#load-a-model-and-use-it-for-transformations)
+      * [Load a model and use it for predictions](#load-a-model-and-use-it-for-predictions)
       * [Load a classification model and use it to compute confidences for output labels](#load-a-classification-model-and-use-it-to-compute-confidences-for-output-labels)
    * [Performance](#performance)
       * [Get the Spark version](#get-the-spark-version)
@@ -3940,7 +3941,7 @@ df = dt.history().select("version operation operationMetrics".split())
 +-------+---------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 |version|operation|operationMetrics                                                                                                                                                                                                                                                                                                   |
 +-------+---------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-|2      |MERGE    |{numTargetRowsCopied -> 373, numTargetRowsDeleted -> 0, numTargetFilesAdded -> 1, executionTimeMs -> 1203, numTargetRowsInserted -> 0, scanTimeMs -> 642, numTargetRowsUpdated -> 25, numOutputRows -> 398, numTargetChangeFilesAdded -> 0, numSourceRows -> 398, numTargetFilesRemoved -> 1, rewriteTimeMs -> 558}|
+|2      |MERGE    |{numTargetRowsCopied -> 373, numTargetRowsDeleted -> 0, numTargetFilesAdded -> 1, executionTimeMs -> 1224, numTargetRowsInserted -> 0, scanTimeMs -> 652, numTargetRowsUpdated -> 25, numOutputRows -> 398, numTargetChangeFilesAdded -> 0, numSourceRows -> 398, numTargetFilesRemoved -> 1, rewriteTimeMs -> 570}|
 |1      |WRITE    |{numFiles -> 1, numOutputRows -> 398, numOutputBytes -> 12032}                                                                                                                                                                                                                                                     |
 |0      |WRITE    |{numFiles -> 1, numOutputRows -> 398, numOutputBytes -> 12032}                                                                                                                                                                                                                                                     |
 +-------+---------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -4029,7 +4030,7 @@ df = (
 ```
 ```
 # Code snippet result:
-Most recent timestamp is 2022-09-17 23:12:43.623000
+Most recent timestamp is 2022-09-19 15:31:47.896000
 ```
 
 Compact a Delta Table
@@ -4109,7 +4110,7 @@ df = dt.history().select("version timestamp userMetadata".split())
 +-------+-----------------------+------------------------------------------------------+
 |version|              timestamp|                                          userMetadata|
 +-------+-----------------------+------------------------------------------------------+
-|      0|2022-09-17 23:13:10.107|{'user': 'opc', 'write_timestamp': 1663456389.9404569}|
+|      0|2022-09-19 15:32:14.228|{'user': 'opc', 'write_timestamp': 1663601534.0695286}|
 +-------+-----------------------+------------------------------------------------------+
 ```
 
@@ -4971,7 +4972,7 @@ fit_cross_validator.write().overwrite().save("rf_regression_optimized.model")
 ```
 ```
 # Code snippet result:
-Best model has 40 trees.
+Best model has 90 trees.
 ```
 
 Encode string variables as numbers
@@ -5279,7 +5280,7 @@ print(performances)
 ```
 ```
 # Code snippet result:
-[['simple', DataFrame[features: vector, mpg: double, prediction: double], {'rmse': 3.441466679967791, 'mse': 11.843692909328531, 'r2': 0.8050829634584001, 'mae': 2.537098679502045}], ['complex', DataFrame[features: vector, mpg: double, prediction: double], {'rmse': 2.6583813910759475, 'mse': 7.066991620418889, 'r2': 0.8836953073283911, 'mae': 1.997412855106985}]]
+[['simple', DataFrame[features: vector, mpg: double, prediction: double], {'rmse': 3.432894112016524, 'mse': 11.78476198431772, 'r2': 0.8060528164722954, 'mae': 2.5112714648677437}], ['complex', DataFrame[features: vector, mpg: double, prediction: double], {'rmse': 2.653288425490808, 'mse': 7.039939468843489, 'r2': 0.8841405168806413, 'mae': 1.977904227604671}]]
 ```
 
 Get feature importances of a trained model
@@ -5311,12 +5312,12 @@ for feature, importance in zip(original_columns, real_model.featureImportances):
 ```
 ```
 # Code snippet result:
-cylinders contributes 23.397%
-displacement contributes 22.557%
-horsepower contributes 16.613%
-weight contributes 20.015%
-acceleration contributes 3.910%
-manufacturer_encoded contributes 8.464%
+cylinders contributes 26.162%
+displacement contributes 22.000%
+horsepower contributes 14.063%
+weight contributes 19.598%
+acceleration contributes 3.384%
+manufacturer_encoded contributes 9.990%
 modelyear_encoded contributes 0.000%
 ```
 
@@ -5535,18 +5536,39 @@ predictions = rf_model.transform(assembled).select(
 +-------------------------+----+------------------+
 |carname                  |mpg |prediction        |
 +-------------------------+----+------------------+
-|chevrolet chevelle malibu|18.0|16.006603920626578|
-|buick skylark 320        |15.0|14.22081363309075 |
-|plymouth satellite       |18.0|14.9648622321075  |
-|amc rebel sst            |16.0|15.799134889159259|
-|ford torino              |17.0|16.132384077190974|
-|ford galaxie 500         |15.0|13.998961169182145|
-|chevrolet impala         |14.0|13.998961169182145|
-|plymouth fury iii        |14.0|13.998961169182145|
-|pontiac catalina         |14.0|13.998961169182145|
-|amc ambassador dpl       |15.0|14.062044502515478|
+|chevrolet chevelle malibu|18.0|15.778443947501474|
+|buick skylark 320        |15.0|14.212822272160825|
+|plymouth satellite       |18.0|14.869471397970155|
+|amc rebel sst            |16.0|14.970472359152096|
+|ford torino              |17.0|15.182078596678009|
+|ford galaxie 500         |15.0|14.014965568083882|
+|chevrolet impala         |14.0|14.014965568083882|
+|plymouth fury iii        |14.0|14.014965568083882|
+|pontiac catalina         |14.0|14.014965568083882|
+|amc ambassador dpl       |15.0|14.095318058505338|
 +-------------------------+----+------------------+
 only showing top 10 rows
+```
+
+Load a model and use it for predictions
+---------------------------------------
+
+Some `Model`s support predictions on individual measurements using the `predict` method. The input to `predict` is a `Vector`. The fields in the `Vector` need to match what was used in the `Vector` column when fitting the `Model`.
+
+```python
+from pyspark.ml.linalg import Vectors
+from pyspark.ml.regression import RandomForestRegressionModel
+
+# Model type and assembled features need to agree with the trained model.
+rf_model = RandomForestRegressionModel.load("rf_regressor_saveload.model")
+
+input_vector = Vectors.dense([8, 307.0, 130.0])
+prediction = rf_model.predict(input_vector)
+print("Prediction is", prediction)
+```
+```
+# Code snippet result:
+Prediction is 15.778443947501474
 ```
 
 Load a classification model and use it to compute confidences for output labels
@@ -5567,7 +5589,7 @@ print("Predictions are", prediction)
 ```
 ```
 # Code snippet result:
-Predictions are [0.0,0.9985439647403311,0.00029600821044671317,0.0011600270492221926]
+Predictions are [0.0,0.9987962767082716,0.0005902263592130315,0.0006134969325153375]
 ```
 
 Performance
@@ -5846,16 +5868,16 @@ df = (
 +----+---------+------------+----------+------+------------+---------+------+----------+
 | mpg|cylinders|displacement|horsepower|weight|acceleration|modelyear|origin|   carname|
 +----+---------+------------+----------+------+------------+---------+------+----------+
-|14.0|        8|       440.0|     215.0| 4312.|         8.5|       70|     1|plymout...|
-|15.0|        8|       390.0|     190.0| 3850.|         8.5|       70|     1|amc amb...|
+|14.0|        8|       455.0|     225.0| 3086.|        10.0|       70|     1|buick e...|
 |24.0|        4|       113.0|     95.00| 2372.|        15.0|       70|     3|toyota ...|
-|18.0|        6|       199.0|     97.00| 2774.|        15.5|       70|     1|amc hornet|
-|26.0|        4|       97.00|     46.00| 1835.|        20.5|       70|     2|volkswa...|
-|25.0|        4|       113.0|     95.00| 2228.|        14.0|       71|     3|toyota ...|
+|27.0|        4|       97.00|     88.00| 2130.|        14.5|       71|     3|datsun ...|
+|28.0|        4|       140.0|     90.00| 2264.|        15.5|       71|     1|chevrol...|
+|19.0|        6|       232.0|     100.0| 2634.|        13.0|       71|     1|amc gre...|
 |14.0|        8|       350.0|     165.0| 4209.|        12.0|       71|     1|chevrol...|
+|14.0|        8|       351.0|     153.0| 4154.|        13.5|       71|     1|ford ga...|
 |28.0|        4|       116.0|     90.00| 2123.|        14.0|       71|     2| opel 1900|
-|31.0|        4|       71.00|     65.00| 1773.|        19.0|       71|     3|toyota ...|
-|21.0|        4|       122.0|     86.00| 2226.|        16.5|       72|     1|ford pi...|
+|15.0|        8|       304.0|     150.0| 3892.|        12.5|       72|     1|amc mat...|
+|15.0|        8|       318.0|     150.0| 3777.|        12.5|       73|     1|dodge c...|
 +----+---------+------------+----------+------+------------+---------+------+----------+
 only showing top 10 rows
 ```
@@ -5925,7 +5947,7 @@ print(spark.sparkContext.getConf().getAll())
 ```
 ```
 # Code snippet result:
-[('spark.app.initial.jar.urls', 'spark://arm.subnet.vcn.oraclevcn.com:43473/jars/io.delta_delta-storage-2.0.0.jar,spark://arm.subnet.vcn.oraclevcn.com:43473/jars/io.delta_delta-core_2.12-2.0.0.jar,spark://arm.subnet.vcn.oraclevcn.com:43473/jars/org.postgresql_postgresql-42.4.0.jar,spark://arm.subnet.vcn.oraclevcn.com:43473/jars/org.antlr_antlr4-runtime-4.8.jar,spark://arm.subnet.vcn.oraclevcn.com:43473/jars/org.codehaus.jackson_jackson-core-asl-1.9.13.jar,spark://arm.subnet.vcn.oraclevcn.com:43473/jars/org.checkerframework_checker-qual-3.5.0.jar'), ('spark.driver.memory', '2G'), ('spark.jars.packages', 'io.delta:delta-core_2.12:2.0.0,org.postgresql:postgresql:42.4.0'), ('spark.executor.memory', '2G'), ('spark.app.startTime', '1663456315357'), ('spark.executor.id', 'driver'), ('spark.submit.pyFiles', '/home/opc/.ivy2/jars/io.delta_delta-core_2.12-2.0.0.jar,/home/opc/.ivy2/jars/org.postgresql_postgresql-42.4.0.jar,/home/opc/.ivy2/jars/io.delta_delta-storage-2.0.0.jar,/home/opc/.ivy2/jars/org.antlr_antlr4-runtime-4.8.jar,/home/opc/.ivy2/jars/org.codehaus.jackson_jackson-core-asl-1.9.13.jar,/home/opc/.ivy2/jars/org.checkerframework_checker-qual-3.5.0.jar'), ('spark.repl.local.jars', 'file:///home/opc/.ivy2/jars/io.delta_delta-core_2.12-2.0.0.jar,file:///home/opc/.ivy2/jars/org.postgresql_postgresql-42.4.0.jar,file:///home/opc/.ivy2/jars/io.delta_delta-storage-2.0.0.jar,file:///home/opc/.ivy2/jars/org.antlr_antlr4-runtime-4.8.jar,file:///home/opc/.ivy2/jars/org.codehaus.jackson_jackson-core-asl-1.9.13.jar,file:///home/opc/.ivy2/jars/org.checkerframework_checker-qual-3.5.0.jar'), ('spark.files', 'file:///home/opc/.ivy2/jars/io.delta_delta-core_2.12-2.0.0.jar,file:///home/opc/.ivy2/jars/org.postgresql_postgresql-42.4.0.jar,file:///home/opc/.ivy2/jars/io.delta_delta-storage-2.0.0.jar,file:///home/opc/.ivy2/jars/org.antlr_antlr4-runtime-4.8.jar,file:///home/opc/.ivy2/jars/org.codehaus.jackson_jackson-core-asl-1.9.13.jar,file:///home/opc/.ivy2/jars/org.checkerframework_checker-qual-3.5.0.jar'), ('spark.sql.extensions', 'io.delta.sql.DeltaSparkSessionExtension'), ('spark.rdd.compress', 'True'), ('spark.app.initial.file.urls', 'file:///home/opc/.ivy2/jars/org.checkerframework_checker-qual-3.5.0.jar,file:///home/opc/.ivy2/jars/io.delta_delta-storage-2.0.0.jar,file:///home/opc/.ivy2/jars/io.delta_delta-core_2.12-2.0.0.jar,file:///home/opc/.ivy2/jars/org.postgresql_postgresql-42.4.0.jar,file:///home/opc/.ivy2/jars/org.codehaus.jackson_jackson-core-asl-1.9.13.jar,file:///home/opc/.ivy2/jars/org.antlr_antlr4-runtime-4.8.jar'), ('spark.serializer.objectStreamReset', '100'), ('spark.jars', 'file:///home/opc/.ivy2/jars/io.delta_delta-core_2.12-2.0.0.jar,file:///home/opc/.ivy2/jars/org.postgresql_postgresql-42.4.0.jar,file:///home/opc/.ivy2/jars/io.delta_delta-storage-2.0.0.jar,file:///home/opc/.ivy2/jars/org.antlr_antlr4-runtime-4.8.jar,file:///home/opc/.ivy2/jars/org.codehaus.jackson_jackson-core-asl-1.9.13.jar,file:///home/opc/.ivy2/jars/org.checkerframework_checker-qual-3.5.0.jar'), ('spark.master', 'local[*]'), ('spark.submit.deployMode', 'client'), ('spark.sql.warehouse.dir', 'file:/home/opc/pyspark-cheatsheet/spark_warehouse'), ('spark.driver.port', '43473'), ('spark.app.name', 'cheatsheet'), ('spark.driver.host', 'arm.subnet.vcn.oraclevcn.com'), ('spark.app.id', 'local-1663456316246'), ('spark.ui.showConsoleProgress', 'true'), ('spark.sql.catalog.spark_catalog', 'org.apache.spark.sql.delta.catalog.DeltaCatalog')]
+[('spark.driver.memory', '2G'), ('spark.jars.packages', 'io.delta:delta-core_2.12:2.0.0,org.postgresql:postgresql:42.4.0'), ('spark.executor.memory', '2G'), ('spark.executor.id', 'driver'), ('spark.submit.pyFiles', '/home/opc/.ivy2/jars/io.delta_delta-core_2.12-2.0.0.jar,/home/opc/.ivy2/jars/org.postgresql_postgresql-42.4.0.jar,/home/opc/.ivy2/jars/io.delta_delta-storage-2.0.0.jar,/home/opc/.ivy2/jars/org.antlr_antlr4-runtime-4.8.jar,/home/opc/.ivy2/jars/org.codehaus.jackson_jackson-core-asl-1.9.13.jar,/home/opc/.ivy2/jars/org.checkerframework_checker-qual-3.5.0.jar'), ('spark.repl.local.jars', 'file:///home/opc/.ivy2/jars/io.delta_delta-core_2.12-2.0.0.jar,file:///home/opc/.ivy2/jars/org.postgresql_postgresql-42.4.0.jar,file:///home/opc/.ivy2/jars/io.delta_delta-storage-2.0.0.jar,file:///home/opc/.ivy2/jars/org.antlr_antlr4-runtime-4.8.jar,file:///home/opc/.ivy2/jars/org.codehaus.jackson_jackson-core-asl-1.9.13.jar,file:///home/opc/.ivy2/jars/org.checkerframework_checker-qual-3.5.0.jar'), ('spark.files', 'file:///home/opc/.ivy2/jars/io.delta_delta-core_2.12-2.0.0.jar,file:///home/opc/.ivy2/jars/org.postgresql_postgresql-42.4.0.jar,file:///home/opc/.ivy2/jars/io.delta_delta-storage-2.0.0.jar,file:///home/opc/.ivy2/jars/org.antlr_antlr4-runtime-4.8.jar,file:///home/opc/.ivy2/jars/org.codehaus.jackson_jackson-core-asl-1.9.13.jar,file:///home/opc/.ivy2/jars/org.checkerframework_checker-qual-3.5.0.jar'), ('spark.app.startTime', '1663601453886'), ('spark.sql.extensions', 'io.delta.sql.DeltaSparkSessionExtension'), ('spark.rdd.compress', 'True'), ('spark.app.initial.jar.urls', 'spark://arm.subnet.vcn.oraclevcn.com:35719/jars/org.codehaus.jackson_jackson-core-asl-1.9.13.jar,spark://arm.subnet.vcn.oraclevcn.com:35719/jars/io.delta_delta-storage-2.0.0.jar,spark://arm.subnet.vcn.oraclevcn.com:35719/jars/org.postgresql_postgresql-42.4.0.jar,spark://arm.subnet.vcn.oraclevcn.com:35719/jars/org.antlr_antlr4-runtime-4.8.jar,spark://arm.subnet.vcn.oraclevcn.com:35719/jars/io.delta_delta-core_2.12-2.0.0.jar,spark://arm.subnet.vcn.oraclevcn.com:35719/jars/org.checkerframework_checker-qual-3.5.0.jar'), ('spark.app.initial.file.urls', 'file:///home/opc/.ivy2/jars/org.checkerframework_checker-qual-3.5.0.jar,file:///home/opc/.ivy2/jars/io.delta_delta-storage-2.0.0.jar,file:///home/opc/.ivy2/jars/io.delta_delta-core_2.12-2.0.0.jar,file:///home/opc/.ivy2/jars/org.postgresql_postgresql-42.4.0.jar,file:///home/opc/.ivy2/jars/org.codehaus.jackson_jackson-core-asl-1.9.13.jar,file:///home/opc/.ivy2/jars/org.antlr_antlr4-runtime-4.8.jar'), ('spark.serializer.objectStreamReset', '100'), ('spark.jars', 'file:///home/opc/.ivy2/jars/io.delta_delta-core_2.12-2.0.0.jar,file:///home/opc/.ivy2/jars/org.postgresql_postgresql-42.4.0.jar,file:///home/opc/.ivy2/jars/io.delta_delta-storage-2.0.0.jar,file:///home/opc/.ivy2/jars/org.antlr_antlr4-runtime-4.8.jar,file:///home/opc/.ivy2/jars/org.codehaus.jackson_jackson-core-asl-1.9.13.jar,file:///home/opc/.ivy2/jars/org.checkerframework_checker-qual-3.5.0.jar'), ('spark.master', 'local[*]'), ('spark.submit.deployMode', 'client'), ('spark.app.id', 'local-1663601454913'), ('spark.sql.warehouse.dir', 'file:/home/opc/pyspark-cheatsheet/spark_warehouse'), ('spark.app.name', 'cheatsheet'), ('spark.driver.host', 'arm.subnet.vcn.oraclevcn.com'), ('spark.ui.showConsoleProgress', 'true'), ('spark.driver.port', '35719'), ('spark.sql.catalog.spark_catalog', 'org.apache.spark.sql.delta.catalog.DeltaCatalog')]
 ```
 
 Set Spark configuration properties
