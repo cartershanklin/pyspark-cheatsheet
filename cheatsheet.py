@@ -4100,7 +4100,7 @@ class timeseries_running_sum(snippet):
         self.priority = 200
         self.preconvert = True
         self.docmd = """
-A comulative sum can be computed using using the standard `sum` function windowed from unbounded preceeding rows to the current row.
+A comulative sum can be computed using using the standard `sum` function windowed from unbounded preceding rows to the current row.
 """
 
     def snippet(self, spend_df):
@@ -4126,7 +4126,7 @@ class timeseries_running_sum_period(snippet):
         self.priority = 210
         self.preconvert = True
         self.docmd = """
-A comulative sum within particular periods be computed using using the standard `sum` function, windowed from unbounded preceeding rows to the current row and using multiple partitioning keys, one of which represents time periods.
+A comulative sum within particular periods be computed using using the standard `sum` function, windowed from unbounded preceding rows to the current row and using multiple partitioning keys, one of which represents time periods.
 """
 
     def snippet(self, spend_df):
@@ -4153,7 +4153,7 @@ class timeseries_running_average(snippet):
         self.priority = 300
         self.preconvert = True
         self.docmd = """
-A comulative average can be computed using using the standard `avg` function windowed from unbounded preceeding rows to the current row.
+A comulative average can be computed using using the standard `avg` function windowed from unbounded preceding rows to the current row.
 """
 
     def snippet(self, spend_df):
@@ -4179,7 +4179,7 @@ class timeseries_running_average_period(snippet):
         self.priority = 310
         self.preconvert = True
         self.docmd = """
-A comulative average within particular periods be computed using using the standard `avg` function, windowed from unbounded preceeding rows to the current row and using multiple partitioning keys, one of which represents time periods.
+A comulative average within particular periods be computed using using the standard `avg` function, windowed from unbounded preceding rows to the current row and using multiple partitioning keys, one of which represents time periods.
 """
 
     def snippet(self, spend_df):
